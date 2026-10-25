@@ -70,8 +70,7 @@ Everything happens in your browser. No text, fonts, or images leave your compute
 
 - Output is a **flat PNG**: the text is not live or editable once exported. Re-open the app to change it.
 - Auto-wrap breaks only at spaces (no hyphenation, no mid-word breaks), and a word wider than the limit keeps its own line. Line nudges are tied to line numbers, so changing the max width can change which text a nudge applies to.
-- Emoji are never drawn by the app. They're intentionally left as empty slots.
-- No animation. Exports are still images.
+- Emoji are never drawn by the app. They're intentionally left as empty slots so you can insert any emoji style (iOS, Android) you like in post. This app never bundles or distributes licensed emojis such as the Apple Emoji suite.
 
 ## Development
 
