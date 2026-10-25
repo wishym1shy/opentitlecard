@@ -201,6 +201,9 @@
       <label>Size <span class="val" id="v_size"></span></label><input type="range" id="size" min="30" max="260" step="1">
       <label>Line height <span class="val" id="v_lh"></span></label><input type="range" id="lh" min="0.9" max="1.8" step="0.01">
       <label>Tracking <span class="val" id="v_track"></span></label><input type="range" id="track" min="-6" max="20" step="0.5">
+      <label for="stretchX">Stretch width <span class="val" id="v_stretchX"></span></label><input type="range" id="stretchX" min="50" max="200" step="1">
+      <label for="stretchY">Stretch height <span class="val" id="v_stretchY"></span></label><input type="range" id="stretchY" min="50" max="200" step="1">
+      <div class="hint">Below 100% squishes the letters, above stretches them. The box grows or shrinks around them; padding stays the same and emoji slots stay square.</div>
       <label for="wrap">Max card width <span class="val" id="v_wrap"></span></label><input type="range" id="wrap" min="0" max="1900" step="10">
       <div class="hint">Off = only your own line breaks. Otherwise long lines wrap at spaces to fit. Line nudges stay with line numbers.</div>
       <div class="row tight" style="margin-top:8px">
@@ -463,6 +466,7 @@ const DEFAULTS = {
   textColor:'#000000', outlineColor:'#000000', outlineW:0, textShadow:true,
   bgOn:true, bgColor:'#ffffff', bgOpacity:100, padX:0.42, radius:0.17, boxShadow:true, topPad:0.44, botPad:0.49, clear:0.24, wrap:0,
   slot:1.25, showGuides:true,
+  stretchX:100, stretchY:100,   // text stretch/squish, percent (see stretch())
   frame:'1920x1080', fw:1920, fh:1080, offX:0, offY:0, tight:false, exportScale:2
 };
 const STYLE_KEYS = Object.keys(DEFAULTS).filter(k=>!['showGuides','offX','offY'].includes(k));
@@ -530,6 +534,8 @@ async function loadBundledInter(){
 }
 const fontStr = (it,px) => `${it?'italic ':''}${S.weight} ${px}px ${fontStack(S.family)}`;
 const fontReady = () => fontAvailable(S.family, S.weight);
+// Stretch/squish factors. Clamped here too, so a hand-edited preset can't mirror the text (negative) or flatten it to 0.
+const stretch = () => ({sx:clamp(S.stretchX,50,200)/100, sy:clamp(S.stretchY,50,200)/100});
 function updateFontChip(){
   const ok = fontReady();
   const chip=$('#fontChip'), ban=$('#banner');
@@ -555,12 +561,12 @@ const mctx = document.createElement('canvas').getContext('2d');
    A word wider than the limit keeps its own line rather than being split. */
 function wrapItems(items, limit){
   if(!(limit>0)) return [items];
-  const pieces=[];
+  const pieces=[], {sx}=stretch();
   for(const it of items){
     if(it.k==='slot'){ pieces.push({...it,sp:false}); continue; }
     mctx.font=fontStr(it.it,S.size);
     for(const m of it.text.matchAll(/\s+|\S+/g)){
-      pieces.push({k:'t',text:m[0],s:it.s+m.index,e:it.s+m.index+m[0].length,c:it.c,it:it.it,w:mctx.measureText(m[0]).width,sp:/^\s/.test(m[0])});
+      pieces.push({k:'t',text:m[0],s:it.s+m.index,e:it.s+m.index+m[0].length,c:it.c,it:it.it,w:mctx.measureText(m[0]).width*sx,sp:/^\s/.test(m[0])});
     }
   }
   const out=[]; let line=[], lineW=0, gap=[], gapW=0, word=[], wordW=0;
@@ -600,12 +606,17 @@ function italicShift(){
 }
 
 function layout(){
-  const size=S.size, pitch=size*S.lh, padX=S.padX*size, r=S.radius*size, slotW=S.slot*size;
+  const size=S.size, padX=S.padX*size, r=S.radius*size, slotW=S.slot*size, {sx,sy}=stretch();
   const wrapLimit=S.wrap>0?Math.max(1,S.wrap-2*padX):0; // S.wrap is the whole card (box) width, padding included
   mctx.letterSpacing = S.track+'px';
   mctx.font = fontStr(0,size);
-  const capH = (mctx.measureText('H').actualBoundingBoxAscent) || size*0.72;
-  const slantDx=italicShift();
+  const capH0 = (mctx.measureText('H').actualBoundingBoxAscent) || size*0.72;
+  /* Stretch scales the glyphs around their baseline origin, as draw() does with ctx.scale: widths (and tracking) by sx,
+     cap height and descenders by sy. Padding and margins stay in em of the font size, so the box hugs the stretched
+     letters exactly as it hugs normal ones. The line pitch grows by the extra cap height, so stacked boxes keep the
+     same overlap instead of the taller text running into the line above. At 100% x 100% nothing changes. */
+  const capH = capH0*sy, pitch = size*S.lh + capH0*(sy-1);
+  const slantDx=italicShift()*sx;   // the slant's lean is measured unscaled; the stretch widens it like the glyphs
   const lines=[]; let idx=0;
   for(const raw of S.text.split('\n')){
     const start=idx; idx+=raw.length+1;
@@ -628,10 +639,10 @@ function layout(){
       if(it.k==='slot'){ it.x=x; x+=it.w; hasSlot=true; below=Math.max(below,it.w/2-capH/2); continue; }
       const dx=it.it?slantDx:0;                 // keeps the slant centred on the run's advance box (see italicShift)
       mctx.font = fontStr(it.it,size);         // italicShift changed the measuring font
-      it.x=x+dx; const mm=mctx.measureText(it.text); it.w=mm.width; below=Math.max(below,mm.actualBoundingBoxDescent||0);
+      it.x=x+dx; const mm=mctx.measureText(it.text); it.w=mm.width*sx; below=Math.max(below,(mm.actualBoundingBoxDescent||0)*sy);
       const re=/\S+/g; let m;
       while((m=re.exec(it.text))){
-        const a=mctx.measureText(it.text.slice(0,m.index)).width, b=mctx.measureText(it.text.slice(0,m.index+m[0].length)).width;
+        const a=mctx.measureText(it.text.slice(0,m.index)).width*sx, b=mctx.measureText(it.text.slice(0,m.index+m[0].length)).width*sx;
         words.push({x0:x+dx+a,x1:x+dx+b,s:it.s+m.index,e:it.s+m.index+m[0].length});
       }
       x+=it.w;
@@ -662,7 +673,7 @@ function layout(){
     else { l.x1=cardW/2; l.x0=l.x1-l.W; l.tx=l.x1-padX-l.w; }
     const n=S.nudges[i]||{x:0,y:0}; l.nx=n.x||0; l.ny=n.y||0;
   });
-  return {lines,cardW,cardH,capH,r,size,slotW,padX};
+  return {lines,cardW,cardH,capH,r,size,slotW,padX,sx,sy};
 }
 
 /* ============ drawing ============ */
@@ -737,8 +748,12 @@ function draw(ctx, W, H, o){
       ctx.font=fontStr(it.it,S.size*u);
       const x=o.cx+(l.tx+l.nx+it.x)*u, y=o.cy+(l.base+l.ny)*u;
       if(S.textShadow){ ctx.shadowColor='rgba(0,0,0,0.32)'; ctx.shadowBlur=7*u; ctx.shadowOffsetY=3*u; } else { ctx.shadowColor='transparent'; }
-      if(S.outlineW>0){ ctx.strokeStyle=S.outlineColor; ctx.lineWidth=S.outlineW*2*u; ctx.strokeText(it.text,x,y); }
-      ctx.fillStyle=it.c||S.textColor; ctx.fillText(it.text,x,y);
+      // Stretch around the run's baseline origin. Canvas shadows ignore the transform, so they stay round and unscaled.
+      ctx.save(); ctx.translate(x,y); ctx.scale(L.sx,L.sy);
+      // the outline is scaled with the glyphs; dividing by the mean scale keeps its average thickness at the set width
+      if(S.outlineW>0){ ctx.strokeStyle=S.outlineColor; ctx.lineWidth=S.outlineW*2*u/Math.sqrt(L.sx*L.sy); ctx.strokeText(it.text,0,0); }
+      ctx.fillStyle=it.c||S.textColor; ctx.fillText(it.text,0,0);
+      ctx.restore();
     }
   }
   ctx.restore();
@@ -987,13 +1002,13 @@ cv.addEventListener('pointerup',e=>{
 
 /* ============ controls binding ============ */
 const bindings=[
-  ['family','text'],['weight','num'],['align','sel'],['size','num'],['lh','num'],['track','num'],['wrap','num'],
+  ['family','text'],['weight','num'],['align','sel'],['size','num'],['lh','num'],['track','num'],['stretchX','num'],['stretchY','num'],['wrap','num'],
   ['textColor','col'],['outlineColor','col'],['outlineW','num'],['textShadow','chk'],
   ['bgOn','chk'],['bgColor','col'],['bgOpacity','num'],['padX','num'],['radius','num'],['topPad','num'],['botPad','num'],['clear','num'],['boxShadow','chk'],
   ['slot','num'],['showGuides','chk'],['frame','sel'],['fw','num'],['fh','num'],['offX','num'],['offY','num'],
   ['tight','chk'],['exportScale','num']
 ];
-const fmt={size:v=>v+' px',lh:v=>(+v).toFixed(2)+'×',track:v=>v+' px',wrap:v=>(+v?v+' px':'Off'),outlineW:v=>v+' px',bgOpacity:v=>v+'%',padX:v=>(+v).toFixed(2)+' em',topPad:v=>(+v).toFixed(2)+' em',botPad:v=>(+v).toFixed(2)+' em',clear:v=>(+v).toFixed(2)+' em',radius:v=>(+v).toFixed(2)+' em',slot:v=>(+v).toFixed(2)+' em',exportScale:v=>v+'×'};
+const fmt={stretchX:v=>v+'%',stretchY:v=>v+'%',size:v=>v+' px',lh:v=>(+v).toFixed(2)+'×',track:v=>v+' px',wrap:v=>(+v?v+' px':'Off'),outlineW:v=>v+' px',bgOpacity:v=>v+'%',padX:v=>(+v).toFixed(2)+' em',topPad:v=>(+v).toFixed(2)+' em',botPad:v=>(+v).toFixed(2)+' em',clear:v=>(+v).toFixed(2)+' em',radius:v=>(+v).toFixed(2)+' em',slot:v=>(+v).toFixed(2)+' em',exportScale:v=>v+'×'};
 /* The export dialog has its own copies of the canvas controls (ids "x_<key>", values "xv_<key>"). Both sets read and
    write the same S keys, so changing one moves the other. */
 const DIALOG_KEYS=['frame','fw','fh','offX','offY','tight','exportScale'];
@@ -1028,7 +1043,7 @@ for(const [k,t] of bindings){
    preset: the default preset only applies on a first load). It goes through the slider's own input event, so saving,
    a card's own style and redrawing behave exactly as for a drag. Double-clicking the slider does the same, like the
    nudge sliders. syncControls() greys a button out while its slider is already at the default. */
-const RESET_KEYS=['size','lh','track','wrap','outlineW','bgOpacity','padX','radius','topPad','botPad','clear'];
+const RESET_KEYS=['size','lh','track','stretchX','stretchY','wrap','outlineW','bgOpacity','padX','radius','topPad','botPad','clear'];
 function resetSlider(k){ const el=$('#'+k); el.value=DEFAULTS[k]; el.dispatchEvent(new Event('input')); }
 RESET_KEYS.forEach(k=>{
   const v=$('#v_'+k), b=document.createElement('button'), name=v.parentElement.firstChild.textContent.trim();
