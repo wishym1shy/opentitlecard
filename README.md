@@ -53,12 +53,16 @@ OpenTitlecard fixes each of those. Emoji are handled as an empty, correctly-size
 
 ## Fonts
 
-The default font is **Inter** (Bold), a free, open-source typeface (SIL Open Font License) that works well for this style. Fonts are never bundled with the app, so Inter has to be installed on your computer (it's free from [rsms.me/inter](https://rsms.me/inter/) and Google Fonts). If it isn't, the app shows a warning and renders with a fallback font so you know the export won't match the intended look. To fix that, either install Inter, or:
+The default font is **Inter** (Bold), a free, open-source typeface (SIL Open Font License 1.1) that works well for this style. It ships inside `index.html` (about 64 KB, Latin alphabet), so the app looks right on any computer with nothing to install and nothing downloaded. If you have Inter installed, your own copy is used instead (it covers more languages).
+
+To use another font:
 
 - type another installed family into **Font family** (use **Installed fonts…** to browse the list), or
 - use **Load font file…** to load any font from disk for the current session.
 
-The app never bundles or uploads fonts.
+If the selected family isn't available, the app shows a warning and renders with a fallback font, so you know the export won't match the intended look.
+
+Inter is the only font bundled, and it is open source. The app never bundles any other font, and never uploads fonts. Its copyright notice and license are kept next to the embedded font in `index.html` and in [`THIRD_PARTY_LICENSES.md`](THIRD_PARTY_LICENSES.md).
 
 ## Browser support
 
