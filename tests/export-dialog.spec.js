@@ -1,4 +1,4 @@
-const { test, expect, setText, settle, setRange, readZip, pngSize, downloadZip, exportPng, addCard } = require('./helpers');
+const { test, expect, setText, settle, setRange, readZip, pngSize, downloadZip, exportPng, addCard, confirmDialog } = require('./helpers');
 
 async function threeCards(page) {
   await setText(page, 'Hi');
@@ -122,6 +122,7 @@ test.describe('export dialog: preset', () => {
     await expect(page.locator('#dPreset')).toHaveValue('Client A');
     const before = await page.evaluate(() => [...document.querySelectorAll('#bGrid canvas')].map((c) => c.toDataURL()));
     await page.click('#dPresetAll');
+    await confirmDialog(page);
     await expect(page.locator('#bGrid canvas')).toHaveCount(3);
     const after = await page.evaluate(() => [...document.querySelectorAll('#bGrid canvas')].map((c) => c.toDataURL()));
     expect(after).not.toEqual(before);
@@ -134,6 +135,26 @@ test.describe('export dialog: preset', () => {
       await settle(page);
       expect(files[i].data.equals((await exportPng(page)).buffer), `card ${i + 1}`).toBe(true);
     }
+  });
+
+  test('applying from the dialog asks first, on top of the dialog; Cancel changes nothing and leaves the dialog open', async ({ app: { page } }) => {
+    await threeCards(page);
+    await setRange(page, 'size', 140);
+    await savePreset(page, 'Client A');
+    await setRange(page, 'size', 90);
+    await page.click('#batchOpen');
+    const before = await page.evaluate(() => [...document.querySelectorAll('#bGrid canvas')].map((c) => c.toDataURL()));
+    await page.click('#dPresetAll');
+    await expect(page.locator('#confirmDlg')).toBeVisible();
+    await expect(page.locator('#cMsg')).toHaveText('All 3 cards will use this preset.');
+    await confirmDialog(page, false);
+    await expect(page.locator('#batchDlg')).toBeVisible();
+    expect(await page.evaluate(() => __tt.sharedStyle.size)).toBe(90);
+    expect(await page.evaluate(() => [...document.querySelectorAll('#bGrid canvas')].map((c) => c.toDataURL()))).toEqual(before);
+    await page.click('#dPresetAll');
+    await confirmDialog(page);
+    await expect(page.locator('#batchDlg')).toBeVisible();
+    expect(await page.evaluate(() => __tt.sharedStyle.size)).toBe(140);
   });
 
   test('the dialog starts on the preset chosen in the Export panel', async ({ app: { page } }) => {
