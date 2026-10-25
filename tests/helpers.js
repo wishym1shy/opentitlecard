@@ -1,4 +1,4 @@
-// Shared helpers for the opentok-titlecard tests.
+// Shared helpers for the opentitlecard tests.
 const path = require('path');
 const { pathToFileURL } = require('url');
 const { test: base, expect } = require('@playwright/test');

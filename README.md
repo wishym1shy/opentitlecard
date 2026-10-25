@@ -1,14 +1,16 @@
-# opentok-titlecard
+# OpenTitlecard
 
-**Open-source TikTok and Instagram-style titlecards as transparent PNGs, straight from your browser. No fussy plugins to install needed!**
+**Open-source titlecards for social video.** TikTok and Instagram-style titlecards as transparent PNGs, straight from your browser. No fussy plugins to install needed!
 
-![opentok-titlecard screenshot](docs/screenshot.png)
+![OpenTitlecard screenshot](docs/screenshot.png)
 
 Type a line of text, color individual words, and export a transparent PNG with the familiar rounded-box look, ready to drop into Premiere Pro, After Effects, DaVinci Resolve, CapCut, or any editor that reads PNGs.
 
+Unlike title-card tools built for TV episodes, movies or lower thirds, this one is made for short-form social video.
+
 It's a single HTML file. There's nothing to install, nothing to build, and nothing is uploaded anywhere: everything runs locally in your browser.
 
-**Live app:** <https://wishym1shy.github.io/opentok-titlecard/>
+**Live app:** <https://wishym1shy.github.io/opentitlecard/>
 
 ## Why this exists
 
@@ -18,7 +20,7 @@ Paid plugins and MOGRTs can make this style of caption, but:
 - **One color per card.** Most templates only let you color the whole text block, not a single word.
 - **Everyone needs the plugin.** Every editor has to install it, license it, and keep it updated.
 
-opentok-titlecard fixes each of those. Emoji are handled as an empty, correctly-sized **slot** so you can paste your own color emoji on top, and any word can have its own color.
+OpenTitlecard fixes each of those. Emoji are handled as an empty, correctly-sized **slot** so you can paste your own color emoji on top, and any word can have its own color.
 
 ## Features
 

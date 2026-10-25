@@ -1,7 +1,7 @@
 {
-  "name": "opentok-titlecard",
+  "name": "opentitlecard",
   "version": "0.1.0",
-  "description": "TikTok-style titlecards as transparent PNGs, from your browser. The app itself is a single dependency-free index.html; dependencies here are for tests only.",
+  "description": "OpenTitlecard: open-source titlecards for social video, as transparent PNGs from your browser. The app itself is a single dependency-free index.html; dependencies here are for tests only.",
   "private": true,
   "license": "MIT",
   "scripts": {

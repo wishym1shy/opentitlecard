@@ -81,3 +81,48 @@ test.describe('client presets', () => {
     expect(s).toEqual({ size: 123, align: 'left', op: 55 });
   });
 });
+
+test.describe('rename migration (opentok.* -> opentitlecard.*)', () => {
+  // Seeds localStorage BEFORE the app script runs, like a returning user from before the rename.
+  async function openWithSeed(browser, seed) {
+    const context = await browser.newContext();
+    await context.addInitScript((seed) => {
+      if (sessionStorage.getItem('seeded')) return; // seed once, not on reload
+      sessionStorage.setItem('seeded', '1');
+      for (const [k, v] of Object.entries(seed)) localStorage.setItem(k, JSON.stringify(v));
+    }, seed);
+    const page = await context.newPage();
+    await page.goto(APP_URL);
+    await page.waitForFunction(() => window.__tt && window.__tt.L);
+    return { context, page };
+  }
+
+  test('old style, palette and presets carry over to the new keys', async ({ browser }) => {
+    const { context, page } = await openWithSeed(browser, {
+      'opentok.style': { size: 133 },
+      'opentok.custom': ['#123456'],
+      'opentok.presets': { 'Old client': { size: 90 } },
+    });
+    expect(await page.evaluate(() => __tt.S.size)).toBe(133);
+    expect(await page.evaluate(() => __tt.S.custom)).toContain('#123456');
+    await expect(page.locator('#presetSel option', { hasText: 'Old client' })).toHaveCount(1);
+    expect(await page.evaluate(() => localStorage.getItem('opentitlecard.presets'))).toContain('Old client');
+    await context.close();
+  });
+
+  test('never overwrites settings already saved under the new keys', async ({ browser }) => {
+    const { context, page } = await openWithSeed(browser, {
+      'opentok.style': { size: 133 },
+      'opentitlecard.style': { size: 77 },
+    });
+    expect(await page.evaluate(() => __tt.S.size)).toBe(77);
+    await context.close();
+  });
+
+  test('a fresh visitor gets the defaults and no old keys are invented', async ({ browser }) => {
+    const { context, page } = await openWithSeed(browser, {});
+    expect(await page.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith('opentok.')))).toEqual([]);
+    expect(await page.evaluate(() => __tt.S.size)).toBe(100);
+    await context.close();
+  });
+});

@@ -2,7 +2,7 @@ const { test, expect, APP_URL, loadTestFont, setText, settle, setSelection } = r
 
 test.describe('loading and fonts', () => {
   test('opens cleanly with the default card', async ({ app: { page } }) => {
-    await expect(page).toHaveTitle('opentok-titlecard');
+    await expect(page).toHaveTitle(/^OpenTitlecard/);
     await expect(page.locator('#text')).toHaveValue('Type your Titlecard here! 😳');
     const L = await settle(page);
     expect(L.lines).toHaveLength(1);
@@ -13,7 +13,7 @@ test.describe('loading and fonts', () => {
 
   test('header links to the GitHub repo and has no subtitle', async ({ app: { page } }) => {
     const link = page.locator('header a.gh');
-    await expect(link).toHaveAttribute('href', 'https://github.com/wishym1shy/opentok-titlecard');
+    await expect(link).toHaveAttribute('href', 'https://github.com/wishym1shy/opentitlecard');
     await expect(link).toHaveAttribute('target', '_blank');
     await expect(link).toHaveAttribute('rel', /noopener/); // never leave window.opener to the new tab
     await expect(link).toContainText('GitHub');
