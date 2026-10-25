@@ -1,6 +1,31 @@
 const { test, expect, setText, settle, exportPng, inspectPng } = require('./helpers');
 
 test.describe('PNG export', () => {
+  test('shadows are off by default: nothing is painted outside the box', async ({ app: { page } }) => {
+    await expect(page.locator('#textShadow')).not.toBeChecked();
+    await expect(page.locator('#boxShadow')).not.toBeChecked();
+    const { buffer } = await exportPng(page);
+    const [x, mid] = [960, 540];
+    const { results: [col] } = await inspectPng(page, buffer, [{ type: 'colBox', x }]);
+    const { results: [above, below] } = await inspectPng(page, buffer, [{ type: 'px', x, y: col.top - 4 }, { type: 'px', x, y: col.bottom + 4 }]);
+    expect(col.top).toBeLessThan(mid);
+    expect(above[3]).toBe(0); // a soft box shadow would leave a faint halo here
+    expect(below[3]).toBe(0);
+  });
+
+  test('a saved style that has shadows on keeps them', async ({ app: { page } }) => {
+    await page.check('#textShadow');
+    await page.check('#boxShadow');
+    await page.reload();
+    await page.waitForFunction(() => window.__tt && window.__tt.L);
+    await expect(page.locator('#textShadow')).toBeChecked();
+    await expect(page.locator('#boxShadow')).toBeChecked();
+    const { buffer } = await exportPng(page);
+    const { results: [col] } = await inspectPng(page, buffer, [{ type: 'colBox', x: 960 }]);
+    const { results: [below] } = await inspectPng(page, buffer, [{ type: 'px', x: 960, y: col.bottom + 4 }]);
+    expect(below[3]).toBeGreaterThan(0); // control: the halo check above can see a shadow
+  });
+
   test('full-frame export is a 1920×1080 transparent PNG', async ({ app: { page } }) => {
     const { buffer, filename } = await exportPng(page);
     expect(filename).toMatch(/^titlecard_.+\.png$/);
