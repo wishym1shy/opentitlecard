@@ -75,6 +75,10 @@
   .seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
   .seg button{border:0;border-radius:0;padding:5px 10px}
   .seg button+button{border-left:1px solid var(--line)}
+  #fileMsg.bad{color:#ffb3a8}
+  #scope{font-size:12px;color:var(--mute);padding:3px 10px;border:1px solid var(--line);border-radius:99px}
+  #scope.own{color:#ffd9a0;border-color:#6b4f24;background:#2a2114}
+  .cardlist .own{color:#ffb454;font-size:11px}
   kbd{background:#14161b;border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:0 5px;font-size:11px}
   .cardlist{display:flex;flex-direction:column;gap:4px;max-height:220px;overflow-y:auto}
   .cardlist button{display:flex;gap:8px;align-items:baseline;width:100%;text-align:left;padding:5px 8px;font-size:12px}
@@ -94,6 +98,7 @@
   .bitem .fn{margin-top:6px;font-size:11.5px;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
   .bitem.skip{opacity:.5}
   .bitem.skip .fn{color:var(--warn)}
+  .bsec{margin-top:10px;padding-top:2px;border-top:1px dashed var(--line)}
   #bFont{display:none;margin-top:10px;padding:8px 10px;border-radius:8px;background:#2a1714;border:1px solid #6b3028;color:#ffb3a8;font-size:12px}
 </style>
 </head>
@@ -122,7 +127,15 @@
         <button id="cardDown" class="sm" aria-label="Move card down" title="Move card down">↓</button>
         <button id="cardDel" class="sm" title="Delete this card">Delete</button>
         <button id="listToggle" class="sm" aria-expanded="false" aria-controls="listBox">Add from list…</button>
+        <button id="cardsNew" class="sm" title="Remove every card and start a new batch">New batch</button>
       </div>
+      <div class="row tight" style="margin-top:8px;flex-wrap:wrap">
+        <button id="batchSave" class="sm" title="Download this batch (text, colors, italics, nudges, styles) as a .json file">Save batch to file</button>
+        <button id="batchOpenFile" class="sm" title="Replace the cards with a batch saved earlier">Open batch file…</button>
+        <input type="file" id="batchFile" accept=".json,application/json" hidden>
+      </div>
+      <div class="hint" id="fileMsg" role="status"></div>
+      <div class="row tight" style="margin-top:8px"><label style="margin:0"><input type="checkbox" id="cardOwn"> This card has its own style</label></div>
       <div id="listBox" hidden>
         <label for="listText">Paste your titles</label>
         <textarea id="listText" spellcheck="false" placeholder="One card per line"></textarea>
@@ -132,7 +145,7 @@
         </div>
       </div>
       <div class="row" style="margin-top:10px"><button id="batchOpen" class="primary">Export all as ZIP…</button></div>
-      <div class="hint">Every card uses the same style (font, colors, box, canvas). Text, per-word color, italic and line nudges belong to each card. Pick a card to edit it.</div>
+      <div class="hint">Cards share one style (font, colors, box) unless you tick <b>own style</b> for one (◆). Text, per-word color, italic and line nudges always belong to each card. Canvas size is shared by the whole export. Cards are not kept in the browser: use <b>Save batch to file</b> to keep a batch, and <b>Open batch file…</b> to load it again.</div>
     </div>
   </details>
 
@@ -243,6 +256,7 @@
       <hr style="border:0;border-top:1px solid var(--line);margin:14px 0 6px">
       <label>Client presets <span class="hint" style="float:right;margin:0">font, colors, sizes — not text</span></label>
       <div class="row"><select id="presetSel" aria-label="Saved presets"></select><button id="presetLoad" class="sm" style="flex:none">Load</button><button id="presetDefault" class="sm" style="flex:none" title="The default preset is applied the first time the app opens, before any settings are saved">Set as default</button></div>
+      <div class="row" style="margin-top:6px"><button id="presetAll" class="sm" title="Use this preset for every card, replacing any card's own style (asks first)">Apply preset to all cards</button></div>
       <div class="hint" id="presetHint">★ marks the default preset. It is applied the first time the app opens; after that your last-used settings come back. Use Load to return to a preset any time.</div>
       <div class="row" style="margin-top:6px"><input type="text" id="presetName" placeholder="Preset name"><button id="presetSave" class="sm" style="flex:none">Save</button><button id="presetDel" class="sm" style="flex:none">Delete</button></div>
       <div class="row" style="margin-top:6px"><button id="presetExport" class="sm">Export JSON</button><button id="presetImport" class="sm">Import JSON</button><input type="file" id="presetFile" accept=".json" hidden></div>
@@ -256,12 +270,19 @@
     <span class="seg chips" id="pbg">
       <button data-bg="checker" class="on">Checker</button><button data-bg="white">White</button><button data-bg="black">Black</button><button data-bg="gray">Gray</button>
     </span>
+    <span id="scope" role="status"></span>
     <span style="margin-left:auto;color:var(--mute)" id="dims"></span>
   </div>
   <div class="view"><div id="previewBox" class="checker"><canvas id="cv"></canvas></div></div>
   <div id="info"></div>
 </section>
 </div>
+
+<dialog id="confirmDlg" aria-labelledby="cTitle" aria-describedby="cMsg" style="width:min(460px,94vw)">
+  <div class="dh"><h2 id="cTitle"></h2></div>
+  <div class="db"><p id="cMsg" style="margin:10px 0 4px;line-height:1.5"></p></div>
+  <div class="df"><span class="status"></span><button id="cCancel">Cancel</button><button id="cOk" class="primary warn"></button></div>
+</dialog>
 
 <dialog id="batchDlg" aria-labelledby="batchTitle">
   <div class="dh"><h2 id="batchTitle">Export all cards</h2><button id="bClose" class="sm" style="margin-left:auto" aria-label="Close">✕</button></div>
@@ -273,6 +294,27 @@
     </div>
     <div class="hint"><code>{n}</code> becomes the card number: <code>ClientA-Vid{n}-TC</code> gives <code>ClientA-Vid1-TC.png</code>, <code>ClientA-Vid2-TC.png</code>… Without <code>{n}</code> the number is added after a dash. Empty cards are skipped and not numbered.</div>
     <div class="hint" id="bInfo"></div>
+    <div class="bsec">
+      <div class="row">
+        <div style="flex:2"><label for="x_frame">Canvas</label>
+          <select id="x_frame">
+            <option value="1920x1080">1920 × 1080 (landscape)</option>
+            <option value="1080x1920">1080 × 1920 (vertical)</option>
+            <option value="3840x2160">3840 × 2160 (4K)</option>
+            <option value="1080x1080">1080 × 1080 (square)</option>
+            <option value="1080x1350">1080 × 1350 (4:5)</option>
+            <option value="custom">Custom…</option>
+          </select></div>
+        <div id="x_customRow" class="row" style="display:none;flex:2;align-items:end"><div><label for="x_fw">Width</label><input type="number" id="x_fw" min="64" max="8192"></div><div><label for="x_fh">Height</label><input type="number" id="x_fh" min="64" max="8192"></div></div>
+        <div style="flex:none;align-self:end"><label style="margin:0 0 6px"><input type="checkbox" id="x_tight"> Tight crop</label></div>
+      </div>
+      <div id="x_tightOpts" style="display:none"><label for="x_exportScale">Export scale <span class="val" id="xv_exportScale"></span></label><input type="range" id="x_exportScale" min="1" max="4" step="0.5"></div>
+      <div id="x_frameOpts"><label>Card position in canvas (X / Y offset, units)</label><div class="row"><input type="number" id="x_offX" aria-label="Card X offset"><input type="number" id="x_offY" aria-label="Card Y offset"></div></div>
+    </div>
+    <div class="bsec">
+      <label for="dPreset">Style preset for the whole batch</label>
+      <div class="row"><select id="dPreset"></select><button id="dPresetAll" class="sm" style="flex:none" title="Use this preset for every card, replacing any card's own style">Apply to all cards</button></div>
+    </div>
     <div id="bFont" role="alert"></div>
     <div class="bgrid" id="bGrid"></div>
   </div>
@@ -300,6 +342,7 @@ const store = {
   });
 })();
 const DEFAULT_PRESET_KEY='opentitlecard.defaultPreset';   // name of the preset applied at startup (declared early: startup code reads it)
+const PLACEHOLDER_TEXT = "Type your Titlecard here! 😳";   // what a fresh page shows; an untouched card with it holds no work
 const SEG = new Intl.Segmenter(undefined,{granularity:'grapheme'});
 const EMOJI_RE = /\p{Emoji_Presentation}|️|\p{Regional_Indicator}|⃣|‍/u;
 const isEmoji = g => EMOJI_RE.test(g);
@@ -319,16 +362,20 @@ const DEFAULTS = {
   frame:'1920x1080', fw:1920, fh:1080, offX:0, offY:0, tight:false, exportScale:2
 };
 const STYLE_KEYS = Object.keys(DEFAULTS).filter(k=>!['showGuides','offX','offY'].includes(k));
+// What a single card can override. The canvas and crop settings are per export, not per card, so they stay global.
+const CARD_STYLE_KEYS = STYLE_KEYS.filter(k=>!['frame','fw','fh','tight','exportScale'].includes(k));
+const pickStyle = () => { const o={}; CARD_STYLE_KEYS.forEach(k=>o[k]=S[k]); return o; };
 const S = Object.assign({}, DEFAULTS, store.get('opentitlecard.style',{}));
-S.text = "Type your Titlecard here! 😳";
+S.text = PLACEHOLDER_TEXT;
 S.colors = Array(S.text.length).fill(null);
 S.ital = Array(S.text.length).fill(0);
 S.nudges = []; S.custom = store.get('opentitlecard.custom',[]);
 S.previewBg = 'checker';
+let cards=[], active=0;   // batch cards; the active one lives in S (see "cards" below)
+let sharedStyle=null;     // style of every card that has no own style (set after startup; see "cards" below)
 // First load only: with no saved last-used style yet, start from the default preset (and keep it as the last-used style).
 // Once any settings are saved, those come back on later loads, as they always did.
 if(store.get('opentitlecard.style',null)===null){ const d=defaultPreset(); if(d){ applyStyle(d); persistStyle(); } }
-let cards=[], active=0;   // batch cards; the active one lives in S (see "cards" below)
 
 let L = null;            // last layout
 let drag = null;
@@ -805,26 +852,41 @@ const bindings=[
   ['tight','chk'],['exportScale','num']
 ];
 const fmt={size:v=>v+' px',lh:v=>(+v).toFixed(2)+'×',track:v=>v+' px',wrap:v=>(+v?v+' px':'Off'),outlineW:v=>v+' px',bgOpacity:v=>v+'%',padX:v=>(+v).toFixed(2)+' em',topPad:v=>(+v).toFixed(2)+' em',botPad:v=>(+v).toFixed(2)+' em',clear:v=>(+v).toFixed(2)+' em',radius:v=>(+v).toFixed(2)+' em',slot:v=>(+v).toFixed(2)+' em',exportScale:v=>v+'×'};
+/* The export dialog has its own copies of the canvas controls (ids "x_<key>", values "xv_<key>"). Both sets read and
+   write the same S keys, so changing one moves the other. */
+const DIALOG_KEYS=['frame','fw','fh','offX','offY','tight','exportScale'];
 function syncControls(){
   for(const [k,t] of bindings){
-    const el=$('#'+k); if(!el) continue;
-    if(t==='chk') el.checked=!!S[k]; else el.value=S[k];
-    const vv=$('#v_'+k); if(vv) vv.textContent=(fmt[k]||(v=>v))(S[k]);
+    for(const id of DIALOG_KEYS.includes(k)?[k,'x_'+k]:[k]){
+      const el=$('#'+id); if(!el) continue;
+      if(t==='chk') el.checked=!!S[k]; else el.value=S[k];
+    }
+    for(const id of ['v_'+k,'xv_'+k]){ const vv=$('#'+id); if(vv) vv.textContent=(fmt[k]||(v=>v))(S[k]); }
   }
-  $('#customRow').style.display=S.frame==='custom'?'flex':'none';
-  $('#tightOpts').style.display=S.tight?'block':'none';
-  $('#frameOpts').style.display=S.tight?'none':'block';
+  for(const pre of ['','x_']){
+    $('#'+pre+'customRow').style.display=S.frame==='custom'?'flex':'none';
+    $('#'+pre+'tightOpts').style.display=S.tight?'block':'none';
+    $('#'+pre+'frameOpts').style.display=S.tight?'none':'block';
+  }
 }
 for(const [k,t] of bindings){
-  const el=$('#'+k); if(!el) continue;
-  el.addEventListener(t==='chk'||t==='sel'||t==='col'?'change':'input',()=>{
-    S[k]= t==='chk'?el.checked : t==='num'?+el.value : el.value;
-    if(k==='frame' && S.frame!=='custom'){ const [w,h]=S.frame.split('x').map(Number); S.fw=w; S.fh=h; }
-    if(k==='size'||k==='weight'||k==='family') nudgeSig='';
-    persistStyle(); syncControls(); render();
-  });
+  for(const id of DIALOG_KEYS.includes(k)?[k,'x_'+k]:[k]){
+    const el=$('#'+id); if(!el) continue;
+    el.addEventListener(t==='chk'||t==='sel'||t==='col'?'change':'input',()=>{
+      S[k]= t==='chk'?el.checked : t==='num'?+el.value : el.value;
+      if(k==='frame' && S.frame!=='custom'){ const [w,h]=S.frame.split('x').map(Number); S.fw=w; S.fh=h; }
+      if(k==='size'||k==='weight'||k==='family') nudgeSig='';
+      persistStyle(); syncControls(); render();
+      if(id.startsWith('x_')) fillBatchGrid();   // the dialog's thumbnails follow the canvas settings
+    });
+  }
 }
-function persistStyle(){ const o={}; STYLE_KEYS.forEach(k=>o[k]=S[k]); store.set('opentitlecard.style',o); }
+// The last-used style is the shared one: a card's own style must not become what the app opens with.
+function persistStyle(){
+  const own=!!(cards[active]&&cards[active].style), o={};
+  STYLE_KEYS.forEach(k=>o[k]=(own&&sharedStyle&&k in sharedStyle)?sharedStyle[k]:S[k]);
+  store.set('opentitlecard.style',o);
+}
 
 /* preview background chips */
 $('#pbg').addEventListener('click',e=>{
@@ -860,16 +922,16 @@ $('#fontFile').addEventListener('change',async e=>{
 function presets(){ return store.get('opentitlecard.presets',{}); }
 function defaultName(){ return store.get(DEFAULT_PRESET_KEY,null); }
 function defaultPreset(){ const n=defaultName(), p=presets(); return n&&Object.prototype.hasOwnProperty.call(p,n)?p[n]:null; }
-function refreshPresets(){
-  const p=presets(), sel=$('#presetSel'), keep=sel.value, def=defaultName(); sel.innerHTML='';
-  const names=Object.keys(p); if(!names.length){ sel.innerHTML='<option value="">(none saved)</option>'; updateDefaultBtn(); return; }
+function fillPresetSelect(sel){
+  const p=presets(), keep=sel.value, def=defaultName(); sel.innerHTML='';
+  const names=Object.keys(p); if(!names.length){ sel.innerHTML='<option value="">(none saved)</option>'; return; }
   names.forEach(n=>{ const o=document.createElement('option'); o.value=n; o.textContent=(n===def?'★ ':'')+n; sel.appendChild(o); });
   if(names.includes(keep)) sel.value=keep;
-  updateDefaultBtn();
 }
+function refreshPresets(){ fillPresetSelect($('#presetSel')); fillPresetSelect($('#dPreset')); updateDefaultBtn(); }
 function updateDefaultBtn(){
   const v=$('#presetSel').value, b=$('#presetDefault'), isDef=!!v && v===defaultName();
-  b.textContent=isDef?'Clear default':'Set as default'; b.disabled=!v;
+  b.textContent=isDef?'Clear default':'Set as default'; b.disabled=!v; $('#presetAll').disabled=!v; $('#dPresetAll').disabled=!$('#dPreset').value;
 }
 /* Style only: copies the preset's settings into S (and its palette colors into memory). No rendering or saving, so it is
    safe to call at startup before the controls exist. */
@@ -886,6 +948,23 @@ $('#presetDel').addEventListener('click',()=>{
   refreshPresets();
 });
 $('#presetSel').addEventListener('change',updateDefaultBtn);
+// Sets the shared style from the preset and drops every card's own style, so all cards match it.
+async function applyPresetToAll(name){
+  const o=presets()[name]; if(!o) return false;
+  stash();
+  const own=cards.filter(c=>c.style).length, n=cards.length;
+  const ok=await confirmAction({
+    title:`Apply “${name}” to all cards?`,
+    message:`${n===1?'This card':`All ${n} cards`} will use this preset.`+(own?` ${own===1?'1 card has its own style and loses it':`${own} cards have their own style and lose it`}.`:''),
+    ok:'Apply to all'});
+  if(!ok) return false;
+  stash(); applyStyle(o); sharedStyle=pickStyle(); cards.forEach(c=>{ c.style=null; });
+  store.set('opentitlecard.custom',S.custom); buildSwatches(); adopt(cards[active]); persistStyle(); cardSig=''; render();
+  return true;
+}
+$('#presetAll').addEventListener('click',()=>applyPresetToAll($('#presetSel').value));
+$('#dPresetAll').addEventListener('click',async()=>{ if(await applyPresetToAll($('#dPreset').value)) fillBatchGrid(); });
+$('#dPreset').addEventListener('change',updateDefaultBtn);
 $('#presetDefault').addEventListener('click',()=>{
   const n=$('#presetSel').value; if(!n) return;
   store.set(DEFAULT_PRESET_KEY,n===defaultName()?null:n); refreshPresets();
@@ -914,30 +993,56 @@ $('#export').addEventListener('click',()=>{
 });
 function download(blob,name){ const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),3000); }
 
+/* ============ confirmation dialog ============ */
+/* Asks before something that throws work away. Resolves true only for the confirm button: Cancel and Esc both mean
+   no. Focus starts on Cancel so a stray Enter never destroys anything. */
+function confirmAction({title,message,ok='Continue'}){
+  return new Promise(resolve=>{
+    const d=$('#confirmDlg');
+    $('#cTitle').textContent=title; $('#cMsg').textContent=message; $('#cOk').textContent=ok;
+    d.returnValue='';
+    d.addEventListener('close',()=>resolve(d.returnValue==='ok'),{once:true});
+    d.showModal(); $('#cCancel').focus();
+  });
+}
+$('#cOk').addEventListener('click',()=>$('#confirmDlg').close('ok'));
+$('#cCancel').addEventListener('click',()=>$('#confirmDlg').close('cancel'));
+
 /* ============ cards (batch) ============ */
 /* The active card lives in S (text, colors, ital, nudges), so every existing control and test keeps working
    unchanged. `cards[]` holds a copy of each card; switching stashes S into cards[active] and loads the next one.
    Style settings (font, colors, box, canvas) are shared by all cards: that is what makes a batch consistent. */
-const copyCard = c => ({text:c.text, colors:c.colors.slice(), ital:c.ital.slice(), nudges:Array.from(c.nudges,n=>n?{...n}:null)});
-const newCard = (text='') => ({text, colors:Array(text.length).fill(null), ital:Array(text.length).fill(0), nudges:[]});
-const stash = () => { cards[active]=copyCard(S); };
-function adopt(c){ const k=copyCard(c); S.text=k.text; S.colors=k.colors; S.ital=k.ital; S.nudges=k.nudges; ta.value=S.text; nudgeSig=''; }
+/* A card's `style` is null (it follows `sharedStyle`) or its own copy of the card-level style keys. Whichever applies to
+   the active card is what S holds, so the style controls always edit "the card in front of you". */
+const copyCard = c => ({text:c.text, colors:c.colors.slice(), ital:c.ital.slice(), nudges:Array.from(c.nudges,n=>n?{...n}:null), style:c.style?{...c.style}:null});
+const newCard = (text='') => ({text, colors:Array(text.length).fill(null), ital:Array(text.length).fill(0), nudges:[], style:null});
+function stash(){
+  const own=!!(cards[active]&&cards[active].style);
+  cards[active]=copyCard({...S,style:own?pickStyle():null});
+  if(!own) sharedStyle=pickStyle();
+}
+function adopt(c){
+  const k=copyCard(c); S.text=k.text; S.colors=k.colors; S.ital=k.ital; S.nudges=k.nudges;
+  Object.assign(S,k.style||sharedStyle);
+  ta.value=S.text; nudgeSig=''; syncControls();
+}
 function selectCard(i){
   stash(); active=clamp(i,0,cards.length-1); adopt(cards[active]);
   cardSig=''; render();
 }
 /* Runs fn with card `c` temporarily in S/L (layout and draw read those globals), then puts the active card back. */
 function withCard(c,fn){
-  const keep={text:S.text,colors:S.colors,ital:S.ital,nudges:S.nudges,L};
-  S.text=c.text; S.colors=c.colors; S.ital=c.ital; S.nudges=c.nudges;
+  const keep={text:S.text,colors:S.colors,ital:S.ital,nudges:S.nudges,style:pickStyle(),L};
+  S.text=c.text; S.colors=c.colors; S.ital=c.ital; S.nudges=c.nudges; Object.assign(S,c.style||sharedStyle);
   try{ L=layout(); return fn(); }
-  finally{ S.text=keep.text; S.colors=keep.colors; S.ital=keep.ital; S.nudges=keep.nudges; L=keep.L; }
+  finally{ S.text=keep.text; S.colors=keep.colors; S.ital=keep.ital; S.nudges=keep.nudges; Object.assign(S,keep.style); L=keep.L; }
 }
 const cardLabel = t => (t.split('\n').map(x=>x.trim()).find(Boolean)||'');
 let cardSig='';
 function renderCards(){
   const labels=cards.map((c,i)=>cardLabel(i===active?S.text:c.text));
-  const sig=active+'\u0001'+labels.join('\u0001');
+  const own=cards.map((c,i)=>!!c.style);
+  const sig=active+'\u0001'+labels.join('\u0001')+'\u0001'+own.join(',');
   if(sig===cardSig) return;
   cardSig=sig;
   const host=$('#cardList'); host.innerHTML='';
@@ -947,23 +1052,35 @@ function renderCards(){
     if(i===active) b.setAttribute('aria-current','true');
     const n=document.createElement('b'); n.textContent=i+1;
     const nm=document.createElement('span'); nm.className='nm'; nm.textContent=t||'(empty)';
-    b.append(n,nm); host.appendChild(b);
+    b.append(n,nm);
+    if(own[i]){ const m=document.createElement('span'); m.className='own'; m.textContent='◆'; m.title='Has its own style'; m.setAttribute('aria-label','has its own style'); b.append(m); b.dataset.own='1'; }
+    host.appendChild(b);
   });
   $('#cardUp').disabled=active===0; $('#cardDown').disabled=active===cards.length-1;
   $('#cardDel').textContent=cards.length>1?'Delete':'Clear';
+  $('#cardOwn').checked=own[active];
+  $('#scope').textContent=own[active]?'Style edits: this card only':(cards.some(c=>c.style)?'Style edits: all cards without their own style':'Style edits: all cards');
+  $('#scope').classList.toggle('own',own[active]);
 }
 $('#cardList').addEventListener('click',e=>{ const b=e.target.closest('[data-card]'); if(b) selectCard(+b.dataset.card); });
 function insertCard(i,c){ stash(); cards.splice(i,0,c); active=i; adopt(c); cardSig=''; render(); }
 $('#cardAdd').addEventListener('click',()=>{ insertCard(active+1,newCard()); ta.focus(); });
 $('#cardDup').addEventListener('click',()=>{ stash(); insertCard(active+1,copyCard(cards[active])); });
 $('#cardDel').addEventListener('click',()=>{
-  if(cards.length===1){ adopt(newCard()); cardSig=''; render(); return; }
+  if(cards.length===1){ stash(); const c=newCard(); c.style=cards[0].style; cards[0]=c; adopt(c); cardSig=''; render(); return; }   // clearing keeps the card's style
   cards.splice(active,1); active=Math.min(active,cards.length-1); adopt(cards[active]); cardSig=''; render();
 });
 function moveCard(d){
   const j=active+d; if(j<0||j>=cards.length) return;
   stash(); [cards[active],cards[j]]=[cards[j],cards[active]]; active=j; cardSig=''; render();
 }
+$('#cardOwn').addEventListener('change',async e=>{
+  if(e.target.checked){ stash(); cards[active].style=pickStyle(); cardSig=''; render(); return; }   // start from what you see, then edit freely
+  e.target.checked=true;   // stays ticked until the user confirms; nothing changes if they cancel
+  const ok=await confirmAction({title:'Use the shared style for this card?',message:'This card goes back to the shared style. The settings you changed just for this card (font, colors, size, box…) are lost.',ok:'Use shared style'});
+  if(!ok) return;
+  stash(); cards[active].style=null; Object.assign(S,sharedStyle); nudgeSig=''; syncControls(); cardSig=''; render();
+});
 $('#cardUp').addEventListener('click',()=>moveCard(-1));
 $('#cardDown').addEventListener('click',()=>moveCard(1));
 $('#listToggle').addEventListener('click',()=>{
@@ -978,6 +1095,84 @@ $('#listAdd').addEventListener('click',()=>{
   if(cards.length===1 && !cards[0].text.trim()) cards.length=0;
   const at=cards.length; parts.forEach(t=>cards.push(newCard(t)));
   active=at; adopt(cards[active]); $('#listText').value=''; $('#listBox').hidden=true; $('#listToggle').setAttribute('aria-expanded','false'); cardSig=''; render();
+});
+
+/* ============ batch files (save / open) ============ */
+/* A batch can be saved to a .json file on the user's computer and opened again later. Nothing about the cards is ever
+   kept inside the app or the browser: the file is the only copy, and the user decides where it lives. Colors and
+   italics are stored sparsely (only the characters that have one). A file is untrusted input (old, hand-edited, cut
+   short, or not ours at all), so every field is checked and anything unusable is dropped, never trusted. */
+const BATCH_APP='opentitlecard', MAX_CARDS=500, MAX_TEXT=2000, MAX_FILE=5e6;
+const HEX_RE=/^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i;
+function encodeBatch(){
+  stash();
+  return {app:BATCH_APP, type:'batch', v:1, active, style:sharedStyle, cards:cards.map(c=>{
+    const o={t:c.text};
+    const col={}; c.colors.forEach((h,i)=>{ if(h) col[i]=h; }); if(Object.keys(col).length) o.c=col;
+    const it=[]; c.ital.forEach((v,i)=>{ if(v) it.push(i); }); if(it.length) o.i=it;
+    let last=c.nudges.length; while(last>0 && !(c.nudges[last-1]&&(c.nudges[last-1].x||c.nudges[last-1].y))) last--;
+    if(last) o.n=c.nudges.slice(0,last).map(n=>n&&(n.x||n.y)?{x:n.x||0,y:n.y||0}:null);
+    if(c.style) o.s=c.style;
+    return o;
+  })};
+}
+// Keeps only style keys that exist and have the right type; anything else falls back to `base`.
+function cleanStyle(raw,base){
+  const st={...base};
+  if(raw&&typeof raw==='object') for(const k of CARD_STYLE_KEYS) if(k in raw && typeof raw[k]===typeof DEFAULTS[k] && (typeof raw[k]!=='number'||isFinite(raw[k]))) st[k]=raw[k];
+  return st;
+}
+/* Returns {cards, active, style} or null when the data isn't a batch we understand. */
+function decodeBatch(raw){
+  if(!raw || typeof raw!=='object' || raw.app!==BATCH_APP || raw.type!=='batch' || raw.v!==1 || !Array.isArray(raw.cards) || !raw.cards.length) return null;
+  const num=v=>typeof v==='number'&&isFinite(v);
+  const style=cleanStyle(raw.style,sharedStyle);
+  const out=raw.cards.slice(0,MAX_CARDS).map(r=>{
+    r=r&&typeof r==='object'?r:{};
+    const text=typeof r.t==='string'?r.t.slice(0,MAX_TEXT):'';
+    const c=newCard(text);
+    if(r.c&&typeof r.c==='object') for(const k of Object.keys(r.c)){ const i=+k; if(Number.isInteger(i)&&i>=0&&i<text.length&&typeof r.c[k]==='string'&&HEX_RE.test(r.c[k])) c.colors[i]=r.c[k]; }
+    if(Array.isArray(r.i)) for(const i of r.i) if(Number.isInteger(i)&&i>=0&&i<text.length) c.ital[i]=1;
+    if(Array.isArray(r.n)) c.nudges=r.n.slice(0,200).map(n=>n&&num(n.x)&&num(n.y)?{x:clamp(n.x,-5000,5000),y:clamp(n.y,-5000,5000)}:null);
+    if(r.s&&typeof r.s==='object') c.style=cleanStyle(r.s,style);   // keys missing from (or invalid in) the card's style fall back to the batch's shared style
+    return c;
+  });
+  return {cards:out, style, active:clamp(Number.isInteger(raw.active)?raw.active:0,0,out.length-1)};
+}
+function fileMsg(text,bad){ const m=$('#fileMsg'); m.textContent=text; m.classList.toggle('bad',!!bad); }
+$('#batchSave').addEventListener('click',()=>{
+  const json=JSON.stringify(encodeBatch(),null,1);
+  download(new Blob([json],{type:'application/json'}),zipStem(store.get('opentitlecard.batch',{}).pattern||'titlecard-{n}')+'-set.json');
+  fileMsg(`Saved ${cards.length} card${cards.length===1?'':'s'} to a file.`);
+});
+$('#batchOpenFile').addEventListener('click',()=>$('#batchFile').click());
+$('#batchFile').addEventListener('change',async e=>{
+  const f=e.target.files[0]; e.target.value=''; if(!f) return;
+  try{
+    if(f.size>MAX_FILE) throw new Error('too big');
+    const data=JSON.parse(await f.text());
+    stash();   // sharedStyle lags behind S until stashed; a file with no style of its own falls back to what you see now
+    const b=decodeBatch(data);
+    if(!b) throw new Error('not a batch');
+    if(batchHasWork() && !await confirmAction({title:'Open this batch?',message:`“${f.name}” replaces ${cards.length===1?'your current card':`your ${cards.length} current cards`}. Cards aren't saved anywhere, so use “Save batch to file” first if you want to keep ${cards.length===1?'it':'them'}.`,ok:'Replace cards'})) { fileMsg('Cancelled. Nothing was changed.'); return; }
+    // the file's look comes with it: cards without their own style use the batch's shared style
+    sharedStyle=b.style; cards=b.cards; active=b.active; adopt(cards[active]); persistStyle(); cardSig=''; render();
+    fileMsg(`Opened ${cardsWord(cards.length)} from “${f.name}”.`);
+  }catch(err){ fileMsg('That file isn\'t an OpenTitlecard batch, so nothing was changed.',true); }
+});
+/* True when the page holds something worth asking about: more than one card, or a card with text beyond the untouched
+   placeholder, formatting, nudges or its own style. A fresh page or an emptied card holds nothing. */
+function batchHasWork(){
+  stash();
+  if(cards.length>1) return true;
+  const c=cards[0]; if(c.style) return true;
+  if(c.colors.some(Boolean)||c.ital.some(Boolean)||c.nudges.some(n=>n&&(n.x||n.y))) return true;
+  return !!c.text.trim() && c.text!==PLACEHOLDER_TEXT;
+}
+const cardsWord = n => `${n} card${n===1?'':'s'}`;
+$('#cardsNew').addEventListener('click',async()=>{
+  if(batchHasWork() && !await confirmAction({title:'Start a new batch?',message:`This removes ${cards.length===1?'your card':`all ${cards.length} cards`} from the page. Cards aren't saved anywhere, so use “Save batch to file” first if you want to keep ${cards.length===1?'it':'them'}.`,ok:'Remove cards'})) return;
+  cards=[newCard()]; active=0; adopt(cards[0]); cardSig=''; render(); fileMsg('');
 });
 
 /* ============ batch export: names + ZIP ============ */
@@ -1038,20 +1233,26 @@ function refreshBatchNames(){
   live.forEach((b,i)=>{ b.fn.textContent=names[i]; });
   batchItems.filter(b=>b.empty).forEach(b=>{ b.fn.textContent='Empty, skipped'; });
   $('#bGo').textContent=live.length?`Download ZIP (${live.length} PNG${live.length===1?'':'s'})`:'Nothing to export';
-  $('#bGo').disabled=!live.length;
+  $('#bGo').disabled=!live.length||batchTooLarge;
   store.set('opentitlecard.batch',batchSettings());
 }
-function openBatch(){
+/* Families that a non-empty card would use but this computer doesn't have (each card may have its own style). */
+function missingFonts(){
+  const out=new Set();
+  cards.forEach(c=>{ if(!c.text.trim()) return; const st=c.style||sharedStyle; if(!(fontInstalled(st.family,st.weight)||loadedFaces.has(st.family))) out.add(st.family); });
+  return [...out];
+}
+let batchTooLarge=false;
+function fillBatchGrid(){
   stash();
-  const b=store.get('opentitlecard.batch',{});
-  $('#bPattern').value=b.pattern||'titlecard-{n}'; $('#bStart').value=b.start??1; $('#bDigits').value=b.digits??1;
-  const grid=$('#bGrid'); grid.innerHTML=''; batchItems=[];
+  const grid=$('#bGrid'); grid.innerHTML=''; batchItems=[]; batchTooLarge=false;
   cards.forEach((c,idx)=>{
     const item=document.createElement('div'), th=document.createElement('div'), fn=document.createElement('div');
     item.className='bitem'; th.className='thumb'; fn.className='fn';
     const cvs=withCard(c,()=>{
       if(!L.lines.length) return null;
       const g=exportGeometry(), k=Math.min(1,360/g.W), t=document.createElement('canvas');
+      if(g.W*g.H>64e6) batchTooLarge=true;   // same limit exportCanvas() enforces
       t.width=Math.max(1,Math.round(g.W*k)); t.height=Math.max(1,Math.round(g.H*k));
       draw(t.getContext('2d'),t.width,t.height,{u:g.u*k,cx:g.cx*k,cy:g.cy*k,guides:false,sel:null});
       t.setAttribute('role','img'); t.setAttribute('aria-label',`Card ${idx+1}: ${cardLabel(c.text)}`);
@@ -1061,12 +1262,18 @@ function openBatch(){
     item.append(th,fn); grid.appendChild(item); batchItems.push({idx,empty:!cvs,fn});
   });
   const [W,H]=frameDims();
-  $('#bInfo').textContent=S.tight?`Each card is cropped to its own size at ${S.exportScale}× (change under Export → Tight crop).`:`${W} × ${H} px, transparent PNG (change under Export → Canvas).`;
-  const bad=!fontReady();
-  $('#bFont').style.display=bad?'block':'none';
-  if(bad) $('#bFont').textContent=`“${S.family}” isn't installed on this computer, so these cards use a fallback font. Install it or load the font file first.`;
-  $('#bStatus').textContent=''; $('#bGo').disabled=false;
+  $('#bInfo').textContent=S.tight?`Each card is cropped to its own size at ${S.exportScale}×, transparent PNG.`:`${W} × ${H} px, transparent PNG.`;
+  const missing=missingFonts();
+  $('#bFont').style.display=missing.length?'block':'none';
+  if(missing.length) $('#bFont').textContent=`${missing.map(f=>`“${f}”`).join(', ')} ${missing.length===1?"isn't":"aren't"} installed on this computer, so some cards use a fallback font. Install ${missing.length===1?'it':'them'} or load the font file first.`;
+  $('#bStatus').textContent=batchTooLarge?'That canvas is too large for the browser. Lower the canvas size or the export scale.':'';
   refreshBatchNames();
+}
+function openBatch(){
+  const b=store.get('opentitlecard.batch',{});
+  $('#bPattern').value=b.pattern||'titlecard-{n}'; $('#bStart').value=b.start??1; $('#bDigits').value=b.digits??1;
+  $('#dPreset').value=$('#presetSel').value; updateDefaultBtn();
+  fillBatchGrid();   // the dialog's canvas controls are kept in step with the panel's by syncControls()
   dlg.showModal();
 }
 ['#batchOpen','#batchOpenExport'].forEach(id=>$(id).addEventListener('click',openBatch));
@@ -1089,15 +1296,16 @@ $('#bGo').addEventListener('click',async()=>{
     download(buildZip(files),zipStem($('#bPattern').value)+'.zip');
     dlg.close();
   }catch(err){ status.textContent='Export failed: '+err.message; }
-  finally{ go.disabled=false; }
+  finally{ go.disabled=batchTooLarge||!batchItems.some(b=>!b.empty); }
 });
 
 /* ============ boot ============ */
-stash(); buildSwatches(); refreshPresets(); syncControls();
+sharedStyle=pickStyle(); stash();
+buildSwatches(); refreshPresets(); syncControls();
 window.addEventListener('resize',render);
 (document.fonts&&document.fonts.ready?document.fonts.ready:Promise.resolve()).then(render);
 render();
-window.__tt={S,render,renderNow,get L(){return L},exportGeometry,draw,get cards(){return cards},get active(){return active},batchNames,zipStem,crc32,buildZip};
+window.__tt={S,render,renderNow,get L(){return L},exportGeometry,draw,get cards(){return cards},get sharedStyle(){return sharedStyle},get active(){return active},batchNames,zipStem,crc32,buildZip};
 </script>
 </body>
 </html>

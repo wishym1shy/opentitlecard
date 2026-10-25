@@ -1,40 +1,4 @@
-const { test, expect, setText, settle, setSelection, exportPng } = require('./helpers');
-
-/* ---- tiny ZIP reader (central directory), independent of the app's writer ---- */
-const CRC = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
-const crc32 = (buf) => { let c = 0xFFFFFFFF; for (const b of buf) c = CRC[(c ^ b) & 255] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; };
-function readZip(buf) {
-  let e = buf.length - 22;
-  while (e >= 0 && buf.readUInt32LE(e) !== 0x06054b50) e--;
-  expect(e, 'end-of-central-directory record').toBeGreaterThanOrEqual(0);
-  const count = buf.readUInt16LE(e + 10);
-  let p = buf.readUInt32LE(e + 16);
-  const out = [];
-  for (let i = 0; i < count; i++) {
-    expect(buf.readUInt32LE(p)).toBe(0x02014b50);
-    const method = buf.readUInt16LE(p + 10), crc = buf.readUInt32LE(p + 16), size = buf.readUInt32LE(p + 20), usize = buf.readUInt32LE(p + 24);
-    const nl = buf.readUInt16LE(p + 28), xl = buf.readUInt16LE(p + 30), cl = buf.readUInt16LE(p + 32), off = buf.readUInt32LE(p + 42);
-    const name = buf.subarray(p + 46, p + 46 + nl).toString('utf8');
-    expect(buf.readUInt32LE(off)).toBe(0x04034b50);
-    const start = off + 30 + buf.readUInt16LE(off + 26) + buf.readUInt16LE(off + 28);
-    out.push({ name, method, crc, size, usize, data: buf.subarray(start, start + size) });
-    p += 46 + nl + xl + cl;
-  }
-  return out;
-}
-const pngSize = (b) => [b.readUInt32BE(16), b.readUInt32BE(20)];
-
-async function addCard(page, text) {
-  await page.click('#cardAdd');
-  await page.fill('#text', text);
-  await settle(page);
-}
-async function downloadZip(page) {
-  const [dl] = await Promise.all([page.waitForEvent('download'), page.click('#bGo')]);
-  const chunks = [];
-  for await (const c of await dl.createReadStream()) chunks.push(c);
-  return { buffer: Buffer.concat(chunks), filename: dl.suggestedFilename() };
-}
+const { test, expect, setText, settle, setSelection, exportPng, readZip, crc32, pngSize, downloadZip, addCard } = require('./helpers');
 
 test.describe('cards', () => {
   test('each card keeps its own text, word colors, italic and line nudges', async ({ app: { page } }) => {
