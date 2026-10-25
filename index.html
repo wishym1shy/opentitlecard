@@ -3,7 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>opentok-titlecard</title>
+<title>OpenTitlecard — open-source titlecards for social video</title>
+<meta name="description" content="OpenTitlecard: a free, open-source generator for TikTok-style titlecards. Color single words, reserve emoji slots, export a transparent PNG. Runs entirely in your browser.">
 <style>
   :root{
     --bg:#15161a; --panel:#1d1f25; --panel2:#262932; --line:#333744; --text:#e8eaf0; --mute:#8d93a5;
@@ -72,8 +73,8 @@
 </head>
 <body>
 <header>
-  <h1>opentok-titlecard</h1>
-  <a class="gh" href="https://github.com/wishym1shy/opentok-titlecard" target="_blank" rel="noopener noreferrer" title="View the source on GitHub">
+  <h1>OpenTitlecard</h1>
+  <a class="gh" href="https://github.com/wishym1shy/opentitlecard" target="_blank" rel="noopener noreferrer" title="View the source on GitHub">
     <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
     <span>View on GitHub</span>
   </a>
@@ -219,6 +220,17 @@ const store = {
   get(k,d){ try{ const v=localStorage.getItem(k); return v?JSON.parse(v):d }catch(e){ return d } },
   set(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)) }catch(e){} }
 };
+// Settings were saved under "opentok.*" before the project was renamed to OpenTitlecard.
+// Copy each old value to its new key once so people keep their style, palette and presets.
+// Never overwrites a value already saved under the new key; old keys are left in place.
+(function migrateOldKeys(){
+  ['style','custom','presets'].forEach(n=>{
+    try{
+      const old=localStorage.getItem('opentok.'+n);
+      if(old!==null && localStorage.getItem('opentitlecard.'+n)===null) localStorage.setItem('opentitlecard.'+n,old);
+    }catch(e){}
+  });
+})();
 const SEG = new Intl.Segmenter(undefined,{granularity:'grapheme'});
 const EMOJI_RE = /\p{Emoji_Presentation}|️|\p{Regional_Indicator}|⃣|‍/u;
 const isEmoji = g => EMOJI_RE.test(g);
@@ -238,11 +250,11 @@ const DEFAULTS = {
   frame:'1920x1080', fw:1920, fh:1080, offX:0, offY:0, tight:false, exportScale:2
 };
 const STYLE_KEYS = Object.keys(DEFAULTS).filter(k=>!['showGuides','offX','offY'].includes(k));
-const S = Object.assign({}, DEFAULTS, store.get('opentok.style',{}));
+const S = Object.assign({}, DEFAULTS, store.get('opentitlecard.style',{}));
 S.text = "Type your Titlecard here! 😳";
 S.colors = Array(S.text.length).fill(null);
 S.ital = Array(S.text.length).fill(0);
-S.nudges = []; S.custom = store.get('opentok.custom',[]);
+S.nudges = []; S.custom = store.get('opentitlecard.custom',[]);
 S.previewBg = 'checker';
 
 let L = null;            // last layout
@@ -609,12 +621,12 @@ function buildSwatches(){
     const b=document.createElement('button'); b.className='sw'; b.style.background=c.h; b.title=(i<9?`Alt+${i+1} · `:'')+c.n+(c.custom?' (right-click to remove)':'');
     b.addEventListener('mousedown',e=>e.preventDefault());
     b.addEventListener('click',()=>applyColor(c.h));
-    if(c.custom) b.addEventListener('contextmenu',e=>{ e.preventDefault(); S.custom=S.custom.filter(x=>x!==c.h); store.set('opentok.custom',S.custom); buildSwatches(); });
+    if(c.custom) b.addEventListener('contextmenu',e=>{ e.preventDefault(); S.custom=S.custom.filter(x=>x!==c.h); store.set('opentitlecard.custom',S.custom); buildSwatches(); });
     host.appendChild(b);
   });
 }
 $('#applyPick').addEventListener('click',()=>applyColor($('#pick').value));
-$('#pin').addEventListener('click',()=>{ const v=$('#pick').value; if(!S.custom.includes(v)&&!PALETTE.some(p=>p[1]===v)){ S.custom.push(v); store.set('opentok.custom',S.custom); buildSwatches(); } });
+$('#pin').addEventListener('click',()=>{ const v=$('#pick').value; if(!S.custom.includes(v)&&!PALETTE.some(p=>p[1]===v)){ S.custom.push(v); store.set('opentitlecard.custom',S.custom); buildSwatches(); } });
 $('#clr').addEventListener('click',()=>applyColor(null));
 $('#ital').addEventListener('click',toggleItalic);
 $('#addSlot').addEventListener('click',insertSlot);
@@ -681,7 +693,7 @@ for(const [k,t] of bindings){
     persistStyle(); syncControls(); render();
   });
 }
-function persistStyle(){ const o={}; STYLE_KEYS.forEach(k=>o[k]=S[k]); store.set('opentok.style',o); }
+function persistStyle(){ const o={}; STYLE_KEYS.forEach(k=>o[k]=S[k]); store.set('opentitlecard.style',o); }
 
 /* preview background chips */
 $('#pbg').addEventListener('click',e=>{
@@ -714,22 +726,22 @@ $('#fontFile').addEventListener('change',async e=>{
 });
 
 /* ============ presets ============ */
-function presets(){ return store.get('opentok.presets',{}); }
+function presets(){ return store.get('opentitlecard.presets',{}); }
 function refreshPresets(){
   const p=presets(), sel=$('#presetSel'); sel.innerHTML='';
   const names=Object.keys(p); if(!names.length){ sel.innerHTML='<option value="">(none saved)</option>'; return; }
   names.forEach(n=>{ const o=document.createElement('option'); o.value=o.textContent=n; sel.appendChild(o); });
 }
-function applyPreset(o){ STYLE_KEYS.forEach(k=>{ if(k in o) S[k]=o[k]; }); if(o.custom) S.custom=[...new Set([...S.custom,...o.custom])]; store.set('opentok.custom',S.custom); buildSwatches(); persistStyle(); syncControls(); nudgeSig=''; render(); }
+function applyPreset(o){ STYLE_KEYS.forEach(k=>{ if(k in o) S[k]=o[k]; }); if(o.custom) S.custom=[...new Set([...S.custom,...o.custom])]; store.set('opentitlecard.custom',S.custom); buildSwatches(); persistStyle(); syncControls(); nudgeSig=''; render(); }
 $('#presetSave').addEventListener('click',()=>{
   const n=$('#presetName').value.trim(); if(!n) return;
-  const p=presets(), o={}; STYLE_KEYS.forEach(k=>o[k]=S[k]); o.custom=S.custom; p[n]=o; store.set('opentok.presets',p); refreshPresets(); $('#presetSel').value=n;
+  const p=presets(), o={}; STYLE_KEYS.forEach(k=>o[k]=S[k]); o.custom=S.custom; p[n]=o; store.set('opentitlecard.presets',p); refreshPresets(); $('#presetSel').value=n;
 });
 $('#presetLoad').addEventListener('click',()=>{ const o=presets()[$('#presetSel').value]; if(o) applyPreset(o); });
-$('#presetDel').addEventListener('click',()=>{ const p=presets(); delete p[$('#presetSel').value]; store.set('opentok.presets',p); refreshPresets(); });
+$('#presetDel').addEventListener('click',()=>{ const p=presets(); delete p[$('#presetSel').value]; store.set('opentitlecard.presets',p); refreshPresets(); });
 $('#presetExport').addEventListener('click',()=>{
   const o={}; STYLE_KEYS.forEach(k=>o[k]=S[k]); o.custom=S.custom;
-  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([JSON.stringify(o,null,2)],{type:'application/json'})); a.download=($('#presetName').value.trim()||'opentok-preset')+'.json'; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([JSON.stringify(o,null,2)],{type:'application/json'})); a.download=($('#presetName').value.trim()||'opentitlecard-preset')+'.json'; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),2000);
 });
 $('#presetImport').addEventListener('click',()=>$('#presetFile').click());
 $('#presetFile').addEventListener('change',async e=>{ const f=e.target.files[0]; if(!f) return; try{ applyPreset(JSON.parse(await f.text())); }catch(err){ alert('Not a valid preset file.'); } e.target.value=''; });

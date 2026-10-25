@@ -1,18 +1,19 @@
-# CLAUDE.md — working habits for opentok-titlecard
+# CLAUDE.md — working habits for OpenTitlecard
 
 Read this first. It describes the app, the rules for changing it, and how to work with the maintainer.
 
 ## What this is
 
-`opentok-titlecard` is a single-file, no-dependency HTML app that renders TikTok-style titlecards to a transparent PNG. See `README.md` for the user-facing description.
+**OpenTitlecard** (repo `wishym1shy/opentitlecard`) is a single-file, no-dependency HTML app that renders TikTok-style titlecards for social video to a transparent PNG. See `README.md` for the user-facing description.
 
 - **One file:** `index.html` holds all markup, CSS and JS. Keep it that way. No bundler, no framework, no CDN or network requests.
 - `docs/screenshot.png` is the README image. Regenerate it only when the UI visibly changes.
 - `LICENSE` is MIT.
+- **Name:** the project was called `opentok-titlecard` until the rename. Storage keys are `opentitlecard.*`; `index.html` copies any old `opentok.*` values over once (see `migrateOldKeys`). Keep that migration. "OpenTok" is an unrelated, established product, so don't reintroduce the name.
 
 ## Git and PR rules (important)
 
-Tooling note: in Claude Code web sessions `gh pr create` fails because GraphQL is blocked. Open PRs with the REST API instead: `gh api repos/wishym1shy/opentok-titlecard/pulls --input pr.json` (JSON with `title`, `head`, `base`, `body`).
+Tooling note: in Claude Code web sessions `gh pr create` fails because GraphQL is blocked. Open PRs with the REST API instead: `gh api repos/wishym1shy/opentitlecard/pulls --input pr.json` (JSON with `title`, `head`, `base`, `body`).
 
 1. **Never push to `main`.** The initial commit was the only exception. Every change goes on a branch (`feat/…`, `fix/…`, `docs/…`, `ci/…`) and reaches `main` through a pull request.
 2. **Open a pull request when a branch is ready** (tests pass locally). Don't wait to be asked, and don't open PRs for half-finished work. The PR description says what changed, why, how it was verified, and what could *not* be verified. For geometry changes, include the measurements.
