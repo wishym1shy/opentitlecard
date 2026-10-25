@@ -40,6 +40,7 @@
   .fpb{padding:0 12px 12px}
   .fpb>label:first-child{margin-top:0}
   .fp.min .fpb{display:none}
+  #szStatus.ok{color:var(--ok)} #szStatus.bad{color:#ffb3a8}
   .stagebody.with-panels .view{padding-right:330px}
   #panelsToggle[aria-pressed="true"]{background:var(--accent2);border-color:var(--accent)}
   details{border:1px solid var(--line);border-radius:8px;margin-bottom:10px;background:var(--panel2)}
@@ -320,6 +321,28 @@
             <label>Card position in canvas (X / Y offset, units)</label>
             <div class="row"><input type="number" id="offX"><input type="number" id="offY"></div>
           </div>
+        </div>
+      </section>
+      <section class="fp" id="fp_safezone" data-panel="safezone" aria-labelledby="fph_safezone">
+        <h2 class="fph"><button type="button" id="fph_safezone" aria-expanded="true" aria-controls="fpb_safezone" title="Minimize or expand this panel">Safe zone<span class="chev" aria-hidden="true"></span></button></h2>
+        <div class="fpb" id="fpb_safezone">
+          <div class="row tight"><label style="margin:0"><input type="checkbox" id="szOn"> Show safe zone</label></div>
+          <div class="hint" style="margin-top:2px">Preview only: never exported.</div>
+          <label for="szKind">Overlay</label>
+          <select id="szKind">
+            <option value="stories">Stories (9:16)</option>
+            <option value="reels">Reels (9:16)</option>
+            <option value="image">My own image…</option>
+          </select>
+          <div class="row tight" id="szImageRow" style="margin-top:6px" hidden>
+            <button id="szLoad" class="sm">Load image…</button><span class="hint" id="szImgName" style="margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
+            <input type="file" id="szFile" accept="image/png,image/jpeg,image/webp,image/svg+xml" hidden>
+          </div>
+          <label for="szX">Position X <span class="val" id="v_szX"></span></label><input type="range" id="szX" min="-1920" max="1920" step="1">
+          <label for="szY">Position Y <span class="val" id="v_szY"></span></label><input type="range" id="szY" min="-1920" max="1920" step="1">
+          <label for="szScale">Scale <span class="val" id="v_szScale"></span></label><input type="range" id="szScale" min="10" max="300" step="1">
+          <label for="szOpacity">Opacity <span class="val" id="v_szOpacity"></span></label><input type="range" id="szOpacity" min="10" max="100" step="1">
+          <div class="hint" id="szStatus" role="status"></div>
         </div>
       </section>
       <section class="fp" id="fp_export" data-panel="export" aria-labelledby="fph_export">
@@ -860,6 +883,8 @@ function renderNow(){
   const ta=$('#text');
   const sel = ta.selectionStart!==ta.selectionEnd ? [ta.selectionStart,ta.selectionEnd] : wordAt(ta.selectionStart);
   draw(cv.getContext('2d'),cv.width,cv.height,{u:g.u*k,cx:g.cx*k,cy:g.cy*k,guides:true,sel});
+  drawSafeZone(cv.getContext('2d'),g,k);   // preview only: export paints with draw() alone
+  safeZoneStatus(g);
   $('#dims').textContent = `${g.W} × ${g.H} px${S.tight?' (tight crop)':''}`;
   updateSlotInfo(g);
   $('#info').innerHTML = `<span>${L.lines.length} line${L.lines.length===1?'':'s'}</span><span>card ${Math.round(L.cardW*g.u)} × ${Math.round(L.cardH*g.u)} px</span>`;
@@ -948,6 +973,126 @@ viewEl.addEventListener('pointermove',e=>{
 });
 const endPan=e=>{ if(panDrag && e.pointerId===panDrag.id){ panDrag=null; viewEl.classList.remove('panning'); } };
 viewEl.addEventListener('pointerup',endPan); viewEl.addEventListener('pointercancel',endPan);
+
+/* ============ safe zone overlay ============ */
+/* Shows where a platform's interface covers the video, so a card can be kept clear of it. Built-in zones are rectangles
+   in a 1080 x 1920 frame: interface bars 250 px at the top and bottom, the 1420 px safe zone between them, and (Reels)
+   the column of side buttons, about 200 px wide from y = 1230 down to the bottom bar. A user's own image is drawn the
+   same way. The overlay is fitted to the canvas (so 1080 x 1920 and 2160 x 3840 match exactly), then moved by X/Y
+   (canvas px from the centre) and scaled. It is drawn on the preview only, after the card: export uses draw() alone.
+   Its settings are a viewing preference: saved, but not in undo or presets. The image itself is kept for the session
+   only, like a font file. */
+// ui: [name, x, y, w, h] in the 1080 x 1920 frame; safe: the outline of the safe zone (one shape, so Reels has no seam)
+const SAFE_ZONES={
+  stories:{w:1080,h:1920,ui:[['top bar',0,0,1080,250],['bottom bar',0,1670,1080,250]],safe:[[0,250],[1080,250],[1080,1670],[0,1670]]},
+  reels:{w:1080,h:1920,ui:[['top bar',0,0,1080,250],['bottom bar',0,1670,1080,250],['side buttons',880,1230,200,440]],safe:[[0,250],[1080,250],[1080,1230],[880,1230],[880,1670],[0,1670]]},
+};
+const SZ_DEFAULTS={on:false,kind:'stories',x:0,y:0,scale:100,opacity:100};
+const SZ_RANGES={x:[-1920,1920],y:[-1920,1920],scale:[10,300],opacity:[10,100]};
+const SZ=(()=>{ const raw=store.get('opentitlecard.safezone',{}), o={...SZ_DEFAULTS};
+  if(raw&&typeof raw==='object'){
+    if(typeof raw.on==='boolean') o.on=raw.on;
+    if(['stories','reels','image'].includes(raw.kind)) o.kind=raw.kind;
+    for(const k in SZ_RANGES) if(typeof raw[k]==='number'&&isFinite(raw[k])) o[k]=clamp(Math.round(raw[k]),...SZ_RANGES[k]);
+  }
+  return o; })();
+let szImage=null;   // {img, name, w, h} for "My own image", this session only
+let szBox=null;     // where the overlay was last drawn, in canvas px (for the status line and the tests)
+const SZ_FMT={x:v=>v+' px',y:v=>v+' px',scale:v=>v+'%',opacity:v=>v+'%'};
+/* The overlay's frame in canvas px: its natural size fitted inside the canvas, scaled, centred, then moved. */
+function safeZoneBox(g){
+  const src=SZ.kind==='image'?(szImage&&{w:szImage.w,h:szImage.h}):SAFE_ZONES[SZ.kind];
+  if(!src) return null;
+  const f=Math.min(g.W/src.w,g.H/src.h)*SZ.scale/100, w=src.w*f, h=src.h*f;
+  return {x:g.W/2+SZ.x-w/2, y:g.H/2+SZ.y-h/2, w, h, f};
+}
+function drawSafeZone(ctx,g,k){
+  szBox=null;
+  if(!SZ.on || S.tight) return;
+  const b=safeZoneBox(g); if(!b) return;
+  szBox=b;
+  const T=(x,y)=>[(b.x+x*b.f)*k,(b.y+y*b.f)*k], css=k/viewState.z;   // bitmap px per screen px, for 2 px lines at any zoom
+  ctx.save(); ctx.globalAlpha=SZ.opacity/100;
+  if(SZ.kind==='image'){ ctx.drawImage(szImage.img,b.x*k,b.y*k,b.w*k,b.h*k); ctx.restore(); return; }
+  const z=SAFE_ZONES[SZ.kind];
+  const rect=(r,fill,stroke,dash)=>{
+    const [x,y]=T(r[0],r[1]), w=r[2]*b.f*k, h=r[3]*b.f*k;
+    ctx.fillStyle=fill; ctx.fillRect(x,y,w,h);
+    ctx.setLineDash(dash.map(d=>d*css)); ctx.lineWidth=2*css; ctx.strokeStyle=stroke; ctx.strokeRect(x,y,w,h);
+  };
+  ctx.beginPath(); z.safe.forEach(([x,y],i)=>ctx[i?'lineTo':'moveTo'](...T(x,y))); ctx.closePath();
+  ctx.fillStyle='rgba(52,199,89,.14)'; ctx.fill();
+  ctx.setLineDash([8*css,6*css]); ctx.lineWidth=2*css; ctx.strokeStyle='#34c759'; ctx.stroke();
+  z.ui.forEach(r=>rect(r.slice(1),'rgba(255,59,48,.32)','#ff3b30',[]));
+  // labels: one line each, sized for the screen, inside the band when there is room
+  ctx.setLineDash([]); ctx.font=`600 ${12*css}px system-ui,sans-serif`; ctx.textBaseline='top';
+  // the full label, else just the name, else nothing: a label never spills out of its band
+  const label=(text,r,color)=>{
+    const [x,y]=T(r[0],r[1]), w=r[2]*b.f*k-12*css; if(r[3]*b.f*k<20*css) return;
+    const t=[text,text.split(' · ')[0]].find(t=>ctx.measureText(t).width<=w); if(!t) return;
+    ctx.fillStyle=color; ctx.fillText(t,x+6*css,y+6*css);
+  };
+  // a band is labelled with its thickness: the height of a bar, the width of the side column
+  z.ui.forEach(r=>label(`${r[0][0].toUpperCase()+r[0].slice(1)} · ${Math.min(r[3],r[4])} px`,r.slice(1),'#fff'));
+  const [sx,sy]=z.safe[0];
+  label(`Safe zone · ${z.safe[z.safe.length-1][1]-sy} px`,[sx,sy,z.w,100],'#9ff0b4');
+  ctx.restore();
+}
+/* Says whether the card in front sits inside the safe zone, and if not, what it runs into. Built-in zones only: an
+   image can't be read for where its safe area is. */
+function safeZoneStatus(g){
+  const el=$('#szStatus'); el.className='hint';
+  if(!SZ.on){ el.textContent=''; return; }
+  if(S.tight){ el.textContent='A safe zone needs the full canvas: turn off Tight crop to see it.'; return; }
+  if(SZ.kind==='image'){ el.textContent=szImage?'Your image is drawn over the preview.':'Load an image to see it. Images aren\'t saved, so load it again after a reload.'; return; }
+  const b=szBox; if(!b || !L.lines.length){ el.textContent=''; return; }
+  const z=SAFE_ZONES[SZ.kind];
+  // the card's box (with nudges, which move only the text) in zone coordinates
+  let x0=Infinity,x1=-Infinity,y0=Infinity,y1=-Infinity;
+  for(const l of L.lines){ x0=Math.min(x0,l.x0,l.tx+l.nx); x1=Math.max(x1,l.x1,l.tx+l.nx+l.w); y0=Math.min(y0,l.y0,l.y0+l.ny); y1=Math.max(y1,l.y1,l.y1+l.ny); }
+  const zx=v=>(g.cx+v*g.u-b.x)/b.f, zy=v=>(g.cy+v*g.u-b.y)/b.f;
+  const c=[zx(x0),zy(y0),zx(x1),zy(y1)];
+  const hits=z.ui.filter(r=>c[0]<r[1]+r[3] && c[2]>r[1] && c[1]<r[2]+r[4] && c[3]>r[2]).map(r=>r[0]);
+  const out=c[0]<0||c[2]>z.w||c[1]<0||c[3]>z.h;
+  if(!hits.length && !out){ el.textContent='✓ The card is inside the safe zone.'; el.classList.add('ok'); return; }
+  el.textContent='⚠ The card '+[hits.length?'overlaps the '+hits.join(' and the '):'', out?'goes past the edge of the frame':''].filter(Boolean).join(', and ')+'.';
+  el.classList.add('bad');
+}
+function saveSZ(){ store.set('opentitlecard.safezone',SZ); }
+function syncSZControls(){
+  $('#szOn').checked=SZ.on; $('#szKind').value=SZ.kind; $('#szImageRow').hidden=SZ.kind!=='image';
+  $('#szImgName').textContent=szImage?szImage.name:'';
+  for(const k in SZ_RANGES){
+    const id='sz'+k[0].toUpperCase()+k.slice(1); $('#'+id).value=SZ[k]; $('#v_'+id).textContent=SZ_FMT[k](SZ[k]);
+    const r=$(`[data-sz-reset="${k}"]`); if(r) r.disabled=SZ[k]===SZ_DEFAULTS[k];
+  }
+}
+$('#szOn').addEventListener('change',e=>{ SZ.on=e.target.checked; saveSZ(); render(); });
+$('#szKind').addEventListener('change',e=>{ SZ.kind=e.target.value; saveSZ(); syncSZControls(); render(); if(SZ.kind==='image'&&!szImage) $('#szLoad').focus(); });
+for(const k in SZ_RANGES){
+  const id='sz'+k[0].toUpperCase()+k.slice(1), el=$('#'+id), v=$('#v_'+id);
+  el.addEventListener('input',()=>{ SZ[k]=+el.value; saveSZ(); syncSZControls(); render(); });
+  const b=document.createElement('button');   // same ↺ as the style sliders
+  b.type='button'; b.className='sm rs'; b.dataset.szReset=k; b.textContent='↺';
+  b.setAttribute('aria-label',`Reset ${v.parentElement.firstChild.textContent.trim()}`); b.title=`Reset to default (${SZ_FMT[k](SZ_DEFAULTS[k])})`;
+  b.addEventListener('click',()=>{ SZ[k]=SZ_DEFAULTS[k]; saveSZ(); syncSZControls(); render(); });
+  el.addEventListener('dblclick',()=>b.click());
+  v.before(b);
+}
+$('#szLoad').addEventListener('click',()=>$('#szFile').click());
+$('#szFile').addEventListener('change',async e=>{
+  const f=e.target.files[0]; e.target.value=''; if(!f) return;
+  const url=URL.createObjectURL(f), img=new Image();
+  try{
+    img.src=url; await img.decode();
+    // an SVG without a size of its own is drawn at the canvas size
+    const [W,H]=frameDims();
+    szImage={img,name:f.name,w:img.naturalWidth||W,h:img.naturalHeight||H};
+    SZ.kind='image'; SZ.on=true; saveSZ();
+  }catch(err){ URL.revokeObjectURL(url); $('#szStatus').textContent='That file couldn\'t be read as an image.'; $('#szStatus').className='hint bad'; return; }
+  syncSZControls(); render();
+});
+syncSZControls();
 
 /* ============ slot info ============ */
 function updateSlotInfo(g){
@@ -1720,7 +1865,7 @@ window.addEventListener('resize',render);   // Fit follows the window
 loadBundledInter();
 (document.fonts&&document.fonts.ready?document.fonts.ready:Promise.resolve()).then(render);
 render();
-window.__tt={S,render,renderNow,get L(){return L},exportGeometry,draw,get cards(){return cards},get sharedStyle(){return sharedStyle},get active(){return active},batchNames,zipStem,crc32,buildZip,undo:undoStep,redo:redoStep,get history(){return {length:hist.length,at:histAt}},get view(){return {...viewState}}};
+window.__tt={S,render,renderNow,get L(){return L},exportGeometry,draw,get cards(){return cards},get sharedStyle(){return sharedStyle},get active(){return active},batchNames,zipStem,crc32,buildZip,undo:undoStep,redo:redoStep,get history(){return {length:hist.length,at:histAt}},get view(){return {...viewState}},get safezone(){return {...SZ,box:szBox&&{...szBox},status:$('#szStatus').textContent}}};
 </script>
 </body>
 </html>

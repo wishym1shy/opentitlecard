@@ -45,6 +45,10 @@ The design controls (text, line nudge, font, background, emoji slot, presets) ar
 
 **Zoom and pan:** **Ctrl+scroll** (⌘+scroll on a Mac, or pinch on a trackpad) zooms around the cursor; scroll to move around, **Shift+scroll** sideways, or drag with **Space** held or the middle mouse button. The zoom bar at the bottom-left of the preview has −/+, **Fit** and **100%** (actual size); **Ctrl+=**, **Ctrl+−** and **Ctrl+0** do the same. 100% shows one canvas pixel per screen pixel, so past that you see the real export pixels.
 
+## Safe zones
+
+Turn on **Show safe zone** in the **Safe zone** panel to see where a platform's interface covers your video. **Stories** and **Reels** (9:16) shade the interface bars red (250 px at the top and bottom of a 1080 × 1920 frame, plus the side buttons in Reels) and the safe zone green, and the panel tells you whether the card in front is inside it or which part it runs into. You can also load **your own image** (PNG, JPG, WebP or SVG) as the overlay. **Position X / Y** and **Scale** move and resize it, **Opacity** fades it, and **↺** resets each one. The overlay is fitted to the canvas, so it matches exactly on 1080 × 1920 and 2160 × 3840. It is only drawn on the preview: it is **never exported**. The settings are remembered; a loaded image is kept until you reload the page.
+
 ## Quick start
 
 1. Open the live app, or download [`index.html`](index.html) and open it in **Chrome or Edge**.
@@ -79,7 +83,7 @@ Use a Chromium browser (Chrome, Edge, Brave, Arc) for the full experience. The a
 
 ## Privacy
 
-Everything happens in your browser. No text, fonts, or images leave your computer. Your last style settings, custom palette colors, saved presets, your batch file-name pattern are stored in your browser's `localStorage` and nowhere else. Your cards and their text are **not** stored: they exist only on the page until you save them to a file you choose. The undo history is kept in memory too, and is gone when you close or reload the page.
+Everything happens in your browser. No text, fonts, or images leave your computer. Your last style settings, custom palette colors, saved presets, your batch file-name pattern are stored in your browser's `localStorage` and nowhere else. Your cards and their text are **not** stored: they exist only on the page until you save them to a file you choose. The undo history is kept in memory too, and is gone when you close or reload the page. A safe zone image you load stays in memory for the session only.
 
 ## Limitations
 
