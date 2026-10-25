@@ -1,4 +1,4 @@
-const { test, expect, APP_URL, loadTestFont, setText, settle, setSelection, exportPng, inspectPng } = require('./helpers');
+const { test, expect, expandUi, APP_URL, loadTestFont, setText, settle, setSelection, exportPng, inspectPng } = require('./helpers');
 
 test.describe('loading and fonts', () => {
   test('opens cleanly with the default card', async ({ app: { page } }) => {
@@ -37,6 +37,7 @@ test.describe('loading and fonts', () => {
     page.on('pageerror', (e) => errors.push(e.message));
     await page.goto(APP_URL);
     await page.waitForFunction(() => window.__tt && window.__tt.L);
+    await expandUi(page);
     await page.fill('#family', 'Definitely Not An Installed Font 12345');
     await expect(page.locator('#fontChip')).toHaveClass(/bad/);
     await expect(page.locator('#banner')).toBeVisible();

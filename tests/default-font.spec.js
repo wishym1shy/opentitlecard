@@ -1,4 +1,4 @@
-const { test, expect, APP_URL, setText, settle, setRange, exportPng, inspectPng } = require('./helpers');
+const { test, expect, expandUi, APP_URL, setText, settle, setRange, exportPng, inspectPng } = require('./helpers');
 
 // These tests never load the test font: they use the Inter that ships inside index.html, i.e. what a first-time
 // visitor gets. (Every other spec loads a pinned static Inter through "Load font file…" for identical metrics.)
@@ -30,6 +30,7 @@ async function openPlain(browser, init) {
   page.on('request', (r) => requests.push(r.url()));
   await page.goto(APP_URL);
   await page.waitForFunction(() => window.__tt && window.__tt.L);
+  await expandUi(page);
   return { context, page, errors, requests };
 }
 const bundledLoaded = (page) => page.waitForFunction(() => [...document.fonts].some((f) => f.family.includes('OpenTitlecard Inter') && f.status === 'loaded'));
