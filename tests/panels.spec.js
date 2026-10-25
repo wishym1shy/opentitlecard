@@ -52,10 +52,28 @@ test.describe('floating panels', () => {
 
   test('clicks pass through the empty space around the panels', async ({ app: { page } }) => {
     await page.click('#fph_cards'); await page.click('#fph_canvas'); await page.click('#fph_export');
-    const stack = await box(page, '#panels'), last = await box(page, '#fp_export');
-    const x = stack.x + stack.width / 2, y = last.y + last.height + 40; // below the minimized panels, inside the stack
+    const stack = await box(page, '#panels'), above = await box(page, '#fp_safezone'), last = await box(page, '#fp_export');
+    const x = stack.x + stack.width / 2, y = (above.y + above.height + last.y) / 2; // the gap above Export, inside the stack
     const hit = await page.evaluate(([x, y]) => document.elementFromPoint(x, y).closest('#panels') === null, [x, y]);
     expect(hit).toBe(true);
+  });
+
+  test('Export sits by itself at the bottom right, minimized or open, and stays there when the stack overflows', async ({ app: { page } }) => {
+    const bottomGap = async () => { const [s, e] = await Promise.all([box(page, '#panels'), box(page, '#fp_export')]); return s.y + s.height - (e.y + e.height); };
+    const gapAbove = async () => { const [z, e] = await Promise.all([box(page, '#fp_safezone'), box(page, '#fp_export')]); return e.y - (z.y + z.height); };
+    await page.click('#fph_canvas'); await page.click('#fph_safezone'); await page.click('#fph_export'); // all but Cards minimized
+    expect(Math.abs(await bottomGap())).toBeLessThan(1);
+    expect(await gapAbove()).toBeGreaterThan(100); // set apart, not stacked under the others
+    await page.click('#fph_export');
+    expect(Math.abs(await bottomGap())).toBeLessThan(1);
+    // everything open in a short window: the stack scrolls, Export stays in view at the bottom
+    await page.click('#fph_canvas'); await page.click('#fph_safezone');
+    await page.setViewportSize({ width: 1280, height: 600 });
+    expect(await page.locator('#panels').evaluate((el) => el.scrollHeight > el.clientHeight)).toBe(true);
+    expect(Math.abs(await bottomGap())).toBeLessThan(1);
+    const s = await box(page, '#panels'), b = await box(page, '#export');
+    expect(await page.evaluate(([x, y]) => document.elementFromPoint(x, y).id, [b.x + b.width / 2, b.y + b.height / 2])).toBe('export');
+    expect(b.y + b.height).toBeLessThanOrEqual(s.y + s.height);
   });
 
   test('broken saved panel settings are ignored, and an old saved minimize choice no longer applies', async ({ browser }) => {
