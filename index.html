@@ -51,9 +51,16 @@
   .sw:hover{outline:2px solid var(--accent);outline-offset:1px}
   .hint{color:var(--mute);font-size:11.5px;margin-top:6px}
   .val{float:right;color:var(--text);font-variant-numeric:tabular-nums}
-  .nudge{display:grid;grid-template-columns:1fr 62px 62px auto;gap:6px;align-items:center;margin:5px 0}
+  .nudge{display:grid;grid-template-columns:1fr auto;gap:4px 6px;align-items:center;margin:8px 0 10px;padding-bottom:9px;border-bottom:1px dashed var(--line)}
+  .nudge:last-child{border-bottom:0;padding-bottom:0}
   .nudge .nm{overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:12px}
-  .nudge input{padding:4px 6px}
+  .nudge .ax{grid-column:1 / -1;display:grid;grid-template-columns:16px 1fr 62px;gap:8px;align-items:center}
+  .nudge input[type=number]{padding:4px 6px}
+  .nudge .scrub{cursor:ew-resize;color:var(--accent);font-weight:600;font-size:12px;text-align:center;user-select:none;touch-action:none}
+  .nudge .slw{position:relative;display:flex;align-items:center}
+  .nudge .slw:before{content:"";position:absolute;left:50%;top:50%;width:1px;height:12px;margin-top:-6px;background:var(--mute);opacity:.55;pointer-events:none} /* centre (0) tick */
+  .nudge input[type=range]{margin:0;position:relative}
+  .nudge input:focus-visible,.nudge .scrub:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
   .slotrow{font-variant-numeric:tabular-nums;font-size:12px;padding:4px 0;border-bottom:1px dashed var(--line);display:flex;gap:8px;align-items:center}
   .slotrow code{color:var(--accent);background:#14161b;padding:1px 6px;border-radius:4px}
   .toolbar{display:flex;gap:8px;align-items:center;padding:8px 14px;border-bottom:1px solid var(--line);background:var(--panel);flex-wrap:wrap}
@@ -110,7 +117,7 @@
     <summary>Line nudge (text inside fill)</summary>
     <div class="body">
       <div id="nudges"></div>
-      <div class="hint">Moves each line's text (and its emoji slot) without moving the box. Units are px at 1080p. Alt-drag text in the preview, or focus a field and use <kbd>↑</kbd><kbd>↓</kbd> (<kbd>Shift</kbd> = 10).</div>
+      <div class="hint">Moves each line's text (and its emoji slot) without moving the box. Units are px at 1080p; sliders rest at 0 in the middle (right = +, and +Y is down). Drag the <b>X</b>/<b>Y</b> labels to scrub, type a value, or use the arrow keys (<kbd>Shift</kbd> = 10). Double-click to reset one axis, or Alt-drag text in the preview.</div>
     </div>
   </details>
 
@@ -551,7 +558,19 @@ function updateSlotInfo(g){
 }
 
 /* ============ nudge rows ============ */
-let nudgeSig='';
+/* Each line gets an X and a Y control: a slider that rests in the middle (0), a scrub label (drag it) and a number
+   field. The slider track covers +-NUDGE_RANGE; the number field accepts any value, and the slider simply pins
+   to its end beyond that. S.nudges[i] = {x,y} is the single source of truth; every control reads and writes it. */
+const NUDGE_RANGE=200, NUDGE_DETENT=2;   // drags within +-2 of centre snap to exactly 0
+let nudgeSig='', sliderDrag=false;
+const nudgeVal=(i,a)=>(S.nudges[i]||{})[a]||0;
+function setNudge(i,a,v){ const n=S.nudges[i]||(S.nudges[i]={x:0,y:0}); n[a]=v; render(); }
+function axisHTML(i,a,v){
+  const A=a.toUpperCase();
+  return `<div class="ax"><span class="scrub" data-scrub="${a}" data-line="${i}" title="Drag to scrub ${A}. Shift = 10x. Double-click to reset.">${A}</span>
+    <div class="slw"><input type="range" min="${-NUDGE_RANGE}" max="${NUDGE_RANGE}" step="1" value="${clamp(v,-NUDGE_RANGE,NUDGE_RANGE)}" data-slider="${a}" data-line="${i}" aria-label="Line ${i+1} ${A} offset" title="${A}: centre = 0. Double-click to reset."></div>
+    <input type="number" step="1" data-i="${i}" data-a="${a}" value="${v}" title="${A}" aria-label="Line ${i+1} ${A} offset value"></div>`;
+}
 function syncNudgeRows(){
   const sig=L.lines.map(l=>l.items.map(i=>i.k==='t'?i.text:'·').join('')).join('|');
   const host=$('#nudges');
@@ -561,25 +580,56 @@ function syncNudgeRows(){
       const n=S.nudges[i]||(S.nudges[i]={x:0,y:0});
       const row=document.createElement('div'); row.className='nudge';
       const name=l.items.map(it=>it.k==='t'?it.text:'😀').join('');
-      row.innerHTML=`<div class="nm" title="${name.replace(/"/g,'&quot;')}"><b>${i+1}</b> ${name.replace(/</g,'&lt;')}</div>
-        <input type="number" step="1" data-i="${i}" data-a="x" value="${n.x}" title="X"><input type="number" step="1" data-i="${i}" data-a="y" value="${n.y}" title="Y"><button class="sm" data-reset="${i}" title="Reset">↺</button>`;
+      row.innerHTML=`<div class="nm" title="${name.replace(/"/g,'&quot;')}"><b>${i+1}</b> ${name.replace(/</g,'&lt;')}</div><button class="sm" data-reset="${i}" title="Reset both axes" aria-label="Reset line ${i+1} nudge">↺</button>`
+        +axisHTML(i,'x',n.x||0)+axisHTML(i,'y',n.y||0);
       host.appendChild(row);
     });
   } else {
-    host.querySelectorAll('input[data-i]').forEach(inp=>{ const v=(S.nudges[+inp.dataset.i]||{})[inp.dataset.a]||0; if(document.activeElement!==inp) inp.value=v; });
+    host.querySelectorAll('input[data-i]').forEach(inp=>{ const v=nudgeVal(+inp.dataset.i,inp.dataset.a); if(document.activeElement!==inp) inp.value=v; });
+    host.querySelectorAll('input[data-slider]').forEach(sl=>{ sl.value=clamp(nudgeVal(+sl.dataset.line,sl.dataset.slider),-NUDGE_RANGE,NUDGE_RANGE); });
   }
 }
-$('#nudges').addEventListener('input',e=>{
-  const t=e.target; if(!t.dataset.i) return;
-  const n=S.nudges[+t.dataset.i]||(S.nudges[+t.dataset.i]={x:0,y:0}); n[t.dataset.a]=+t.value||0; render();
+const nudgeHost=$('#nudges');
+nudgeHost.addEventListener('input',e=>{
+  const t=e.target;
+  if(t.dataset.slider){
+    let v=+t.value;
+    if(sliderDrag && Math.abs(v)<=NUDGE_DETENT) v=0;    // detent while dragging only, so keyboard steps still reach +-1
+    setNudge(+t.dataset.line,t.dataset.slider,v); return;
+  }
+  if(t.dataset.i) setNudge(+t.dataset.i,t.dataset.a,+t.value||0);
 });
-$('#nudges').addEventListener('keydown',e=>{
-  const t=e.target; if(!t.dataset||!t.dataset.i) return;
-  if((e.key==='ArrowUp'||e.key==='ArrowDown')&&e.shiftKey){ e.preventDefault(); t.value=(+t.value||0)+(e.key==='ArrowUp'?10:-10); t.dispatchEvent(new Event('input',{bubbles:true})); }
+nudgeHost.addEventListener('keydown',e=>{
+  const t=e.target; if(!t.dataset) return;
+  if(t.dataset.slider && e.shiftKey && /^Arrow/.test(e.key)){          // Shift+arrow = 10, like the number field
+    e.preventDefault(); const d=(e.key==='ArrowRight'||e.key==='ArrowUp')?10:-10;
+    setNudge(+t.dataset.line,t.dataset.slider,nudgeVal(+t.dataset.line,t.dataset.slider)+d); return;
+  }
+  if(t.dataset.i && (e.key==='ArrowUp'||e.key==='ArrowDown')&&e.shiftKey){ e.preventDefault(); t.value=(+t.value||0)+(e.key==='ArrowUp'?10:-10); t.dispatchEvent(new Event('input',{bubbles:true})); }
 });
-$('#nudges').addEventListener('click',e=>{
+nudgeHost.addEventListener('click',e=>{
   const b=e.target.closest('[data-reset]'); if(!b) return; S.nudges[+b.dataset.reset]={x:0,y:0}; nudgeSig=''; render();
 });
+nudgeHost.addEventListener('dblclick',e=>{
+  const t=e.target.closest('[data-slider],[data-scrub]'); if(!t) return;
+  setNudge(+t.dataset.line,t.dataset.slider||t.dataset.scrub,0);
+});
+// Scrubbing: drag the X/Y label sideways (1 px = 1 unit, Shift = 10). Accumulates per move so pressing Shift
+// mid-drag changes speed without making the value jump.
+let scrub=null;
+nudgeHost.addEventListener('pointerdown',e=>{
+  if(e.target.dataset && e.target.dataset.slider) sliderDrag=true;
+  const t=e.target.closest('[data-scrub]'); if(!t) return;
+  e.preventDefault(); t.setPointerCapture(e.pointerId);
+  scrub={line:+t.dataset.line,a:t.dataset.scrub,x:e.clientX,v:nudgeVal(+t.dataset.line,t.dataset.scrub)};
+});
+nudgeHost.addEventListener('pointermove',e=>{
+  if(!scrub) return;
+  scrub.v+=(e.clientX-scrub.x)*(e.shiftKey?10:1); scrub.x=e.clientX;
+  setNudge(scrub.line,scrub.a,Math.round(scrub.v));
+});
+const endNudgeDrag=()=>{ scrub=null; sliderDrag=false; };
+window.addEventListener('pointerup',endNudgeDrag); window.addEventListener('pointercancel',endNudgeDrag);
 
 /* ============ text input + run attributes ============ */
 const ta=$('#text');

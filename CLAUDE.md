@@ -26,7 +26,7 @@ Tooling note: in Claude Code web sessions `gh pr create` fails because GraphQL i
 
 GitHub Actions (`.github/workflows/ci.yml`) runs the Playwright suite in headless Chromium on every pull request and every push to `main`. A PR is only ready when CI is green. The maintainer still reviews and merges.
 
-- Tests live in `tests/`: `app.spec.js` (loading, fonts, emoji slots, colour/italic, preview interaction, nudge), `geometry.spec.js` (box rules, descender clearance regression), `wrap.spec.js` (auto-wrap), `export.spec.js` (PNG output), `storage-and-presets.spec.js`.
+- Tests live in `tests/`: `app.spec.js` (loading, fonts, emoji slots, colour/italic, preview interaction, nudge), `geometry.spec.js` (box rules, descender clearance regression), `wrap.spec.js` (auto-wrap), `nudge-sliders.spec.js` (X/Y nudge sliders), `export.spec.js` (PNG output), `storage-and-presets.spec.js`.
 - `tests/helpers.js` has the shared fixture. It opens the app, loads the pinned Inter font through the app's own **Load font file…** input, and fails any test that logs a page error, console error or dialog.
 - Dependencies are **dev-only** (`@playwright/test`, `@fontsource/inter`), pinned exactly, with `package-lock.json` committed. The app has no runtime dependencies. Don't add any.
 - Keep `window.__tt` (state `S`, layout `L`, `render`, `renderNow`, `exportGeometry`, `draw`) stable. The tests depend on it. If you must change it, update the tests in the same branch.
