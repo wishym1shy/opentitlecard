@@ -51,6 +51,9 @@
   .sw:hover{outline:2px solid var(--accent);outline-offset:1px}
   .hint{color:var(--mute);font-size:11.5px;margin-top:6px}
   .val{float:right;color:var(--text);font-variant-numeric:tabular-nums}
+  button.rs{float:right;margin:-3px 0 0 8px;padding:0 6px;font-size:12px;line-height:17px}
+  button.rs:disabled{opacity:.3;cursor:default;border-color:var(--line);background:var(--panel2)}
+  button.rs:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
   .nudge{display:grid;grid-template-columns:1fr auto;gap:4px 6px;align-items:center;margin:8px 0 10px;padding-bottom:9px;border-bottom:1px dashed var(--line)}
   .nudge:last-child{border-bottom:0;padding-bottom:0}
   .nudge .nm{overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:12px}
@@ -1002,6 +1005,7 @@ function syncControls(){
     }
     for(const id of ['v_'+k,'xv_'+k]){ const vv=$('#'+id); if(vv) vv.textContent=(fmt[k]||(v=>v))(S[k]); }
   }
+  document.querySelectorAll('[data-reset-key]').forEach(b=>{ b.disabled=S[b.dataset.resetKey]===DEFAULTS[b.dataset.resetKey]; });
   for(const pre of ['','x_']){
     $('#'+pre+'customRow').style.display=S.frame==='custom'?'flex':'none';
     $('#'+pre+'tightOpts').style.display=S.tight?'block':'none';
@@ -1020,6 +1024,20 @@ for(const [k,t] of bindings){
     });
   }
 }
+/* Reset buttons: every Font & type and Background slider gets a ↺ that puts it back to the app's default (DEFAULTS, not a
+   preset: the default preset only applies on a first load). It goes through the slider's own input event, so saving,
+   a card's own style and redrawing behave exactly as for a drag. Double-clicking the slider does the same, like the
+   nudge sliders. syncControls() greys a button out while its slider is already at the default. */
+const RESET_KEYS=['size','lh','track','wrap','outlineW','bgOpacity','padX','radius','topPad','botPad','clear'];
+function resetSlider(k){ const el=$('#'+k); el.value=DEFAULTS[k]; el.dispatchEvent(new Event('input')); }
+RESET_KEYS.forEach(k=>{
+  const v=$('#v_'+k), b=document.createElement('button'), name=v.parentElement.firstChild.textContent.trim();
+  b.type='button'; b.className='sm rs'; b.dataset.resetKey=k; b.textContent='↺';
+  b.setAttribute('aria-label',`Reset ${name}`); b.title=`Reset to default (${(fmt[k]||(x=>x))(DEFAULTS[k])}). Double-clicking the slider works too.`;
+  b.addEventListener('click',()=>resetSlider(k));
+  v.before(b);   // both float right, so the button sits at the far right, after the value
+  $('#'+k).addEventListener('dblclick',()=>resetSlider(k));
+});
 // The last-used style is the shared one: a card's own style must not become what the app opens with.
 function persistStyle(){
   const own=!!(cards[active]&&cards[active].style), o={};
