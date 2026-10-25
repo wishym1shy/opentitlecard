@@ -1,4 +1,4 @@
-const { test, expect, setText, settle, exportPng, inspectPng } = require('./helpers');
+const { test, expect, expandUi, setText, settle, exportPng, inspectPng } = require('./helpers');
 
 test.describe('PNG export', () => {
   test('shadows are off by default: nothing is painted outside the box', async ({ app: { page } }) => {
@@ -18,6 +18,7 @@ test.describe('PNG export', () => {
     await page.check('#boxShadow');
     await page.reload();
     await page.waitForFunction(() => window.__tt && window.__tt.L);
+    await expandUi(page);
     await expect(page.locator('#textShadow')).toBeChecked();
     await expect(page.locator('#boxShadow')).toBeChecked();
     const { buffer } = await exportPng(page);

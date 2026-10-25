@@ -49,6 +49,10 @@
   summary:before{content:"▸";display:inline-block;width:14px;transition:transform .15s}
   details[open]>summary:before{transform:rotate(90deg)}
   .body{padding:4px 12px 12px}
+  /* Titlecard Properties holds the other sections, so they sit one shade darker inside it and it reads as their parent. */
+  details.master>summary{color:var(--text)}
+  details.master>.body{padding:2px 8px 2px}
+  details details{background:var(--panel);margin-bottom:8px}
   label{display:block;color:var(--mute);font-size:11.5px;margin:8px 0 3px}
   .row{display:flex;gap:8px;align-items:center}
   .row>*{flex:1;min-width:0}
@@ -168,69 +172,86 @@
     </div>
   </details>
 
-  <details open>
-    <summary>Line nudge (text inside fill)</summary>
+  <!-- Everything about how the card looks and sits. Closed on every load so the page opens on the text. -->
+  <details id="tcProps" class="master">
+    <summary>Titlecard Properties</summary>
     <div class="body">
-      <div id="nudges"></div>
-      <div class="hint">Moves each line's text (and its emoji slot) without moving the box. Units are px at 1080p; sliders rest at 0 in the middle (right = +, and +Y is down). Drag the <b>X</b>/<b>Y</b> labels to scrub, type a value, or use the arrow keys (<kbd>Shift</kbd> = 10). Double-click to reset one axis, or Alt-drag text in the preview.</div>
-    </div>
-  </details>
+      <details open>
+        <summary>Position</summary>
+        <div class="body">
+          <div id="frameOpts">
+            <div class="row"><div><label for="offX">X offset</label><input type="number" id="offX"></div><div><label for="offY">Y offset</label><input type="number" id="offY"></div></div>
+            <div class="hint">Moves the card inside the canvas, in px at 1080p (+Y is down). The same for every card.</div>
+          </div>
+          <div class="hint" id="posTight" style="margin:0">Tight crop is on (Canvas panel), so the PNG is just the card and its position doesn't apply.</div>
+        </div>
+      </details>
 
-  <details open>
-    <summary>Font &amp; type</summary>
-    <div class="body">
-      <label>Font family</label>
-      <input type="text" id="family" list="fontlist" autocomplete="off">
-      <datalist id="fontlist"></datalist>
-      <div class="row" style="margin-top:6px">
-        <button id="loadInstalled" class="sm">Installed fonts…</button>
-        <button id="loadFile" class="sm">Load font file…</button>
-        <input type="file" id="fontFile" accept=".ttf,.otf,.woff,.woff2" hidden>
-      </div>
-      <div class="row">
-        <div><label>Weight</label>
-          <select id="weight"><option value="400">Regular 400</option><option value="500">Medium 500</option><option value="600">Semibold 600</option><option value="700">Bold 700</option><option value="800">Extra Bold 800</option><option value="900">Black 900</option></select></div>
-        <div><label>Align</label>
-          <select id="align"><option value="center">Center</option><option value="left">Left</option><option value="right">Right</option></select></div>
-      </div>
-      <label>Size <span class="val" id="v_size"></span></label><input type="range" id="size" min="30" max="260" step="1">
-      <label>Line height <span class="val" id="v_lh"></span></label><input type="range" id="lh" min="0.9" max="1.8" step="0.01">
-      <label>Tracking <span class="val" id="v_track"></span></label><input type="range" id="track" min="-6" max="20" step="0.5">
-      <label for="stretchX">Stretch width <span class="val" id="v_stretchX"></span></label><input type="range" id="stretchX" min="50" max="200" step="1">
-      <label for="stretchY">Stretch height <span class="val" id="v_stretchY"></span></label><input type="range" id="stretchY" min="50" max="200" step="1">
-      <div class="hint">Below 100% squishes the letters, above stretches them. The box grows or shrinks around them; padding stays the same and emoji slots stay square.</div>
-      <label for="wrap">Max card width <span class="val" id="v_wrap"></span></label><input type="range" id="wrap" min="0" max="1900" step="10">
-      <div class="hint">Off = only your own line breaks. Otherwise long lines wrap at spaces to fit. Line nudges stay with line numbers.</div>
-      <div class="row tight" style="margin-top:8px">
-        <span style="color:var(--mute)">Default text color</span><input type="color" id="textColor">
-        <span style="color:var(--mute);margin-left:10px">Outline</span><input type="color" id="outlineColor">
-      </div>
-      <label>Outline width <span class="val" id="v_outlineW"></span></label><input type="range" id="outlineW" min="0" max="16" step="0.5">
-      <div class="row tight" style="margin-top:6px"><label style="margin:0"><input type="checkbox" id="textShadow"> Soft text shadow</label></div>
-    </div>
-  </details>
+      <details open>
+        <summary>Text Position</summary>
+        <div class="body">
+          <div id="nudges"></div>
+          <div class="hint">Moves each line's text (and its emoji slot) without moving the box. Units are px at 1080p; sliders rest at 0 in the middle (right = +, and +Y is down). Drag the <b>X</b>/<b>Y</b> labels to scrub, type a value, or use the arrow keys (<kbd>Shift</kbd> = 10). Double-click to reset one axis, or Alt-drag text in the preview.</div>
+        </div>
+      </details>
 
-  <details open>
-    <summary>Background</summary>
-    <div class="body">
-      <div class="row tight"><label style="margin:0"><input type="checkbox" id="bgOn"> Fill box behind lines</label></div>
-      <div class="row tight" style="margin-top:8px"><span style="color:var(--mute)">Color</span><input type="color" id="bgColor"></div>
-      <label>Opacity <span class="val" id="v_bgOpacity"></span></label><input type="range" id="bgOpacity" min="0" max="100" step="1">
-      <label>Side padding <span class="val" id="v_padX"></span></label><input type="range" id="padX" min="0.1" max="1" step="0.01">
-      <label>Corner radius <span class="val" id="v_radius"></span></label><input type="range" id="radius" min="0" max="0.5" step="0.01">
-      <label>Top margin (above caps) <span class="val" id="v_topPad"></span></label><input type="range" id="topPad" min="0.1" max="1" step="0.01">
-      <label>Bottom margin (below baseline) <span class="val" id="v_botPad"></span></label><input type="range" id="botPad" min="0.1" max="1" step="0.01">
-      <label>Clearance below g, y, p, emoji… <span class="val" id="v_clear"></span></label><input type="range" id="clear" min="0" max="0.6" step="0.01">
-      <div class="row tight" style="margin-top:6px"><label style="margin:0"><input type="checkbox" id="boxShadow"> Soft box shadow</label></div>
-    </div>
-  </details>
+      <details open>
+        <summary>Text Settings</summary>
+        <div class="body">
+          <label>Font family</label>
+          <input type="text" id="family" list="fontlist" autocomplete="off">
+          <datalist id="fontlist"></datalist>
+          <div class="row" style="margin-top:6px">
+            <button id="loadInstalled" class="sm">Installed fonts…</button>
+            <button id="loadFile" class="sm">Load font file…</button>
+            <input type="file" id="fontFile" accept=".ttf,.otf,.woff,.woff2" hidden>
+          </div>
+          <div class="row">
+            <div><label>Weight</label>
+              <select id="weight"><option value="400">Regular 400</option><option value="500">Medium 500</option><option value="600">Semibold 600</option><option value="700">Bold 700</option><option value="800">Extra Bold 800</option><option value="900">Black 900</option></select></div>
+            <div><label>Align</label>
+              <select id="align"><option value="center">Center</option><option value="left">Left</option><option value="right">Right</option></select></div>
+          </div>
+          <label>Size <span class="val" id="v_size"></span></label><input type="range" id="size" min="30" max="260" step="1">
+          <label>Line height <span class="val" id="v_lh"></span></label><input type="range" id="lh" min="0.9" max="1.8" step="0.01">
+          <label>Tracking <span class="val" id="v_track"></span></label><input type="range" id="track" min="-6" max="20" step="0.5">
+          <label for="stretchX">Stretch width <span class="val" id="v_stretchX"></span></label><input type="range" id="stretchX" min="50" max="200" step="1">
+          <label for="stretchY">Stretch height <span class="val" id="v_stretchY"></span></label><input type="range" id="stretchY" min="50" max="200" step="1">
+          <div class="hint">Below 100% squishes the letters, above stretches them. The box grows or shrinks around them; padding stays the same and emoji slots stay square.</div>
+          <label for="wrap">Max card width <span class="val" id="v_wrap"></span></label><input type="range" id="wrap" min="0" max="1900" step="10">
+          <div class="hint">Off = only your own line breaks. Otherwise long lines wrap at spaces to fit. Line nudges stay with line numbers.</div>
+          <div class="row tight" style="margin-top:8px">
+            <span style="color:var(--mute)">Default text color</span><input type="color" id="textColor">
+            <span style="color:var(--mute);margin-left:10px">Outline</span><input type="color" id="outlineColor">
+          </div>
+          <label>Outline width <span class="val" id="v_outlineW"></span></label><input type="range" id="outlineW" min="0" max="16" step="0.5">
+          <div class="row tight" style="margin-top:6px"><label style="margin:0"><input type="checkbox" id="textShadow"> Soft text shadow</label></div>
+        </div>
+      </details>
 
-  <details open>
-    <summary>Emoji slot</summary>
-    <div class="body">
-      <label>Slot size <span class="val" id="v_slot"></span></label><input type="range" id="slot" min="0.6" max="2" step="0.01">
-      <div class="row tight" style="margin-top:6px"><label style="margin:0"><input type="checkbox" id="showGuides"> Show slot outline in preview (never exported)</label></div>
-      <div id="slotInfo" style="margin-top:8px"></div>
+      <details open>
+        <summary>Background</summary>
+        <div class="body">
+          <div class="row tight"><label style="margin:0"><input type="checkbox" id="bgOn"> Fill box behind lines</label></div>
+          <div class="row tight" style="margin-top:8px"><span style="color:var(--mute)">Color</span><input type="color" id="bgColor"></div>
+          <label>Opacity <span class="val" id="v_bgOpacity"></span></label><input type="range" id="bgOpacity" min="0" max="100" step="1">
+          <label>Side padding <span class="val" id="v_padX"></span></label><input type="range" id="padX" min="0.1" max="1" step="0.01">
+          <label>Corner radius <span class="val" id="v_radius"></span></label><input type="range" id="radius" min="0" max="0.5" step="0.01">
+          <label>Top margin (above caps) <span class="val" id="v_topPad"></span></label><input type="range" id="topPad" min="0.1" max="1" step="0.01">
+          <label>Bottom margin (below baseline) <span class="val" id="v_botPad"></span></label><input type="range" id="botPad" min="0.1" max="1" step="0.01">
+          <label>Clearance below g, y, p, emoji… <span class="val" id="v_clear"></span></label><input type="range" id="clear" min="0" max="0.6" step="0.01">
+          <div class="row tight" style="margin-top:6px"><label style="margin:0"><input type="checkbox" id="boxShadow"> Soft box shadow</label></div>
+        </div>
+      </details>
+
+      <details open>
+        <summary>Emoji Slot</summary>
+        <div class="body">
+          <label>Slot size <span class="val" id="v_slot"></span></label><input type="range" id="slot" min="0.6" max="2" step="0.01">
+          <div class="row tight" style="margin-top:6px"><label style="margin:0"><input type="checkbox" id="showGuides"> Show slot outline in preview (never exported)</label></div>
+          <div id="slotInfo" style="margin-top:8px"></div>
+        </div>
+      </details>
     </div>
   </details>
 
@@ -297,8 +318,8 @@
           <div class="hint">Cards share one style unless you tick <b>own style</b> (◆). Text, colors, italics and nudges belong to each card. Cards aren't kept in the browser: use <b>Save batch to file</b>.</div>
         </div>
       </section>
-      <section class="fp" id="fp_canvas" data-panel="canvas" aria-labelledby="fph_canvas">
-        <h2 class="fph"><button type="button" id="fph_canvas" aria-expanded="true" aria-controls="fpb_canvas" title="Minimize or expand this panel">Canvas<span class="chev" aria-hidden="true"></span></button></h2>
+      <section class="fp min" id="fp_canvas" data-panel="canvas" aria-labelledby="fph_canvas">
+        <h2 class="fph"><button type="button" id="fph_canvas" aria-expanded="false" aria-controls="fpb_canvas" title="Minimize or expand this panel">Canvas<span class="chev" aria-hidden="true"></span></button></h2>
         <div class="fpb" id="fpb_canvas">
           <label for="frame">Size</label>
           <select id="frame">
@@ -317,14 +338,10 @@
           <div class="hint">Up to 3840 px on each side (4K).</div>
           <div class="row tight" style="margin-top:8px"><label style="margin:0"><input type="checkbox" id="tight"> Tight crop (just the card)</label></div>
           <div id="tightOpts" style="display:none"><label>Export scale <span class="val" id="v_exportScale"></span></label><input type="range" id="exportScale" min="1" max="4" step="0.5"></div>
-          <div id="frameOpts">
-            <label>Card position in canvas (X / Y offset, units)</label>
-            <div class="row"><input type="number" id="offX"><input type="number" id="offY"></div>
-          </div>
         </div>
       </section>
-      <section class="fp" id="fp_safezone" data-panel="safezone" aria-labelledby="fph_safezone">
-        <h2 class="fph"><button type="button" id="fph_safezone" aria-expanded="true" aria-controls="fpb_safezone" title="Minimize or expand this panel">Safe zone<span class="chev" aria-hidden="true"></span></button></h2>
+      <section class="fp min" id="fp_safezone" data-panel="safezone" aria-labelledby="fph_safezone">
+        <h2 class="fph"><button type="button" id="fph_safezone" aria-expanded="false" aria-controls="fpb_safezone" title="Minimize or expand this panel">Safe zone<span class="chev" aria-hidden="true"></span></button></h2>
         <div class="fpb" id="fpb_safezone">
           <div class="row tight"><label style="margin:0"><input type="checkbox" id="szOn"> Show safe zone</label></div>
           <div class="hint" style="margin-top:2px">Preview only: never exported.</div>
@@ -345,8 +362,8 @@
           <div class="hint" id="szStatus" role="status"></div>
         </div>
       </section>
-      <section class="fp" id="fp_export" data-panel="export" aria-labelledby="fph_export">
-        <h2 class="fph"><button type="button" id="fph_export" aria-expanded="true" aria-controls="fpb_export" title="Minimize or expand this panel">Export<span class="chev" aria-hidden="true"></span></button></h2>
+      <section class="fp min" id="fp_export" data-panel="export" aria-labelledby="fph_export">
+        <h2 class="fph"><button type="button" id="fph_export" aria-expanded="false" aria-controls="fpb_export" title="Minimize or expand this panel">Export<span class="chev" aria-hidden="true"></span></button></h2>
         <div class="fpb" id="fpb_export">
           <div class="row"><button id="export" class="primary">Download PNG</button><button id="batchOpenExport" title="Export every card at once, named by a pattern">All cards (ZIP)…</button></div>
         </div>
@@ -1315,6 +1332,7 @@ function syncControls(){
     $('#'+pre+'tightOpts').style.display=S.tight?'block':'none';
     $('#'+pre+'frameOpts').style.display=S.tight?'none':'block';
   }
+  $('#posTight').hidden=!S.tight;
 }
 for(const [k,t] of bindings){
   for(const id of DIALOG_KEYS.includes(k)?[k,'x_'+k]:[k]){
@@ -1373,13 +1391,13 @@ $('#pbg').addEventListener('click',e=>{
 });
 
 /* ============ floating panels ============ */
-/* Cards, Canvas and Export float on the right of the preview. Each can be minimized to its title, and "Panels" in the
-   toolbar hides the whole stack. Both are remembered: they are layout preferences, not part of the design (so they are
-   not in undo or presets either). */
-const PANELS_KEY='opentitlecard.panels';
-const panelState=(()=>{ const raw=store.get(PANELS_KEY,{}), o={hidden:false,min:{}};
-  if(raw&&typeof raw==='object'){ o.hidden=raw.hidden===true; if(raw.min&&typeof raw.min==='object') for(const k in raw.min) o.min[k]=raw.min[k]===true; }
-  return o; })();
+/* Cards, Canvas, Safe zone and Export float on the right of the preview. Each can be minimized to its title, and
+   "Panels" in the toolbar hides the whole stack. Every load starts with only Cards open (PANELS_MIN), so a fresh session
+   is uncluttered; minimizing is not remembered. Hiding the stack is: it is a layout preference, not part of the design
+   (so it is not in undo or presets either). */
+const PANELS_KEY='opentitlecard.panels', PANELS_MIN={canvas:true,safezone:true,export:true};
+const panelState=(()=>{ const raw=store.get(PANELS_KEY,{});
+  return {hidden:!!raw&&typeof raw==='object'&&raw.hidden===true, min:{...PANELS_MIN}}; })();
 function syncPanels(){
   document.querySelectorAll('.fp').forEach(fp=>{
     const min=!!panelState.min[fp.dataset.panel];
@@ -1392,9 +1410,9 @@ function syncPanels(){
 $('#panels').addEventListener('click',e=>{
   const b=e.target.closest('.fph button'); if(!b) return;
   const k=b.closest('.fp').dataset.panel; panelState.min[k]=!panelState.min[k];
-  store.set(PANELS_KEY,panelState); syncPanels();
+  syncPanels();
 });
-$('#panelsToggle').addEventListener('click',()=>{ panelState.hidden=!panelState.hidden; store.set(PANELS_KEY,panelState); syncPanels(); render(); });
+$('#panelsToggle').addEventListener('click',()=>{ panelState.hidden=!panelState.hidden; store.set(PANELS_KEY,{hidden:panelState.hidden}); syncPanels(); render(); });
 syncPanels();
 
 /* ============ fonts UI ============ */

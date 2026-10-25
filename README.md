@@ -29,19 +29,20 @@ OpenTitlecard fixes each of those. Emoji are handled as an empty, correctly-size
 - **Smart background box.** Each line gets its own rounded box, with inverse corners where line widths differ, like TikTok's own captions. The box grows downward automatically when descenders (`g`, `y`, `p`, `q`, `j`) or an emoji would crowd the bottom edge.
 - **Optional auto-wrap.** Set a **Max card width** and long lines wrap at spaces to fit, with the padding included. Your own line breaks always win, and color, italic and emoji slots carry through the wrap.
 - **Stretch and squish.** Scale the letters wider or narrower, taller or shorter (50–200%) to play with the shape of any font. The box follows the letters with the same padding, and emoji slots stay square.
-- **Line nudge.** Fine-tune the X/Y position of each line's text inside its box with Premiere-style controls: a slider per axis that rests at 0 in the middle (left = negative, right = positive, +Y is down), a number field, and a draggable **X**/**Y** label to scrub. Arrow keys step by 1 (**Shift** = 10), double-click resets an axis, and **Alt**-drag a line in the preview works too.
+- **Text position (line nudge).** Fine-tune the X/Y position of each line's text inside its box with Premiere-style controls: a slider per axis that rests at 0 in the middle (left = negative, right = positive, +Y is down), a number field, and a draggable **X**/**Y** label to scrub. Arrow keys step by 1 (**Shift** = 10), double-click resets an axis, and **Alt**-drag a line in the preview works too.
 - **Bring your own font.** Pick any installed font, or load a `.ttf`, `.otf`, `.woff` or `.woff2` file for a client's brand font.
 - **Background control.** Color, opacity, padding, corner radius, top/bottom margins, and optional soft shadows. Text outline and text shadow are available too.
-- **One-click resets.** Every Font & type and Background slider has a ↺ button (or double-click the slider) that puts it back to its default.
+- **One-click resets.** Every Text Settings and Background slider has a ↺ button (or double-click the slider) that puts it back to its default.
 - **Transparent PNG export.** Full-frame at 1920×1080, 1080×1920, 3840×2160, 2160×3840, 1080×1080, 1080×1350 or a custom size, or a tight crop of just the card at up to 4×. **Landscape / Vertical** flips the canvas in one click. Exports are limited to 3840 px (4K) on each side.
 - **Batch export.** Add several cards (or paste a list of titles), then **Export all as ZIP…** opens a preview of every card, lets you set the canvas (size, custom size, tight crop and scale, card position), apply a preset to the whole batch, and set a file name pattern such as `ClientA-Vid{n}-TC` (first number and zero-padding included), and downloads one transparent PNG per card in a single ZIP. Cards share one style (font, colors, box) unless a card is given its own (◆); text, per-word color, italic and line nudges are always per card. **Apply preset to all cards** restyles the whole batch (after asking you to confirm).
 - **Save and open batches.** **Save batch to file** downloads your cards (text, per-word colors, italics, nudges and styles) as a `.json` file; **Open batch file…** loads it again later. **New batch** starts over. Both ask before replacing cards you haven't saved (a fresh page doesn't ask). Nothing about your cards is kept in the browser.
 - **Undo and redo.** **Ctrl+Z** / **Ctrl+Shift+Z** (or **Ctrl+Y**; **⌘Z** / **⌘⇧Z** on a Mac), or the buttons above the preview, step back and forward through text, colors, styles, nudges and card changes, including *New batch* and *Open batch file…*. A burst of typing or one slider drag is a single step. The last 100 steps are kept while the page is open.
+- **A tidy first screen.** The page opens on the text: the card's look (Position, Text Position, Text Settings, Background, Emoji Slot) sits folded under **Titlecard Properties**, and only the Cards panel is open on the right.
 - **Presets.** Save a style (font, colors, sizes) per client and export/import it as JSON. Mark one as the **default** (★) and the app starts with it the first time it opens (before any settings are saved); after that your last-used settings come back, and **Load** returns to any preset.
 
 ## Layout
 
-The design controls (text, line nudge, font, background, emoji slot, presets) are on the left. **Cards**, **Canvas** and **Export** float on the right of the preview: click a panel's title to minimize it, or use **Panels** in the toolbar to hide them all and give the preview the whole width. The app remembers how you left them.
+The design controls are on the left: **Text** at the top, **Presets** at the bottom, and everything about the card's look in between under **Titlecard Properties** (Position, Text Position, Text Settings, Background, Emoji Slot), folded when the page opens. **Cards**, **Canvas**, **Safe zone** and **Export** float on the right of the preview: click a panel's title to minimize or expand it (every visit starts with only Cards open), or use **Panels** in the toolbar to hide them all and give the preview the whole width. The app remembers whether the panels are hidden.
 
 **Zoom and pan:** **Ctrl+scroll** (⌘+scroll on a Mac, or pinch on a trackpad) zooms around the cursor; scroll to move around, **Shift+scroll** sideways, or drag with **Space** held or the middle mouse button. The zoom bar at the bottom-left of the preview has −/+, **Fit** and **100%** (actual size); **Ctrl+=**, **Ctrl+−** and **Ctrl+0** do the same. 100% shows one canvas pixel per screen pixel, so past that you see the real export pixels.
 
@@ -60,7 +61,7 @@ Turn on **Show safe zone** in the **Safe zone** panel to see where a platform's 
 
 1. Export a **full-frame** PNG that matches your sequence size.
 2. Drag the PNG onto the timeline. It keeps its transparency.
-3. Paste your emoji image on top. The **Emoji slot** panel in the app lists each slot's size in pixels and the **Position** to type into the Motion/Transform controls, assuming the PNG sits at its default position and 100% scale.
+3. Paste your emoji image on top. The **Emoji Slot** section (under **Titlecard Properties**) lists each slot's size in pixels and the **Position** to type into the Motion/Transform controls, assuming the PNG sits at its default position and 100% scale.
 
 > Tip: if you want the card sized by the editor instead of the canvas, use **Tight crop** and scale the PNG in your editor.
 

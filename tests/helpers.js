@@ -21,9 +21,22 @@ async function loadTestFont(page) {
   );
 }
 
+/**
+ * Opens every section a fresh page starts with closed (Titlecard Properties and its sections in the sidebar, and the
+ * minimized floating panels), so a test can reach any control. The fixture does this unless a test file sets
+ * `test.use({ expandUi: false })` to check the page as a user first sees it.
+ */
+async function expandUi(page) {
+  await page.evaluate(() => {
+    document.querySelectorAll('aside details').forEach((d) => { d.open = true; });
+    document.querySelectorAll('.fp.min .fph button').forEach((b) => b.click());
+  });
+}
+
 /** Fixture: opens the app, loads the test font, and fails the test on any page/console error. */
 const test = base.extend({
-  app: async ({ page }, use) => {
+  expandUi: [true, { option: true }],
+  app: async ({ page, expandUi: expand }, use) => {
     const errors = [];
     page.on('pageerror', (e) => errors.push('pageerror: ' + e.message));
     page.on('console', (m) => { if (m.type() === 'error') errors.push('console: ' + m.text()); });
@@ -31,6 +44,7 @@ const test = base.extend({
     await page.goto(APP_URL);
     await page.waitForFunction(() => window.__tt && window.__tt.L);
     await loadTestFont(page);
+    if (expand) await expandUi(page);
     await use({ page, errors });
     expect(errors, 'no page errors, console errors or dialogs').toEqual([]);
   },
@@ -179,4 +193,4 @@ async function confirmDialog(page, accept = true) {
   await page.waitForSelector('#confirmDlg', { state: 'hidden' });
 }
 
-module.exports = { confirmDialog, addCard, readZip, crc32, pngSize, downloadZip, test, expect, APP_URL, FONT_FILE, FONT_FAMILY, loadTestFont, setText, settle, setRange, setSelection, exportPng, inspectPng };
+module.exports = { expandUi, confirmDialog, addCard, readZip, crc32, pngSize, downloadZip, test, expect, APP_URL, FONT_FILE, FONT_FAMILY, loadTestFont, setText, settle, setRange, setSelection, exportPng, inspectPng };
