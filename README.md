@@ -42,6 +42,9 @@ OpenTitlecard fixes each of those. Emoji are handled as an empty, correctly-size
 
 ## Layout
 
+The version is shown next to the name at the top left; see [CHANGELOG.md](CHANGELOG.md) for what changed in each one.
+
+
 The design controls are on the left: **Text** at the top, **Presets** at the bottom, and everything about the card's look in between under **Titlecard Properties** (Position, Text Position, Text Settings, Background, Emoji Slot), folded when the page opens. **Cards**, **Canvas**, **Safe zone** and **Export** float on the right of the preview: click a panel's title to minimize or expand it (every visit starts with only Cards open), or use **Panels** in the toolbar to hide them all and give the preview the whole width. The app remembers whether the panels are hidden.
 
 **Zoom and pan:** **Ctrl+scroll** (⌘+scroll on a Mac, or pinch on a trackpad) zooms around the cursor; scroll to move around, **Shift+scroll** sideways, or drag with **Space** held or the middle mouse button. The zoom bar at the bottom-left of the preview has −/+, **Fit** and **100%** (actual size); **Ctrl+=**, **Ctrl+−** and **Ctrl+0** do the same. 100% shows one canvas pixel per screen pixel, so past that you see the real export pixels.
