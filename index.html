@@ -446,6 +446,7 @@ const PLACEHOLDER_TEXT = "Type your Titlecard here! 😳";   // what a fresh pag
 const SEG = new Intl.Segmenter(undefined,{granularity:'grapheme'});
 const EMOJI_RE = /\p{Emoji_Presentation}|️|\p{Regional_Indicator}|⃣|‍/u;
 const isEmoji = g => EMOJI_RE.test(g);
+const HEX_RE=/^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i;
 
 const PALETTE = [
   ['White','#ffffff'],['Black','#000000'],['Red','#ff2d2d'],['Orange','#ff8a00'],['Yellow','#ffd60a'],
@@ -465,11 +466,28 @@ const STYLE_KEYS = Object.keys(DEFAULTS).filter(k=>!['showGuides','offX','offY']
 // What a single card can override. The canvas and crop settings are per export, not per card, so they stay global.
 const CARD_STYLE_KEYS = STYLE_KEYS.filter(k=>!['frame','fw','fh','tight','exportScale'].includes(k));
 const pickStyle = () => { const o={}; CARD_STYLE_KEYS.forEach(k=>o[k]=S[k]); return o; };
-const S = Object.assign({}, DEFAULTS, store.get('opentitlecard.style',{}));
+/* Style values come from places the app doesn't control: hand-edited preset and batch files, and settings saved by an
+   older version. One wrong type (a number where a color belongs) would make every render throw, and once saved it
+   would do so on every reload too. So a value is only taken when it has the type of its default, numbers are finite,
+   colors are hex and choices are one of the options; anything else is dropped and the caller's value stays. */
+const COLOR_KEYS=['textColor','outlineColor','bgColor'];
+const CHOICES={align:['center','left','right'], frame:['1920x1080','1080x1920','3840x2160','1080x1080','1080x1350','custom']};
+function validStyle(raw,keys=STYLE_KEYS){
+  const o={};
+  if(raw&&typeof raw==='object') for(const k of keys){
+    const v=raw[k];
+    if(!(k in raw) || typeof v!==typeof DEFAULTS[k] || (typeof v==='number'&&!isFinite(v))) continue;
+    if(COLOR_KEYS.includes(k)&&!HEX_RE.test(v) || CHOICES[k]&&!CHOICES[k].includes(v)) continue;
+    o[k]=v;
+  }
+  return o;
+}
+const validColors = a => Array.isArray(a) ? a.filter(h=>typeof h==='string'&&HEX_RE.test(h)) : [];
+const S = Object.assign({}, DEFAULTS, validStyle(store.get('opentitlecard.style',{})));
 S.text = PLACEHOLDER_TEXT;
 S.colors = Array(S.text.length).fill(null);
 S.ital = Array(S.text.length).fill(0);
-S.nudges = []; S.custom = store.get('opentitlecard.custom',[]);
+S.nudges = []; S.custom = validColors(store.get('opentitlecard.custom',[]));
 S.previewBg = 'checker';
 let cards=[], active=0;   // batch cards; the active one lives in S (see "cards" below)
 let sharedStyle=null;     // style of every card that has no own style (set after startup; see "cards" below)
@@ -517,7 +535,9 @@ function updateFontChip(){
   if(ok){ ban.style.display='none'; }
   else {
     ban.style.display='block';
-    ban.innerHTML = `<b>“${S.family}” isn't installed on this computer</b>, so the preview and export use a fallback font. Install it, load the font file, or pick another family before exporting.`;
+    // the family can come from a preset or batch file, so it goes in as text, never as HTML
+    const b=document.createElement('b'); b.textContent=`“${S.family}” isn't installed on this computer`;
+    ban.replaceChildren(b, ', so the preview and export use a fallback font. Install it, load the font file, or pick another family before exporting.');
   }
   $('#export').classList.toggle('warn', !ok);
   $('#export').textContent = ok ? 'Download PNG' : 'Download PNG (fallback font!)';
@@ -928,8 +948,10 @@ $('#addSlot').addEventListener('click',insertSlot);
 if(window.EyeDropper){ $('#eye').addEventListener('click',async()=>{ try{ const r=await new EyeDropper().open(); $('#pick').value=r.sRGBHex; applyColor(r.sRGBHex);}catch(e){} }); }
 else $('#eye').style.display='none';
 ta.addEventListener('keydown',e=>{
-  if(e.ctrlKey&&e.key.toLowerCase()==='i'){ e.preventDefault(); toggleItalic(); }
-  if(e.altKey&&/^[1-9]$/.test(e.key)){ e.preventDefault(); const all=PALETTE.map(p=>p[1]).concat(S.custom); const h=all[+e.key-1]; if(h) applyColor(h); }
+  if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='i'){ e.preventDefault(); toggleItalic(); }   // Cmd+I on a Mac
+  // e.code (the physical key), not e.key: on a Mac, Option+1 reports the key as "¡"
+  const d=/^Digit([1-9])$/.exec(e.code);
+  if(e.altKey&&d){ e.preventDefault(); const all=PALETTE.map(p=>p[1]).concat(S.custom); const h=all[+d[1]-1]; if(h) applyColor(h); }
 });
 
 /* ============ preview interaction: click word / alt-drag line ============ */
@@ -1049,10 +1071,15 @@ function updateDefaultBtn(){
   const v=$('#presetSel').value, b=$('#presetDefault'), isDef=!!v && v===defaultName();
   b.textContent=isDef?'Clear default':'Set as default'; b.disabled=!v; $('#presetAll').disabled=!v; $('#dPresetAll').disabled=!$('#dPreset').value;
 }
-/* Style only: copies the preset's settings into S (and its palette colors into memory). No rendering or saving, so it is
-   safe to call at startup before the controls exist. */
-function applyStyle(o){ STYLE_KEYS.forEach(k=>{ if(k in o) S[k]=o[k]; }); if(Array.isArray(o.custom)) S.custom=[...new Set([...S.custom,...o.custom])]; }
-function applyPreset(o){ applyStyle(o); store.set('opentitlecard.custom',S.custom); buildSwatches(); persistStyle(); syncControls(); nudgeSig=''; render(); }
+/* Style only: copies the preset's valid settings into S (and its palette colors into memory). No rendering or saving, so
+   it is safe to call at startup before the controls exist.
+   Returns how many settings it took, so an import can tell a preset from a file that has nothing usable in it. */
+function applyStyle(o){
+  const v=validStyle(o), colors=validColors(o&&o.custom);
+  Object.assign(S,v); if(colors.length) S.custom=[...new Set([...S.custom,...colors])];
+  return Object.keys(v).length+colors.length;
+}
+function applyPreset(o){ if(!applyStyle(o)) return false; store.set('opentitlecard.custom',S.custom); buildSwatches(); persistStyle(); syncControls(); nudgeSig=''; render(); return true; }
 $('#presetSave').addEventListener('click',()=>{
   const n=$('#presetName').value.trim(); if(!n) return;
   const p=presets(), o={}; STYLE_KEYS.forEach(k=>o[k]=S[k]); o.custom=S.custom; p[n]=o; store.set('opentitlecard.presets',p); refreshPresets(); $('#presetSel').value=n; updateDefaultBtn();
@@ -1090,7 +1117,7 @@ $('#presetExport').addEventListener('click',()=>{
   const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([JSON.stringify(o,null,2)],{type:'application/json'})); a.download=($('#presetName').value.trim()||'opentitlecard-preset')+'.json'; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),2000);
 });
 $('#presetImport').addEventListener('click',()=>$('#presetFile').click());
-$('#presetFile').addEventListener('change',async e=>{ const f=e.target.files[0]; if(!f) return; try{ applyPreset(JSON.parse(await f.text())); }catch(err){ alert('Not a valid preset file.'); } e.target.value=''; });
+$('#presetFile').addEventListener('change',async e=>{ const f=e.target.files[0]; if(!f) return; try{ if(!applyPreset(JSON.parse(await f.text()))) throw new Error('no settings'); }catch(err){ alert('Not a valid preset file.'); } e.target.value=''; });
 
 /* ============ export ============ */
 /* Paints the current card (layout L) at export size. Returns null when the canvas would be too big for the browser. */
@@ -1184,6 +1211,7 @@ $('#cardAdd').addEventListener('click',()=>{ insertCard(active+1,newCard()); ta.
 $('#cardDup').addEventListener('click',()=>{ stash(); insertCard(active+1,copyCard(cards[active])); });
 $('#cardDel').addEventListener('click',()=>{
   if(cards.length===1){ stash(); const c=newCard(); c.style=cards[0].style; cards[0]=c; adopt(c); cardSig=''; render(); return; }   // clearing keeps the card's style
+  stash();   // keeps shared-style edits made on this card: sharedStyle only catches up with S when stashed
   cards.splice(active,1); active=Math.min(active,cards.length-1); adopt(cards[active]); cardSig=''; render();
 });
 function moveCard(d){
@@ -1219,7 +1247,6 @@ $('#listAdd').addEventListener('click',()=>{
    italics are stored sparsely (only the characters that have one). A file is untrusted input (old, hand-edited, cut
    short, or not ours at all), so every field is checked and anything unusable is dropped, never trusted. */
 const BATCH_APP='opentitlecard', MAX_CARDS=500, MAX_TEXT=2000, MAX_FILE=5e6;
-const HEX_RE=/^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i;
 function encodeBatch(){
   stash();
   return {app:BATCH_APP, type:'batch', v:1, active, style:sharedStyle, cards:cards.map(c=>{
@@ -1232,12 +1259,8 @@ function encodeBatch(){
     return o;
   })};
 }
-// Keeps only style keys that exist and have the right type; anything else falls back to `base`.
-function cleanStyle(raw,base){
-  const st={...base};
-  if(raw&&typeof raw==='object') for(const k of CARD_STYLE_KEYS) if(k in raw && typeof raw[k]===typeof DEFAULTS[k] && (typeof raw[k]!=='number'||isFinite(raw[k]))) st[k]=raw[k];
-  return st;
-}
+// Keeps only valid card style keys (see validStyle); anything else falls back to `base`.
+const cleanStyle = (raw,base) => ({...base, ...validStyle(raw,CARD_STYLE_KEYS)});
 /* Returns {cards, active, style} or null when the data isn't a batch we understand. */
 function decodeBatch(raw){
   if(!raw || typeof raw!=='object' || raw.app!==BATCH_APP || raw.type!=='batch' || raw.v!==1 || !Array.isArray(raw.cards) || !raw.cards.length) return null;
