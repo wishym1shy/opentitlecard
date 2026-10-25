@@ -72,16 +72,23 @@ Everything happens in your browser. No text, fonts, or images leave your compute
 
 ## Development
 
-There is no build step and no dependencies. The whole app is `index.html`.
+The app itself has **no build step and no runtime dependencies**: it's just `index.html`. Node is only needed to run the tests.
 
 ```bash
-# any static server works, or just open the file
+# run the app: open index.html, or serve the folder
 python3 -m http.server 8000
+
+# run the tests (Playwright + Chromium)
+npm ci
+npx playwright install chromium
+npm test
 ```
 
-For automated tests, the page exposes a small hook, `window.__tt`, with the state (`S`), the last layout (`L`), `render()`/`renderNow()`, `exportGeometry()` and `draw()`.
+The tests load a pinned open-source font (Inter, via `@fontsource/inter`) through the app's own **Load font file…** feature, so results are identical on any machine. GitHub Actions runs the same suite on every pull request and on every push to `main`.
 
-Contributions are welcome. Open an issue first for anything big. All changes land through pull requests that the maintainer reviews and merges.
+The page exposes a small hook for tests, `window.__tt`, with the state (`S`), the last layout (`L`), `render()`/`renderNow()`, `exportGeometry()` and `draw()`.
+
+Contributions are welcome. Open an issue first for anything big. All changes land through pull requests that the maintainer reviews and merges, and CI must pass.
 
 ## License
 
