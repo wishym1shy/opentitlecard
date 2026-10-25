@@ -142,6 +142,21 @@ test.describe('confirmations', () => {
     expect((await snapshot(page)).cards).toHaveLength(1);
   });
 
+  test('the answer is applied the moment the button is clicked, not a task later', async ({ app: { page } }) => {
+    // The dialog's close event fires in a later task, so an app that waits for it leaves the old cards in place for a
+    // moment after the dialog has gone. Clicking from inside the page and checking after a few microtasks (no task
+    // boundary) proves the buttons answer directly.
+    await buildBatch(page);
+    await page.click('#cardsNew');
+    await page.waitForSelector('#confirmDlg[open]');
+    const n = await page.evaluate(async () => {
+      document.querySelector('#cOk').click();
+      for (let i = 0; i < 5; i++) await null;
+      return __tt.cards.length;
+    });
+    expect(n).toBe(1);
+  });
+
   test('Open asks first when the page holds cards; Cancel keeps them and says so', async ({ app: { page } }) => {
     await buildBatch(page);
     const before = await snapshot(page);
