@@ -85,16 +85,12 @@ test.describe('per-card styles', () => {
   test('the saved last-used style is the shared one, never a card\'s own style', async ({ app: { page } }) => {
     await setRange(page, 'size', 120);
     await addCard(page, 'Two');
-    await own(page).check();
+    await page.check('#cardOwn');
     await setRange(page, 'size', 50); // edits the own style while it is active
     expect(await page.evaluate(() => JSON.parse(localStorage.getItem('opentitlecard.style')).size)).toBe(120);
     await page.reload();
     await page.waitForFunction(() => window.__tt && window.__tt.L);
-    expect(await page.evaluate(() => __tt.sharedStyle.size)).toBe(120);
-    await select(page, 0);
-    expect(await size(page)).toBe(120); // the card that follows the shared style
-    await select(page, 1);
-    expect(await size(page)).toBe(50); // and the own-style card kept its own
+    expect(await size(page)).toBe(120); // the app opens with the shared style
   });
 
   test('the ZIP renders every card with its own style, identical to a single export of that card', async ({ app: { page } }) => {

@@ -33,7 +33,7 @@ OpenTitlecard fixes each of those. Emoji are handled as an empty, correctly-size
 - **Background control.** Color, opacity, padding, corner radius, top/bottom margins, and optional soft shadows. Text outline and text shadow are available too.
 - **Transparent PNG export.** Full-frame at 1920×1080, 1080×1920, 3840×2160, 1080×1080, 1080×1350 or a custom size, or a tight crop of just the card at up to 4×.
 - **Batch export.** Add several cards (or paste a list of titles), then **Export all as ZIP…** opens a preview of every card, lets you set a file name pattern such as `ClientA-Vid{n}-TC` (first number and zero-padding included), and downloads one transparent PNG per card in a single ZIP. Cards share one style (font, colors, box) unless a card is given its own (◆); text, per-word color, italic and line nudges are always per card. **Apply preset to all cards** restyles the whole batch in one click.
-- **Saved cards.** Your batch is autosaved in the browser, so a refresh or a closed tab doesn't lose it. **New batch** starts over.
+- **Save and open batches.** **Save batch to file** downloads your cards (text, per-word colors, italics, nudges and styles) as a `.json` file; **Open batch file…** loads it again later. **New batch** starts over. Nothing about your cards is kept in the browser.
 - **Presets.** Save a style (font, colors, sizes) per client and export/import it as JSON. Mark one as the **default** (★) and the app opens with it every time, instead of your last-used settings.
 
 ## Quick start
@@ -66,13 +66,13 @@ Use a Chromium browser (Chrome, Edge, Brave, Arc) for the full experience. The a
 
 ## Privacy
 
-Everything happens in your browser. No text, fonts, or images leave your computer. Your last style settings, custom palette colors, saved presets, your batch file-name pattern and **your cards (including their text)** are stored in your browser's `localStorage` and nowhere else. On a shared computer, use **New batch** (or clear the site's data) when you're done.
+Everything happens in your browser. No text, fonts, or images leave your computer. Your last style settings, custom palette colors, saved presets, your batch file-name pattern are stored in your browser's `localStorage` and nowhere else. Your cards and their text are **not** stored: they exist only on the page until you save them to a file you choose.
 
 ## Limitations
 
 - Output is a **flat PNG**: the text is not live or editable once exported. Re-open the app to change it.
 - Auto-wrap breaks only at spaces (no hyphenation, no mid-word breaks), and a word wider than the limit keeps its own line. Line nudges are tied to line numbers, so changing the max width can change which text a nudge applies to.
-- Cards are saved in this browser only (not synced between browsers or computers, and not in a file; browsers can clear site data). A font loaded with **Load font file…** has to be loaded again after a reload. Cards share one style unless you tick **This card has its own style**; canvas size and crop are always shared by the whole export. The ZIP uses plain (stored) entries, since PNGs are already compressed.
+- Cards are not kept anywhere automatically: reloading the page starts over, so use **Save batch to file** first. A batch file doesn't contain fonts; a font loaded with **Load font file…** has to be loaded again. Cards share one style unless you tick **This card has its own style**; canvas size and crop are always shared by the whole export. The ZIP uses plain (stored) entries, since PNGs are already compressed.
 - Emoji are never drawn by the app. They're intentionally left as empty slots so you can insert any emoji style (iOS, Android) you like in post. This app never bundles or distributes licensed emojis such as the Apple Emoji suite.
 
 ## Development
