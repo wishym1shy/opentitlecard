@@ -22,9 +22,26 @@
   #fontChip{font-size:12px;padding:3px 10px;border-radius:99px;border:1px solid var(--line)}
   #fontChip.ok{color:var(--ok);border-color:#24553f}
   #fontChip.bad{color:var(--warn);border-color:#6b3028;background:#2a1714}
-  .app{display:grid;grid-template-columns:400px 1fr;height:calc(100% - 45px)}
+  .app{display:grid;grid-template-columns:360px 1fr;height:calc(100% - 45px)}
   aside{overflow-y:auto;padding:12px 14px 40px;border-right:1px solid var(--line);background:var(--panel)}
   section.stage{display:flex;flex-direction:column;min-width:0}
+  /* Floating panels: a stack on the right of the preview. The stack itself lets clicks through (pointer-events), so
+     only the panels block the canvas; while it is shown the view keeps the canvas clear of it. */
+  .stagebody{position:relative;flex:1;min-height:0;display:flex}
+  .panels{position:absolute;top:12px;right:12px;bottom:12px;width:300px;display:flex;flex-direction:column;gap:8px;overflow-y:auto;pointer-events:none;scrollbar-width:thin}
+  .panels[hidden]{display:none}
+  .fp{pointer-events:auto;flex:none;background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 30px #0008}
+  .fph{margin:0;font-size:inherit}
+  .fph button{width:100%;display:flex;align-items:center;justify-content:space-between;gap:8px;background:none;border:0;border-radius:10px;padding:9px 12px;font-weight:600;font-size:12px;letter-spacing:.4px;text-transform:uppercase;color:var(--mute)}
+  .fph button:hover{color:var(--text);background:none;border:0}
+  .fph button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+  .fph .chev:before{content:"–";font-size:14px}
+  .fph button[aria-expanded="false"] .chev:before{content:"+"}
+  .fpb{padding:0 12px 12px}
+  .fpb>label:first-child{margin-top:0}
+  .fp.min .fpb{display:none}
+  .stagebody.with-panels .view{padding-right:330px}
+  #panelsToggle[aria-pressed="true"]{background:var(--accent2);border-color:var(--accent)}
   details{border:1px solid var(--line);border-radius:8px;margin-bottom:10px;background:var(--panel2)}
   summary{cursor:pointer;padding:8px 12px;font-weight:600;font-size:12px;letter-spacing:.4px;text-transform:uppercase;color:var(--mute);list-style:none}
   summary::-webkit-details-marker{display:none}
@@ -68,7 +85,7 @@
   .slotrow code{color:var(--accent);background:#14161b;padding:1px 6px;border-radius:4px}
   .toolbar{display:flex;gap:8px;align-items:center;padding:8px 14px;border-bottom:1px solid var(--line);background:var(--panel);flex-wrap:wrap}
   .chips button{padding:3px 9px;font-size:12px}
-  .view{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:18px;overflow:auto}
+  .view{flex:1;min-width:0;min-height:0;display:flex;align-items:center;justify-content:center;padding:18px;overflow:auto}
   #previewBox{position:relative;max-width:100%;max-height:100%;border-radius:4px;box-shadow:0 0 0 1px #000a,0 8px 40px #0008}
   #previewBox.checker{background:conic-gradient(#2b2d34 25%,#383b44 0 50%,#2b2d34 0 75%,#383b44 0) 0 0/24px 24px}
   #previewBox.white{background:#fff} #previewBox.black{background:#000} #previewBox.gray{background:#7a7d86}
@@ -122,45 +139,12 @@
   <div id="banner"></div>
 
   <details open>
-    <summary>Cards</summary>
-    <div class="body">
-      <div class="cardlist" id="cardList" role="group" aria-label="Titlecards in this batch"></div>
-      <div class="row tight" style="margin-top:8px;flex-wrap:wrap">
-        <button id="cardAdd" class="sm" title="Add an empty card">＋ Add</button>
-        <button id="cardDup" class="sm" title="Copy this card, including its colors and nudges">Duplicate</button>
-        <button id="cardUp" class="sm" aria-label="Move card up" title="Move card up">↑</button>
-        <button id="cardDown" class="sm" aria-label="Move card down" title="Move card down">↓</button>
-        <button id="cardDel" class="sm" title="Delete this card">Delete</button>
-        <button id="listToggle" class="sm" aria-expanded="false" aria-controls="listBox">Add from list…</button>
-        <button id="cardsNew" class="sm" title="Remove every card and start a new batch">New batch</button>
-      </div>
-      <div class="row tight" style="margin-top:8px;flex-wrap:wrap">
-        <button id="batchSave" class="sm" title="Download this batch (text, colors, italics, nudges, styles) as a .json file">Save batch to file</button>
-        <button id="batchOpenFile" class="sm" title="Replace the cards with a batch saved earlier">Open batch file…</button>
-        <input type="file" id="batchFile" accept=".json,application/json" hidden>
-      </div>
-      <div class="hint" id="fileMsg" role="status"></div>
-      <div class="row tight" style="margin-top:8px"><label style="margin:0"><input type="checkbox" id="cardOwn"> This card has its own style</label></div>
-      <div id="listBox" hidden>
-        <label for="listText">Paste your titles</label>
-        <textarea id="listText" spellcheck="false" placeholder="One card per line"></textarea>
-        <div class="row" style="margin-top:6px">
-          <select id="listMode" aria-label="How the pasted text is split"><option value="line">Each line is a card</option><option value="block">Blank line between cards</option></select>
-          <button id="listAdd" class="sm" style="flex:none">Add cards</button>
-        </div>
-      </div>
-      <div class="row" style="margin-top:10px"><button id="batchOpen" class="primary">Export all as ZIP…</button></div>
-      <div class="hint">Cards share one style (font, colors, box) unless you tick <b>own style</b> for one (◆). Text, per-word color, italic and line nudges always belong to each card. Canvas size is shared by the whole export. Cards are not kept in the browser: use <b>Save batch to file</b> to keep a batch, and <b>Open batch file…</b> to load it again.</div>
-    </div>
-  </details>
-
-  <details open>
     <summary>Text</summary>
     <div class="body">
       <textarea id="text" spellcheck="false" placeholder="Type your titlecard. Enter = new line."></textarea>
       <div class="hint">Select a word (or just put the caret in it) then click a color. Click a word in the preview to select it. Paste or type an emoji and it becomes an empty slot.</div>
       <div class="swatches" id="swatches"></div>
-      <div class="row tight">
+      <div class="row tight" style="flex-wrap:wrap">
         <input type="color" id="pick" value="#ff3b30" title="Custom color">
         <button id="applyPick" class="sm">Apply</button>
         <button id="pin" class="sm" title="Add this color to your palette">＋ Palette</button>
@@ -242,32 +226,9 @@
   </details>
 
   <details open>
-    <summary>Export</summary>
+    <summary>Presets</summary>
     <div class="body">
-      <label>Canvas</label>
-      <select id="frame">
-        <option value="1920x1080">1920 × 1080 (landscape)</option>
-        <option value="1080x1920">1080 × 1920 (vertical)</option>
-        <option value="3840x2160">3840 × 2160 (4K)</option>
-        <option value="2160x3840">2160 × 3840 (4K vertical)</option>
-        <option value="1080x1080">1080 × 1080 (square)</option>
-        <option value="1080x1350">1080 × 1350 (4:5)</option>
-        <option value="custom">Custom…</option>
-      </select>
-      <div class="row" id="customRow" style="display:none;margin-top:6px"><input type="number" id="fw" min="64" max="3840" aria-label="Canvas width"><input type="number" id="fh" min="64" max="3840" aria-label="Canvas height"></div>
-      <div class="row tight" style="margin-top:8px;align-items:center">
-        <span class="seg" id="orient" role="group" aria-label="Orientation"><button type="button" data-orient="h">Landscape</button><button type="button" data-orient="v">Vertical</button></span>
-        <span class="hint" style="margin:0">Up to 3840 px on each side (4K).</span>
-      </div>
-      <div class="row tight" style="margin-top:8px"><label style="margin:0"><input type="checkbox" id="tight"> Tight crop (just the card)</label></div>
-      <div id="tightOpts" style="display:none"><label>Export scale <span class="val" id="v_exportScale"></span></label><input type="range" id="exportScale" min="1" max="4" step="0.5"></div>
-      <div id="frameOpts">
-        <label>Card position in canvas (X / Y offset, units)</label>
-        <div class="row"><input type="number" id="offX"><input type="number" id="offY"></div>
-      </div>
-      <div class="row" style="margin-top:12px"><button id="export" class="primary">Download PNG</button><button id="batchOpenExport" title="Export every card at once, named by a pattern">All cards (ZIP)…</button></div>
-      <hr style="border:0;border-top:1px solid var(--line);margin:14px 0 6px">
-      <label>Client presets <span class="hint" style="float:right;margin:0">font, colors, sizes — not text</span></label>
+      <div class="hint" style="margin:0 0 6px">Font, colors and sizes per client. Never the text.</div>
       <div class="row"><select id="presetSel" aria-label="Saved presets"></select><button id="presetLoad" class="sm" style="flex:none">Load</button><button id="presetDefault" class="sm" style="flex:none" title="The default preset is applied the first time the app opens, before any settings are saved">Set as default</button></div>
       <div class="row" style="margin-top:6px"><button id="presetAll" class="sm" title="Use this preset for every card, replacing any card's own style (asks first)">Apply preset to all cards</button></div>
       <div class="hint" id="presetHint">★ marks the default preset. It is applied the first time the app opens; after that your last-used settings come back. Use Load to return to a preset any time.</div>
@@ -286,8 +247,77 @@
     </span>
     <span id="scope" role="status"></span>
     <span style="margin-left:auto;color:var(--mute)" id="dims"></span>
+    <button id="panelsToggle" class="sm" aria-pressed="true" aria-controls="panels" title="Show or hide the floating panels">Panels</button>
   </div>
-  <div class="view"><div id="previewBox" class="checker"><canvas id="cv"></canvas></div></div>
+  <div class="stagebody">
+    <div class="view"><div id="previewBox" class="checker"><canvas id="cv"></canvas></div></div>
+    <div class="panels" id="panels">
+      <section class="fp" id="fp_cards" data-panel="cards" aria-labelledby="fph_cards">
+        <h2 class="fph"><button type="button" id="fph_cards" aria-expanded="true" aria-controls="fpb_cards" title="Minimize or expand this panel">Cards<span class="chev" aria-hidden="true"></span></button></h2>
+        <div class="fpb" id="fpb_cards">
+          <div class="cardlist" id="cardList" role="group" aria-label="Titlecards in this batch"></div>
+          <div class="row tight" style="margin-top:8px;flex-wrap:wrap">
+            <button id="cardAdd" class="sm" title="Add an empty card">＋ Add</button>
+            <button id="cardDup" class="sm" title="Copy this card, including its colors and nudges">Duplicate</button>
+            <button id="cardUp" class="sm" aria-label="Move card up" title="Move card up">↑</button>
+            <button id="cardDown" class="sm" aria-label="Move card down" title="Move card down">↓</button>
+            <button id="cardDel" class="sm" title="Delete this card">Delete</button>
+            <button id="listToggle" class="sm" aria-expanded="false" aria-controls="listBox">Add from list…</button>
+            <button id="cardsNew" class="sm" title="Remove every card and start a new batch">New batch</button>
+          </div>
+          <div class="row tight" style="margin-top:8px;flex-wrap:wrap">
+            <button id="batchSave" class="sm" title="Download this batch (text, colors, italics, nudges, styles) as a .json file">Save batch to file</button>
+            <button id="batchOpenFile" class="sm" title="Replace the cards with a batch saved earlier">Open batch file…</button>
+            <input type="file" id="batchFile" accept=".json,application/json" hidden>
+          </div>
+          <div class="hint" id="fileMsg" role="status"></div>
+          <div class="row tight" style="margin-top:8px"><label style="margin:0"><input type="checkbox" id="cardOwn"> This card has its own style</label></div>
+          <div id="listBox" hidden>
+            <label for="listText">Paste your titles</label>
+            <textarea id="listText" spellcheck="false" placeholder="One card per line"></textarea>
+            <div class="row" style="margin-top:6px">
+              <select id="listMode" aria-label="How the pasted text is split"><option value="line">Each line is a card</option><option value="block">Blank line between cards</option></select>
+              <button id="listAdd" class="sm" style="flex:none">Add cards</button>
+            </div>
+          </div>
+          <div class="row" style="margin-top:10px"><button id="batchOpen" class="primary">Export all as ZIP…</button></div>
+          <div class="hint">Cards share one style unless you tick <b>own style</b> (◆). Text, colors, italics and nudges belong to each card. Cards aren't kept in the browser: use <b>Save batch to file</b>.</div>
+        </div>
+      </section>
+      <section class="fp" id="fp_canvas" data-panel="canvas" aria-labelledby="fph_canvas">
+        <h2 class="fph"><button type="button" id="fph_canvas" aria-expanded="true" aria-controls="fpb_canvas" title="Minimize or expand this panel">Canvas<span class="chev" aria-hidden="true"></span></button></h2>
+        <div class="fpb" id="fpb_canvas">
+          <label for="frame">Size</label>
+          <select id="frame">
+            <option value="1920x1080">1920 × 1080 (landscape)</option>
+            <option value="1080x1920">1080 × 1920 (vertical)</option>
+            <option value="3840x2160">3840 × 2160 (4K)</option>
+            <option value="2160x3840">2160 × 3840 (4K vertical)</option>
+            <option value="1080x1080">1080 × 1080 (square)</option>
+            <option value="1080x1350">1080 × 1350 (4:5)</option>
+            <option value="custom">Custom…</option>
+          </select>
+          <div class="row" id="customRow" style="display:none;margin-top:6px"><input type="number" id="fw" min="64" max="3840" aria-label="Canvas width"><input type="number" id="fh" min="64" max="3840" aria-label="Canvas height"></div>
+          <div class="row tight" style="margin-top:8px;align-items:center">
+            <span class="seg" id="orient" role="group" aria-label="Orientation"><button type="button" data-orient="h">Landscape</button><button type="button" data-orient="v">Vertical</button></span>
+          </div>
+          <div class="hint">Up to 3840 px on each side (4K).</div>
+          <div class="row tight" style="margin-top:8px"><label style="margin:0"><input type="checkbox" id="tight"> Tight crop (just the card)</label></div>
+          <div id="tightOpts" style="display:none"><label>Export scale <span class="val" id="v_exportScale"></span></label><input type="range" id="exportScale" min="1" max="4" step="0.5"></div>
+          <div id="frameOpts">
+            <label>Card position in canvas (X / Y offset, units)</label>
+            <div class="row"><input type="number" id="offX"><input type="number" id="offY"></div>
+          </div>
+        </div>
+      </section>
+      <section class="fp" id="fp_export" data-panel="export" aria-labelledby="fph_export">
+        <h2 class="fph"><button type="button" id="fph_export" aria-expanded="true" aria-controls="fpb_export" title="Minimize or expand this panel">Export<span class="chev" aria-hidden="true"></span></button></h2>
+        <div class="fpb" id="fpb_export">
+          <div class="row"><button id="export" class="primary">Download PNG</button><button id="batchOpenExport" title="Export every card at once, named by a pattern">All cards (ZIP)…</button></div>
+        </div>
+      </section>
+    </div>
+  </div>
   <div id="info"></div>
 </section>
 </div>
@@ -809,7 +839,8 @@ function renderNow(){
   xb.textContent = big ? `Too large: max ${MAX_SIDE} px a side` : fontOk ? 'Download PNG' : 'Download PNG (fallback font!)';
   xb.title = big ? 'Lower the export scale (tight crop) to stay within 4K.' : '';
   const cv=$('#cv');
-  const availW=Math.max(300,($('.view').clientWidth-40)*(window.devicePixelRatio||1));
+  const view=$('.view'), vcs=getComputedStyle(view);   // fit the space the view leaves for the canvas (not under the panels)
+  const availW=Math.max(300,(view.clientWidth-parseFloat(vcs.paddingLeft)-parseFloat(vcs.paddingRight)-4)*(window.devicePixelRatio||1));
   const q=clamp(availW/g.W,0.15,1);
   cv.width=Math.max(1,Math.round(g.W*q)); cv.height=Math.max(1,Math.round(g.H*q));
   cv.style.aspectRatio=`${g.W}/${g.H}`;
@@ -1105,6 +1136,31 @@ $('#pbg').addEventListener('click',e=>{
   $('#pbg').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));
   $('#previewBox').className=b.dataset.bg;
 });
+
+/* ============ floating panels ============ */
+/* Cards, Canvas and Export float on the right of the preview. Each can be minimized to its title, and "Panels" in the
+   toolbar hides the whole stack. Both are remembered: they are layout preferences, not part of the design (so they are
+   not in undo or presets either). */
+const PANELS_KEY='opentitlecard.panels';
+const panelState=(()=>{ const raw=store.get(PANELS_KEY,{}), o={hidden:false,min:{}};
+  if(raw&&typeof raw==='object'){ o.hidden=raw.hidden===true; if(raw.min&&typeof raw.min==='object') for(const k in raw.min) o.min[k]=raw.min[k]===true; }
+  return o; })();
+function syncPanels(){
+  document.querySelectorAll('.fp').forEach(fp=>{
+    const min=!!panelState.min[fp.dataset.panel];
+    fp.classList.toggle('min',min); fp.querySelector('.fph button').setAttribute('aria-expanded',String(!min));
+  });
+  $('#panels').hidden=panelState.hidden;
+  $('#panelsToggle').setAttribute('aria-pressed',String(!panelState.hidden));
+  $('.stagebody').classList.toggle('with-panels',!panelState.hidden);
+}
+$('#panels').addEventListener('click',e=>{
+  const b=e.target.closest('.fph button'); if(!b) return;
+  const k=b.closest('.fp').dataset.panel; panelState.min[k]=!panelState.min[k];
+  store.set(PANELS_KEY,panelState); syncPanels();
+});
+$('#panelsToggle').addEventListener('click',()=>{ panelState.hidden=!panelState.hidden; store.set(PANELS_KEY,panelState); syncPanels(); render(); });
+syncPanels();
 
 /* ============ fonts UI ============ */
 $('#loadInstalled').addEventListener('click',async()=>{
