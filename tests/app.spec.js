@@ -11,6 +11,19 @@ test.describe('loading and fonts', () => {
     expect(await page.evaluate(() => __tt.S.colors.every((c) => c === null) && __tt.S.ital.every((i) => !i))).toBe(true);
   });
 
+  test('header links to the GitHub repo and has no subtitle', async ({ app: { page } }) => {
+    const link = page.locator('header a.gh');
+    await expect(link).toHaveAttribute('href', 'https://github.com/wishym1shy/opentok-titlecard');
+    await expect(link).toHaveAttribute('target', '_blank');
+    await expect(link).toHaveAttribute('rel', /noopener/); // never leave window.opener to the new tab
+    await expect(link).toContainText('GitHub');
+    await expect(page.locator('header .sub')).toHaveCount(0);
+    await expect(page.locator('header')).not.toContainText('transparent PNG for Premiere');
+    // the font chip is still on the right of the header
+    const [l, c] = await Promise.all([link.boundingBox(), page.locator('#fontChip').boundingBox()]);
+    expect(c.x).toBeGreaterThan(l.x);
+  });
+
   test('warns when the selected font is missing and clears once a font is loaded', async ({ page }) => {
     const errors = [];
     page.on('pageerror', (e) => errors.push(e.message));
