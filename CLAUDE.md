@@ -25,7 +25,7 @@ Tooling note: in Claude Code web sessions `gh pr create` fails because GraphQL i
 
 GitHub Actions (`.github/workflows/ci.yml`) runs the Playwright suite in headless Chromium on every pull request and every push to `main`. A PR is only ready when CI is green. The maintainer still reviews and merges.
 
-- Tests live in `tests/`: `app.spec.js` (loading, fonts, emoji slots, colour/italic, preview interaction, nudge), `geometry.spec.js` (box rules, descender clearance regression), `export.spec.js` (PNG output), `storage-and-presets.spec.js`.
+- Tests live in `tests/`: `app.spec.js` (loading, fonts, emoji slots, colour/italic, preview interaction, nudge), `geometry.spec.js` (box rules, descender clearance regression), `wrap.spec.js` (auto-wrap), `export.spec.js` (PNG output), `storage-and-presets.spec.js`.
 - `tests/helpers.js` has the shared fixture. It opens the app, loads the pinned Inter font through the app's own **Load font file…** input, and fails any test that logs a page error, console error or dialog.
 - Dependencies are **dev-only** (`@playwright/test`, `@fontsource/inter`), pinned exactly, with `package-lock.json` committed. The app has no runtime dependencies. Don't add any.
 - Keep `window.__tt` (state `S`, layout `L`, `render`, `renderNow`, `exportGeometry`, `draw`) stable. The tests depend on it. If you must change it, update the tests in the same branch.
@@ -37,6 +37,7 @@ GitHub Actions (`.github/workflows/ci.yml`) runs the Playwright suite in headles
 
 - **State** `S` holds text plus per-UTF-16-unit `colors[]` and `ital[]` arrays, per-line `nudges[]`, and all style settings.
 - **`layout()`** works in design units (px at 1080p-class, `scale = max(W,H)/1920`). It returns lines, items (text runs and emoji slots), word boxes for hit-testing, and the per-line box rectangles.
+- **`wrapItems()`** (called from `layout()` once per manual line) does optional greedy word-wrap when `S.wrap` > 0. `S.wrap` is the whole card width, padding included. A word is a run of non-space pieces, so an emoji slot typed right after a word stays glued to it. Styled runs are rebuilt after splitting so color and italic survive. Breaks happen only at spaces.
 - **`draw()`** paints from the layout at any scale. Preview and export use the same function, so they match. Geometry is computed in units and multiplied by `u`; shadows and letter-spacing are set in device pixels.
 - **`roundedUnion()`** builds the outline of the overlapping per-line rectangles and rounds every corner (convex and concave) with `arcTo`.
 - **Emoji** are detected with `Intl.Segmenter` plus a regex (`Emoji_Presentation`, VS16, regional indicators, keycaps, ZWJ). `™ © # 1` stay text. Emoji are never drawn, only reserved as slots.

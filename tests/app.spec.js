@@ -11,6 +11,26 @@ test.describe('loading and fonts', () => {
     expect(await page.evaluate(() => __tt.S.colors.every((c) => c === null) && __tt.S.ital.every((i) => !i))).toBe(true);
   });
 
+  test('every element id is unique (controls bind by id, so duplicates silently misbehave)', async ({ app: { page } }) => {
+    const dupes = await page.evaluate(() => {
+      const seen = {}, out = [];
+      document.querySelectorAll('[id]').forEach((e) => { seen[e.id] = (seen[e.id] || 0) + 1; });
+      for (const [id, n] of Object.entries(seen)) if (n > 1) out.push(`${id} x${n}`);
+      return out;
+    });
+    expect(dupes).toEqual([]);
+  });
+
+  test('preview background buttons recolour the preview, not a control', async ({ app: { page } }) => {
+    const box = page.locator('#previewBox');
+    await expect(box).toHaveClass(/checker/);
+    for (const bg of ['white', 'black', 'gray', 'checker']) {
+      await page.click(`#pbg button[data-bg="${bg}"]`);
+      await expect(box).toHaveClass(new RegExp(bg));
+    }
+    await expect(page.locator('input#wrap')).not.toHaveClass(/checker|white|black|gray/);
+  });
+
   test('warns when the selected font is missing and clears once a font is loaded', async ({ page }) => {
     const errors = [];
     page.on('pageerror', (e) => errors.push(e.message));
