@@ -4,6 +4,11 @@ What changed in OpenTitlecard, newest first. The version is shown next to the ap
 
 Versions are `vMAJOR.MINOR`. Each merged pull request that changes the app adds one to the minor number (v1.31 → v1.32 → …). The changelog started at v1.31: v1.27 stands for everything merged before the UI review that led to v1.28–v1.31 (pull requests up to #31), so the numbers line up with the work done.
 
+## v1.33
+
+### Changed
+- The **Export** panel sits by itself at the bottom right, so the screen reads in order: write and style the text on the left, arrange the cards at the top right, export at the bottom right. When the open panels don't fit the window, Export stays pinned at the bottom while the others scroll.
+
 ## v1.32
 
 ### Changed
