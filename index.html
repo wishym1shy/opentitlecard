@@ -948,8 +948,10 @@ $('#addSlot').addEventListener('click',insertSlot);
 if(window.EyeDropper){ $('#eye').addEventListener('click',async()=>{ try{ const r=await new EyeDropper().open(); $('#pick').value=r.sRGBHex; applyColor(r.sRGBHex);}catch(e){} }); }
 else $('#eye').style.display='none';
 ta.addEventListener('keydown',e=>{
-  if(e.ctrlKey&&e.key.toLowerCase()==='i'){ e.preventDefault(); toggleItalic(); }
-  if(e.altKey&&/^[1-9]$/.test(e.key)){ e.preventDefault(); const all=PALETTE.map(p=>p[1]).concat(S.custom); const h=all[+e.key-1]; if(h) applyColor(h); }
+  if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='i'){ e.preventDefault(); toggleItalic(); }   // Cmd+I on a Mac
+  // e.code (the physical key), not e.key: on a Mac, Option+1 reports the key as "¡"
+  const d=/^Digit([1-9])$/.exec(e.code);
+  if(e.altKey&&d){ e.preventDefault(); const all=PALETTE.map(p=>p[1]).concat(S.custom); const h=all[+d[1]-1]; if(h) applyColor(h); }
 });
 
 /* ============ preview interaction: click word / alt-drag line ============ */

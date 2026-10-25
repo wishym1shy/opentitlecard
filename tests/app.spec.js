@@ -178,6 +178,21 @@ test.describe('per-word colour and italic', () => {
     expect(await italic(page)).toBe('');
   });
 
+  test('the shortcuts work with a Mac keyboard: Option+number and Cmd+I', async ({ app: { page } }) => {
+    await setText(page, 'Big NEWS today');
+    await setSelection(page, 1);
+    // On a Mac, Option+4 reports the typed character ("¢") as the key; only the physical key code says "4".
+    const prevented = await page.evaluate(() => {
+      const e = new KeyboardEvent('keydown', { key: '¢', code: 'Digit4', altKey: true, bubbles: true, cancelable: true });
+      document.querySelector('#text').dispatchEvent(e);
+      return e.defaultPrevented; // so "¢" is not typed into the text as well
+    });
+    expect(prevented).toBe(true);
+    expect(await page.evaluate(() => __tt.S.colors[0])).toBe('#ff8a00');
+    await page.keyboard.press('Meta+I');
+    expect(await italic(page)).toBe('Big');
+  });
+
   test('formatting stays attached to the right letters while editing', async ({ app: { page } }) => {
     await setText(page, 'Big NEWS today');
     await setSelection(page, 6);
