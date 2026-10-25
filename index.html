@@ -75,6 +75,9 @@
   .seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
   .seg button{border:0;border-radius:0;padding:5px 10px}
   .seg button+button{border-left:1px solid var(--line)}
+  #scope{font-size:12px;color:var(--mute);padding:3px 10px;border:1px solid var(--line);border-radius:99px}
+  #scope.own{color:#ffd9a0;border-color:#6b4f24;background:#2a2114}
+  .cardlist .own{color:#ffb454;font-size:11px}
   kbd{background:#14161b;border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:0 5px;font-size:11px}
   .cardlist{display:flex;flex-direction:column;gap:4px;max-height:220px;overflow-y:auto}
   .cardlist button{display:flex;gap:8px;align-items:baseline;width:100%;text-align:left;padding:5px 8px;font-size:12px}
@@ -123,6 +126,7 @@
         <button id="cardDel" class="sm" title="Delete this card">Delete</button>
         <button id="listToggle" class="sm" aria-expanded="false" aria-controls="listBox">Add from list…</button>
       </div>
+      <div class="row tight" style="margin-top:8px"><label style="margin:0"><input type="checkbox" id="cardOwn"> This card has its own style</label></div>
       <div id="listBox" hidden>
         <label for="listText">Paste your titles</label>
         <textarea id="listText" spellcheck="false" placeholder="One card per line"></textarea>
@@ -132,7 +136,7 @@
         </div>
       </div>
       <div class="row" style="margin-top:10px"><button id="batchOpen" class="primary">Export all as ZIP…</button></div>
-      <div class="hint">Every card uses the same style (font, colors, box, canvas). Text, per-word color, italic and line nudges belong to each card. Pick a card to edit it.</div>
+      <div class="hint">Cards share one style (font, colors, box) unless you tick <b>own style</b> for one (◆). Text, per-word color, italic and line nudges always belong to each card. Canvas size is shared by the whole export.</div>
     </div>
   </details>
 
@@ -243,6 +247,7 @@
       <hr style="border:0;border-top:1px solid var(--line);margin:14px 0 6px">
       <label>Client presets <span class="hint" style="float:right;margin:0">font, colors, sizes — not text</span></label>
       <div class="row"><select id="presetSel" aria-label="Saved presets"></select><button id="presetLoad" class="sm" style="flex:none">Load</button><button id="presetDefault" class="sm" style="flex:none" title="The default preset is applied every time the app opens">Set as default</button></div>
+      <div class="row" style="margin-top:6px"><button id="presetAll" class="sm" title="Use this preset for every card, replacing any card's own style">Apply preset to all cards</button></div>
       <div class="hint" id="presetHint">★ marks the default preset. It is applied whenever the app opens, instead of your last-used settings.</div>
       <div class="row" style="margin-top:6px"><input type="text" id="presetName" placeholder="Preset name"><button id="presetSave" class="sm" style="flex:none">Save</button><button id="presetDel" class="sm" style="flex:none">Delete</button></div>
       <div class="row" style="margin-top:6px"><button id="presetExport" class="sm">Export JSON</button><button id="presetImport" class="sm">Import JSON</button><input type="file" id="presetFile" accept=".json" hidden></div>
@@ -256,6 +261,7 @@
     <span class="seg chips" id="pbg">
       <button data-bg="checker" class="on">Checker</button><button data-bg="white">White</button><button data-bg="black">Black</button><button data-bg="gray">Gray</button>
     </span>
+    <span id="scope" role="status"></span>
     <span style="margin-left:auto;color:var(--mute)" id="dims"></span>
   </div>
   <div class="view"><div id="previewBox" class="checker"><canvas id="cv"></canvas></div></div>
@@ -319,6 +325,9 @@ const DEFAULTS = {
   frame:'1920x1080', fw:1920, fh:1080, offX:0, offY:0, tight:false, exportScale:2
 };
 const STYLE_KEYS = Object.keys(DEFAULTS).filter(k=>!['showGuides','offX','offY'].includes(k));
+// What a single card can override. The canvas and crop settings are per export, not per card, so they stay global.
+const CARD_STYLE_KEYS = STYLE_KEYS.filter(k=>!['frame','fw','fh','tight','exportScale'].includes(k));
+const pickStyle = () => { const o={}; CARD_STYLE_KEYS.forEach(k=>o[k]=S[k]); return o; };
 const S = Object.assign({}, DEFAULTS, store.get('opentitlecard.style',{}));
 S.text = "Type your Titlecard here! 😳";
 S.colors = Array(S.text.length).fill(null);
@@ -326,7 +335,8 @@ S.ital = Array(S.text.length).fill(0);
 S.nudges = []; S.custom = store.get('opentitlecard.custom',[]);
 S.previewBg = 'checker';
 { const d=defaultPreset(); if(d) applyStyle(d); }   // a default preset wins over the last-used style on startup
-let cards=[], active=0;   // batch cards; the active one lives in S (see "cards" below)
+let cards=[], active=0;
+let sharedStyle=null;     // style of every card that has no own style (set after startup; see "cards" below)   // batch cards; the active one lives in S (see "cards" below)
 
 let L = null;            // last layout
 let drag = null;
@@ -822,7 +832,12 @@ for(const [k,t] of bindings){
     persistStyle(); syncControls(); render();
   });
 }
-function persistStyle(){ const o={}; STYLE_KEYS.forEach(k=>o[k]=S[k]); store.set('opentitlecard.style',o); }
+// The last-used style is the shared one: a card's own style must not become what the app opens with.
+function persistStyle(){
+  const own=!!(cards[active]&&cards[active].style), o={};
+  STYLE_KEYS.forEach(k=>o[k]=(own&&sharedStyle&&k in sharedStyle)?sharedStyle[k]:S[k]);
+  store.set('opentitlecard.style',o);
+}
 
 /* preview background chips */
 $('#pbg').addEventListener('click',e=>{
@@ -867,7 +882,7 @@ function refreshPresets(){
 }
 function updateDefaultBtn(){
   const v=$('#presetSel').value, b=$('#presetDefault'), isDef=!!v && v===defaultName();
-  b.textContent=isDef?'Clear default':'Set as default'; b.disabled=!v;
+  b.textContent=isDef?'Clear default':'Set as default'; b.disabled=!v; $('#presetAll').disabled=!v;
 }
 /* Style only: copies the preset's settings into S (and its palette colors into memory). No rendering or saving, so it is
    safe to call at startup before the controls exist. */
@@ -884,6 +899,12 @@ $('#presetDel').addEventListener('click',()=>{
   refreshPresets();
 });
 $('#presetSel').addEventListener('change',updateDefaultBtn);
+// Sets the shared style from the preset and drops every card's own style, so all cards match it.
+$('#presetAll').addEventListener('click',()=>{
+  const o=presets()[$('#presetSel').value]; if(!o) return;
+  stash(); applyStyle(o); sharedStyle=pickStyle(); cards.forEach(c=>{ c.style=null; });
+  store.set('opentitlecard.custom',S.custom); buildSwatches(); adopt(cards[active]); persistStyle(); cardSig=''; render();
+});
 $('#presetDefault').addEventListener('click',()=>{
   const n=$('#presetSel').value; if(!n) return;
   store.set(DEFAULT_PRESET_KEY,n===defaultName()?null:n); refreshPresets();
@@ -916,26 +937,37 @@ function download(blob,name){ const a=document.createElement('a'); a.href=URL.cr
 /* The active card lives in S (text, colors, ital, nudges), so every existing control and test keeps working
    unchanged. `cards[]` holds a copy of each card; switching stashes S into cards[active] and loads the next one.
    Style settings (font, colors, box, canvas) are shared by all cards: that is what makes a batch consistent. */
-const copyCard = c => ({text:c.text, colors:c.colors.slice(), ital:c.ital.slice(), nudges:Array.from(c.nudges,n=>n?{...n}:null)});
-const newCard = (text='') => ({text, colors:Array(text.length).fill(null), ital:Array(text.length).fill(0), nudges:[]});
-const stash = () => { cards[active]=copyCard(S); };
-function adopt(c){ const k=copyCard(c); S.text=k.text; S.colors=k.colors; S.ital=k.ital; S.nudges=k.nudges; ta.value=S.text; nudgeSig=''; }
+/* A card's `style` is null (it follows `sharedStyle`) or its own copy of the card-level style keys. Whichever applies to
+   the active card is what S holds, so the style controls always edit "the card in front of you". */
+const copyCard = c => ({text:c.text, colors:c.colors.slice(), ital:c.ital.slice(), nudges:Array.from(c.nudges,n=>n?{...n}:null), style:c.style?{...c.style}:null});
+const newCard = (text='') => ({text, colors:Array(text.length).fill(null), ital:Array(text.length).fill(0), nudges:[], style:null});
+function stash(){
+  const own=!!(cards[active]&&cards[active].style);
+  cards[active]=copyCard({...S,style:own?pickStyle():null});
+  if(!own) sharedStyle=pickStyle();
+}
+function adopt(c){
+  const k=copyCard(c); S.text=k.text; S.colors=k.colors; S.ital=k.ital; S.nudges=k.nudges;
+  Object.assign(S,k.style||sharedStyle);
+  ta.value=S.text; nudgeSig=''; syncControls();
+}
 function selectCard(i){
   stash(); active=clamp(i,0,cards.length-1); adopt(cards[active]);
   cardSig=''; render();
 }
 /* Runs fn with card `c` temporarily in S/L (layout and draw read those globals), then puts the active card back. */
 function withCard(c,fn){
-  const keep={text:S.text,colors:S.colors,ital:S.ital,nudges:S.nudges,L};
-  S.text=c.text; S.colors=c.colors; S.ital=c.ital; S.nudges=c.nudges;
+  const keep={text:S.text,colors:S.colors,ital:S.ital,nudges:S.nudges,style:pickStyle(),L};
+  S.text=c.text; S.colors=c.colors; S.ital=c.ital; S.nudges=c.nudges; Object.assign(S,c.style||sharedStyle);
   try{ L=layout(); return fn(); }
-  finally{ S.text=keep.text; S.colors=keep.colors; S.ital=keep.ital; S.nudges=keep.nudges; L=keep.L; }
+  finally{ S.text=keep.text; S.colors=keep.colors; S.ital=keep.ital; S.nudges=keep.nudges; Object.assign(S,keep.style); L=keep.L; }
 }
 const cardLabel = t => (t.split('\n').map(x=>x.trim()).find(Boolean)||'');
 let cardSig='';
 function renderCards(){
   const labels=cards.map((c,i)=>cardLabel(i===active?S.text:c.text));
-  const sig=active+'\u0001'+labels.join('\u0001');
+  const own=cards.map((c,i)=>!!c.style);
+  const sig=active+'\u0001'+labels.join('\u0001')+'\u0001'+own.join(',');
   if(sig===cardSig) return;
   cardSig=sig;
   const host=$('#cardList'); host.innerHTML='';
@@ -945,23 +977,34 @@ function renderCards(){
     if(i===active) b.setAttribute('aria-current','true');
     const n=document.createElement('b'); n.textContent=i+1;
     const nm=document.createElement('span'); nm.className='nm'; nm.textContent=t||'(empty)';
-    b.append(n,nm); host.appendChild(b);
+    b.append(n,nm);
+    if(own[i]){ const m=document.createElement('span'); m.className='own'; m.textContent='◆'; m.title='Has its own style'; m.setAttribute('aria-label','has its own style'); b.append(m); b.dataset.own='1'; }
+    host.appendChild(b);
   });
   $('#cardUp').disabled=active===0; $('#cardDown').disabled=active===cards.length-1;
   $('#cardDel').textContent=cards.length>1?'Delete':'Clear';
+  $('#cardOwn').checked=own[active];
+  $('#scope').textContent=own[active]?'Style edits: this card only':(cards.some(c=>c.style)?'Style edits: all cards without their own style':'Style edits: all cards');
+  $('#scope').classList.toggle('own',own[active]);
 }
 $('#cardList').addEventListener('click',e=>{ const b=e.target.closest('[data-card]'); if(b) selectCard(+b.dataset.card); });
 function insertCard(i,c){ stash(); cards.splice(i,0,c); active=i; adopt(c); cardSig=''; render(); }
 $('#cardAdd').addEventListener('click',()=>{ insertCard(active+1,newCard()); ta.focus(); });
 $('#cardDup').addEventListener('click',()=>{ stash(); insertCard(active+1,copyCard(cards[active])); });
 $('#cardDel').addEventListener('click',()=>{
-  if(cards.length===1){ adopt(newCard()); cardSig=''; render(); return; }
+  if(cards.length===1){ stash(); const c=newCard(); c.style=cards[0].style; cards[0]=c; adopt(c); cardSig=''; render(); return; }   // clearing keeps the card's style
   cards.splice(active,1); active=Math.min(active,cards.length-1); adopt(cards[active]); cardSig=''; render();
 });
 function moveCard(d){
   const j=active+d; if(j<0||j>=cards.length) return;
   stash(); [cards[active],cards[j]]=[cards[j],cards[active]]; active=j; cardSig=''; render();
 }
+$('#cardOwn').addEventListener('change',e=>{
+  stash();
+  if(e.target.checked) cards[active].style=pickStyle();           // start from what you see, then edit freely
+  else { cards[active].style=null; Object.assign(S,sharedStyle); nudgeSig=''; syncControls(); }
+  cardSig=''; render();
+});
 $('#cardUp').addEventListener('click',()=>moveCard(-1));
 $('#cardDown').addEventListener('click',()=>moveCard(1));
 $('#listToggle').addEventListener('click',()=>{
@@ -1039,6 +1082,12 @@ function refreshBatchNames(){
   $('#bGo').disabled=!live.length;
   store.set('opentitlecard.batch',batchSettings());
 }
+/* Families that a non-empty card would use but this computer doesn't have (each card may have its own style). */
+function missingFonts(){
+  const out=new Set();
+  cards.forEach(c=>{ if(!c.text.trim()) return; const st=c.style||sharedStyle; if(!(fontInstalled(st.family,st.weight)||loadedFaces.has(st.family))) out.add(st.family); });
+  return [...out];
+}
 function openBatch(){
   stash();
   const b=store.get('opentitlecard.batch',{});
@@ -1060,9 +1109,9 @@ function openBatch(){
   });
   const [W,H]=frameDims();
   $('#bInfo').textContent=S.tight?`Each card is cropped to its own size at ${S.exportScale}× (change under Export → Tight crop).`:`${W} × ${H} px, transparent PNG (change under Export → Canvas).`;
-  const bad=!fontReady();
-  $('#bFont').style.display=bad?'block':'none';
-  if(bad) $('#bFont').textContent=`“${S.family}” isn't installed on this computer, so these cards use a fallback font. Install it or load the font file first.`;
+  const missing=missingFonts();
+  $('#bFont').style.display=missing.length?'block':'none';
+  if(missing.length) $('#bFont').textContent=`${missing.map(f=>`“${f}”`).join(', ')} ${missing.length===1?"isn't":"aren't"} installed on this computer, so some cards use a fallback font. Install ${missing.length===1?'it':'them'} or load the font file first.`;
   $('#bStatus').textContent=''; $('#bGo').disabled=false;
   refreshBatchNames();
   dlg.showModal();
@@ -1091,11 +1140,11 @@ $('#bGo').addEventListener('click',async()=>{
 });
 
 /* ============ boot ============ */
-stash(); buildSwatches(); refreshPresets(); syncControls();
+sharedStyle=pickStyle(); stash(); buildSwatches(); refreshPresets(); syncControls();
 window.addEventListener('resize',render);
 (document.fonts&&document.fonts.ready?document.fonts.ready:Promise.resolve()).then(render);
 render();
-window.__tt={S,render,renderNow,get L(){return L},exportGeometry,draw,get cards(){return cards},get active(){return active},batchNames,zipStem,crc32,buildZip};
+window.__tt={S,render,renderNow,get L(){return L},exportGeometry,draw,get cards(){return cards},get sharedStyle(){return sharedStyle},get active(){return active},batchNames,zipStem,crc32,buildZip};
 </script>
 </body>
 </html>
