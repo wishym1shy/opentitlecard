@@ -168,4 +168,11 @@ async function addCard(page, text) {
   await page.fill('#text', text);
   await settle(page);
 }
-module.exports = { addCard, readZip, crc32, pngSize, downloadZip, test, expect, APP_URL, FONT_FILE, FONT_FAMILY, loadTestFont, setText, settle, setRange, setSelection, exportPng, inspectPng };
+/** Answers the in-app confirmation dialog (the app never uses the browser's confirm()). */
+async function confirmDialog(page, accept = true) {
+  await page.waitForSelector('#confirmDlg[open]');
+  await page.click(accept ? '#cOk' : '#cCancel');
+  await page.waitForSelector('#confirmDlg', { state: 'hidden' });
+}
+
+module.exports = { confirmDialog, addCard, readZip, crc32, pngSize, downloadZip, test, expect, APP_URL, FONT_FILE, FONT_FAMILY, loadTestFont, setText, settle, setRange, setSelection, exportPng, inspectPng };

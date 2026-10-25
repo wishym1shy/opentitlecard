@@ -1,4 +1,4 @@
-const { test, expect, setText, settle, setRange, exportPng, readZip, pngSize, downloadZip, addCard } = require('./helpers');
+const { test, expect, setText, settle, setRange, exportPng, readZip, pngSize, downloadZip, addCard, confirmDialog } = require('./helpers');
 
 const size = (page) => page.evaluate(() => __tt.S.size);
 const own = (page) => page.locator('#cardOwn');
@@ -47,12 +47,32 @@ test.describe('per-card styles', () => {
     await expect(own(page)).toBeChecked();
   });
 
+  test('unticking own style asks first; Cancel keeps the card\'s style, and the box stays ticked', async ({ app: { page } }) => {
+    await threeCards(page);
+    await select(page, 1);
+    await own(page).check();
+    await setRange(page, 'size', 60);
+    await own(page).click();
+    await expect(page.locator('#confirmDlg')).toBeVisible();
+    await expect(page.locator('#cTitle')).toHaveText('Use the shared style for this card?');
+    await expect(page.locator('#cCancel')).toBeFocused();
+    await confirmDialog(page, false);
+    await expect(own(page)).toBeChecked();
+    expect(await size(page)).toBe(60);
+    await expect(page.locator('#cardList [data-card="1"]')).toHaveAttribute('data-own', '1');
+    await own(page).click();
+    await confirmDialog(page, true);
+    await expect(own(page)).not.toBeChecked();
+    expect(await size(page)).toBe(100);
+  });
+
   test('turning the own style off sends the card back to the shared style', async ({ app: { page } }) => {
     await threeCards(page);
     await select(page, 1);
     await own(page).check();
     await setRange(page, 'size', 60);
-    await own(page).uncheck();
+    await own(page).click();
+    await confirmDialog(page);
     expect(await size(page)).toBe(100);
     await expect(page.locator('#cardList [data-own]')).toHaveCount(0);
     await expect(page.locator('#scope')).toHaveText('Style edits: all cards');
@@ -156,6 +176,7 @@ test.describe('apply preset to all cards', () => {
     await setRange(page, 'size', 60);
 
     await page.click('#presetAll');
+    await confirmDialog(page);
     await settle(page);
     const st = await page.evaluate(() => ({ own: __tt.cards.map((c) => !!c.style), size: __tt.S.size, bg: __tt.S.bgColor, shared: __tt.sharedStyle.size, active: __tt.active }));
     expect(st).toEqual({ own: [false, false, false], size: 140, bg: '#ffe066', shared: 140, active: 1 });
@@ -178,6 +199,36 @@ test.describe('apply preset to all cards', () => {
     expect(await size(page)).toBe(140);
     await select(page, 0);
     expect(await size(page)).toBe(90);
+  });
+
+  test('asks first, saying how many cards lose their own style; Cancel changes nothing', async ({ app: { page } }) => {
+    await threeCards(page);
+    await setRange(page, 'size', 140);
+    await savePreset(page, 'Client A');
+    await setRange(page, 'size', 90);
+    for (const i of [1, 2]) { await select(page, i); await own(page).check(); await setRange(page, 'size', 50 + i); }
+    await page.click('#presetAll');
+    await expect(page.locator('#confirmDlg')).toBeVisible();
+    await expect(page.locator('#cTitle')).toHaveText('Apply “Client A” to all cards?');
+    await expect(page.locator('#cMsg')).toHaveText('All 3 cards will use this preset. 2 cards have their own style and lose it.');
+    await expect(page.locator('#cCancel')).toBeFocused(); // the safe choice is the default
+    await confirmDialog(page, false);
+    expect(await page.evaluate(() => ({ own: __tt.cards.map((c, i) => (i === __tt.active ? !!__tt.cards[i].style : !!c.style)), shared: __tt.sharedStyle.size, size: __tt.S.size }))).toEqual({ own: [false, true, true], shared: 90, size: 52 });
+    await page.click('#presetAll');
+    await page.keyboard.press('Escape'); // Esc also means no
+    await expect(page.locator('#confirmDlg')).not.toBeVisible();
+    expect(await page.evaluate(() => __tt.sharedStyle.size)).toBe(90);
+    await page.click('#presetAll');
+    await confirmDialog(page);
+    expect(await page.evaluate(() => ({ shared: __tt.sharedStyle.size, own: __tt.cards.map((c) => !!c.style) }))).toEqual({ shared: 140, own: [false, false, false] });
+  });
+
+  test('with no own styles the message says so and does not mention losing any', async ({ app: { page } }) => {
+    await setText(page, 'One');
+    await savePreset(page, 'Client A');
+    await page.click('#presetAll');
+    await expect(page.locator('#cMsg')).toHaveText('This card will use this preset.');
+    await confirmDialog(page, false);
   });
 
   test('the button needs a selected preset', async ({ app: { page } }) => {
