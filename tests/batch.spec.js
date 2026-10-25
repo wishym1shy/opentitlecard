@@ -62,7 +62,7 @@ test.describe('cards', () => {
     st = await page.evaluate(() => ({ n: __tt.cards.length, text: __tt.S.text }));
     expect(st).toEqual({ n: 1, text: 'Alpha beta' });
 
-    await expect(page.locator('#cardDel')).toHaveText('Clear');
+    await expect(page.locator('#cardDel')).toHaveAttribute('aria-label', 'Clear card');
     await page.click('#cardDel');
     await settle(page);
     st = await page.evaluate(() => ({ n: __tt.cards.length, text: __tt.S.text, lines: __tt.L.lines.length }));

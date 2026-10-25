@@ -1,6 +1,7 @@
 const { test, expect, FONT_FAMILY, setText, settle, setRange, setSelection, readZip, downloadZip, addCard, confirmDialog } = require('./helpers');
 
 async function saveBatch(page) {
+  await page.click('#batchMenuBtn');
   const [dl] = await Promise.all([page.waitForEvent('download'), page.click('#batchSave')]);
   const chunks = [];
   for await (const c of await dl.createReadStream()) chunks.push(c);
