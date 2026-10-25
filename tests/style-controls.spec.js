@@ -1,13 +1,13 @@
 const { test, expect, setText, settle, setRange, setSelection, addCard, exportPng, inspectPng } = require('./helpers');
 
 // Every slider in these panels must have a reset button, including any added later.
-const SECTIONS = ['Text Settings', 'Background'];
+const SECTIONS = ['Text', 'Text Settings', 'Background']; // Size sits in Text
 const sliderIds = (page) => page.evaluate((names) => [...document.querySelectorAll('details')]
   .filter((d) => names.includes(d.querySelector('summary').textContent.trim()))
   .flatMap((d) => [...d.querySelectorAll('input[type=range]')].map((r) => r.id)), SECTIONS);
 
 test.describe('slider reset buttons', () => {
-  test('every Text Settings and Background slider has one, and it puts the slider back to its default', async ({ app: { page } }) => {
+  test('every Size, Text Settings and Background slider has one, and it puts the slider back to its default', async ({ app: { page } }) => {
     const ids = await sliderIds(page);
     expect(ids.length).toBeGreaterThanOrEqual(11);
     for (const id of ids) {

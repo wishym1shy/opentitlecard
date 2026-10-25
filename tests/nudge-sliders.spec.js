@@ -6,7 +6,9 @@ const number = (page, line, axis) => page.locator(`#nudges input[data-i="${line}
 const scrubber = (page, line, axis) => page.locator(`#nudges [data-scrub="${axis}"][data-line="${line}"]`);
 const nudge = (page, i) => page.evaluate((i) => ({ ...__tt.S.nudges[i] }), i);
 
+// Mouse drags use raw coordinates, so the control is scrolled into view first (the sidebar can be taller than the window).
 async function centerOf(loc) {
+  await loc.scrollIntoViewIfNeeded();
   const b = await loc.boundingBox();
   return { x: b.x + b.width / 2, y: b.y + b.height / 2, w: b.width };
 }

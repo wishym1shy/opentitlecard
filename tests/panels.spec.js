@@ -99,10 +99,20 @@ test.describe('first open', () => {
   test('Titlecard Properties holds Position, Text Position, Text Settings, Background and Emoji Slot', async ({ app: { page } }) => {
     const inner = await page.evaluate(() => [...document.querySelectorAll('#tcProps > .body > details > summary')].map((s) => s.textContent.trim()));
     expect(inner).toEqual(MOVED);
-    await expect(page.locator('#size')).toBeHidden();
+    await expect(page.locator('#lh')).toBeHidden();
     await page.click('#tcProps > summary');
-    for (const id of ['#offX', '#offY', '#nudges .nudge', '#family', '#size', '#bgOn', '#slot']) await expect(page.locator(id).first(), id).toBeVisible();
+    for (const id of ['#offX', '#offY', '#nudges .nudge', '#align', '#lh', '#bgOn', '#slot']) await expect(page.locator(id).first(), id).toBeVisible();
     await expect(page.locator('#panels #offX')).toHaveCount(0); // the card position left the Canvas panel
+  });
+
+  test('Font family, Weight and Size are in the Text section, ready on first open', async ({ app: { page } }) => {
+    for (const id of ['#family', '#loadInstalled', '#loadFile', '#weight', '#size', 'button[data-reset-key="size"]']) {
+      await expect(page.locator(id), id).toBeVisible();
+      expect(await page.locator(id).evaluate((el) => el.closest('details > .body').parentElement.querySelector('summary').textContent.trim()), id).toBe('Text');
+    }
+    await page.selectOption('#weight', '900');
+    await page.evaluate(() => { const r = document.querySelector('#size'); r.value = '150'; r.dispatchEvent(new Event('input', { bubbles: true })); });
+    expect(await page.evaluate(() => [__tt.S.weight, __tt.S.size])).toEqual([900, 150]);
   });
 
   test('the Position fields move the card; with tight crop on they give way to a note', async ({ app: { page } }) => {
