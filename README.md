@@ -32,6 +32,7 @@ OpenTitlecard fixes each of those. Emoji are handled as an empty, correctly-size
 - **Bring your own font.** Pick any installed font, or load a `.ttf`, `.otf`, `.woff` or `.woff2` file for a client's brand font.
 - **Background control.** Color, opacity, padding, corner radius, top/bottom margins, and optional soft shadows. Text outline and text shadow are available too.
 - **Transparent PNG export.** Full-frame at 1920×1080, 1080×1920, 3840×2160, 1080×1080, 1080×1350 or a custom size, or a tight crop of just the card at up to 4×.
+- **Batch export.** Add several cards (or paste a list of titles), then **Export all as ZIP…** opens a preview of every card, lets you set a file name pattern such as `ClientA-Vid{n}-TC` (first number and zero-padding included), and downloads one transparent PNG per card in a single ZIP. All cards share the current style; text, per-word color, italic and line nudges are per card.
 - **Presets.** Save a style (font, colors, sizes) per client and export/import it as JSON.
 
 ## Quick start
@@ -39,7 +40,7 @@ OpenTitlecard fixes each of those. Emoji are handled as an empty, correctly-size
 1. Open the live app, or download [`index.html`](index.html) and open it in **Chrome or Edge**.
 2. Type your text. Press **Enter** for a new line.
 3. Select a word and click a color. Add an emoji anywhere to reserve a slot.
-4. Click **Download PNG**.
+4. Click **Download PNG**. Making a set? Add more cards and use **Export all as ZIP…** instead.
 
 ### Using it in Premiere Pro (or any editor)
 
@@ -64,12 +65,13 @@ Use a Chromium browser (Chrome, Edge, Brave, Arc) for the full experience. The a
 
 ## Privacy
 
-Everything happens in your browser. No text, fonts, or images leave your computer. Your last style settings, custom palette colors and saved presets are stored in your browser's `localStorage` and nowhere else.
+Everything happens in your browser. No text, fonts, or images leave your computer. Your last style settings, custom palette colors, saved presets and your batch file-name pattern are stored in your browser's `localStorage` and nowhere else.
 
 ## Limitations
 
 - Output is a **flat PNG**: the text is not live or editable once exported. Re-open the app to change it.
 - Auto-wrap breaks only at spaces (no hyphenation, no mid-word breaks), and a word wider than the limit keeps its own line. Line nudges are tied to line numbers, so changing the max width can change which text a nudge applies to.
+- Cards (and their text) live only in the open page: reloading starts over with one card, like the single-card text always has. All cards in a batch share one style; per-card style overrides aren't supported yet. The ZIP uses plain (stored) entries, since PNGs are already compressed.
 - Emoji are never drawn by the app. They're intentionally left as empty slots so you can insert any emoji style (iOS, Android) you like in post. This app never bundles or distributes licensed emojis such as the Apple Emoji suite.
 
 ## Development
@@ -88,7 +90,7 @@ npm test
 
 The tests load a pinned open-source font (Inter, via `@fontsource/inter`) through the app's own **Load font file…** feature, so results are identical on any machine. GitHub Actions runs the same suite on every pull request and on every push to `main`.
 
-The page exposes a small hook for tests, `window.__tt`, with the state (`S`), the last layout (`L`), `render()`/`renderNow()`, `exportGeometry()` and `draw()`.
+The page exposes a small hook for tests, `window.__tt`, with the state (`S`), the last layout (`L`), `render()`/`renderNow()`, `exportGeometry()` and `draw()`, plus the batch helpers (`cards`, `active`, `batchNames()`, `buildZip()`, `crc32()`).
 
 Contributions are welcome. Open an issue first for anything big. All changes land through pull requests that the maintainer reviews and merges, and CI must pass.
 

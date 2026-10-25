@@ -76,6 +76,25 @@
   .seg button{border:0;border-radius:0;padding:5px 10px}
   .seg button+button{border-left:1px solid var(--line)}
   kbd{background:#14161b;border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:0 5px;font-size:11px}
+  .cardlist{display:flex;flex-direction:column;gap:4px;max-height:220px;overflow-y:auto}
+  .cardlist button{display:flex;gap:8px;align-items:baseline;width:100%;text-align:left;padding:5px 8px;font-size:12px}
+  .cardlist button .nm{flex:1;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+  .cardlist button.empty .nm{color:var(--mute);font-style:italic}
+  dialog{background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:12px;padding:0;width:min(920px,94vw);max-height:90vh;box-shadow:0 20px 80px #000a}
+  dialog::backdrop{background:#000a}
+  dialog .dh{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line)}
+  dialog .dh h2{font-size:14px;margin:0;font-weight:650}
+  dialog .db{padding:4px 16px 12px;overflow-y:auto;max-height:calc(90vh - 130px)}
+  dialog .df{display:flex;gap:8px;align-items:center;padding:12px 16px;border-top:1px solid var(--line)}
+  dialog .df .status{flex:1;color:var(--mute);font-size:12px}
+  .bgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;margin-top:12px}
+  .bitem{border:1px solid var(--line);border-radius:8px;background:var(--panel2);padding:6px;min-width:0}
+  .bitem .thumb{height:96px;display:flex;align-items:center;justify-content:center;border-radius:4px;background:conic-gradient(#2b2d34 25%,#383b44 0 50%,#2b2d34 0 75%,#383b44 0) 0 0/16px 16px}
+  .bitem canvas{max-width:100%;max-height:100%;cursor:default}
+  .bitem .fn{margin-top:6px;font-size:11.5px;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+  .bitem.skip{opacity:.5}
+  .bitem.skip .fn{color:var(--warn)}
+  #bFont{display:none;margin-top:10px;padding:8px 10px;border-radius:8px;background:#2a1714;border:1px solid #6b3028;color:#ffb3a8;font-size:12px}
 </style>
 </head>
 <body>
@@ -91,6 +110,31 @@
 <div class="app">
 <aside>
   <div id="banner"></div>
+
+  <details open>
+    <summary>Cards</summary>
+    <div class="body">
+      <div class="cardlist" id="cardList" role="group" aria-label="Titlecards in this batch"></div>
+      <div class="row tight" style="margin-top:8px;flex-wrap:wrap">
+        <button id="cardAdd" class="sm" title="Add an empty card">＋ Add</button>
+        <button id="cardDup" class="sm" title="Copy this card, including its colors and nudges">Duplicate</button>
+        <button id="cardUp" class="sm" aria-label="Move card up" title="Move card up">↑</button>
+        <button id="cardDown" class="sm" aria-label="Move card down" title="Move card down">↓</button>
+        <button id="cardDel" class="sm" title="Delete this card">Delete</button>
+        <button id="listToggle" class="sm" aria-expanded="false" aria-controls="listBox">Add from list…</button>
+      </div>
+      <div id="listBox" hidden>
+        <label for="listText">Paste your titles</label>
+        <textarea id="listText" spellcheck="false" placeholder="One card per line"></textarea>
+        <div class="row" style="margin-top:6px">
+          <select id="listMode" aria-label="How the pasted text is split"><option value="line">Each line is a card</option><option value="block">Blank line between cards</option></select>
+          <button id="listAdd" class="sm" style="flex:none">Add cards</button>
+        </div>
+      </div>
+      <div class="row" style="margin-top:10px"><button id="batchOpen" class="primary">Export all as ZIP…</button></div>
+      <div class="hint">Every card uses the same style (font, colors, box, canvas). Text, per-word color, italic and line nudges belong to each card. Pick a card to edit it.</div>
+    </div>
+  </details>
 
   <details open>
     <summary>Text</summary>
@@ -195,7 +239,7 @@
         <label>Card position in canvas (X / Y offset, units)</label>
         <div class="row"><input type="number" id="offX"><input type="number" id="offY"></div>
       </div>
-      <div class="row" style="margin-top:12px"><button id="export" class="primary">Download PNG</button></div>
+      <div class="row" style="margin-top:12px"><button id="export" class="primary">Download PNG</button><button id="batchOpenExport" title="Export every card at once, named by a pattern">All cards (ZIP)…</button></div>
       <hr style="border:0;border-top:1px solid var(--line);margin:14px 0 6px">
       <label>Client presets <span class="hint" style="float:right;margin:0">font, colors, sizes — not text</span></label>
       <div class="row"><select id="presetSel"></select><button id="presetLoad" class="sm" style="flex:none">Load</button></div>
@@ -217,6 +261,22 @@
   <div id="info"></div>
 </section>
 </div>
+
+<dialog id="batchDlg" aria-labelledby="batchTitle">
+  <div class="dh"><h2 id="batchTitle">Export all cards</h2><button id="bClose" class="sm" style="margin-left:auto" aria-label="Close">✕</button></div>
+  <div class="db">
+    <div class="row">
+      <div style="flex:2"><label for="bPattern">File name pattern</label><input type="text" id="bPattern" spellcheck="false" autocomplete="off"></div>
+      <div><label for="bStart">First number</label><input type="number" id="bStart" min="0" max="99999" step="1"></div>
+      <div><label for="bDigits">Digits</label><input type="number" id="bDigits" min="1" max="6" step="1"></div>
+    </div>
+    <div class="hint"><code>{n}</code> becomes the card number: <code>ClientA-Vid{n}-TC</code> gives <code>ClientA-Vid1-TC.png</code>, <code>ClientA-Vid2-TC.png</code>… Without <code>{n}</code> the number is added after a dash. Empty cards are skipped and not numbered.</div>
+    <div class="hint" id="bInfo"></div>
+    <div id="bFont" role="alert"></div>
+    <div class="bgrid" id="bGrid"></div>
+  </div>
+  <div class="df"><span class="status" id="bStatus" role="status" aria-live="polite"></span><button id="bCancel">Cancel</button><button id="bGo" class="primary">Download ZIP</button></div>
+</dialog>
 
 <script>
 "use strict";
@@ -263,6 +323,7 @@ S.colors = Array(S.text.length).fill(null);
 S.ital = Array(S.text.length).fill(0);
 S.nudges = []; S.custom = store.get('opentitlecard.custom',[]);
 S.previewBg = 'checker';
+let cards=[], active=0;   // batch cards; the active one lives in S (see "cards" below)
 
 let L = null;            // last layout
 let drag = null;
@@ -278,8 +339,9 @@ function fontInstalled(fam, weight){
 }
 const fontStack = fam => `${JSON.stringify(fam)}, "Helvetica Neue", Arial, sans-serif`;
 const fontStr = (it,px) => `${it?'italic ':''}${S.weight} ${px}px ${fontStack(S.family)}`;
+const fontReady = () => fontInstalled(S.family, S.weight) || loadedFaces.has(S.family);
 function updateFontChip(){
-  const ok = fontInstalled(S.family, S.weight) || loadedFaces.has(S.family);
+  const ok = fontReady();
   const chip=$('#fontChip'), ban=$('#banner');
   chip.className = ok?'ok':'bad';
   chip.textContent = ok ? `✓ ${S.family} ${S.weight}` : `⚠ “${S.family}” not found`;
@@ -522,7 +584,7 @@ let raf=0;
 function render(){ cancelAnimationFrame(raf); raf=requestAnimationFrame(renderNow); }
 function renderNow(){
   L=layout();
-  syncNudgeRows(); updateFontChip();
+  syncNudgeRows(); updateFontChip(); renderCards();
   const g=exportGeometry();
   const cv=$('#cv');
   const availW=Math.max(300,($('.view').clientWidth-40)*(window.devicePixelRatio||1));
@@ -811,21 +873,206 @@ $('#presetImport').addEventListener('click',()=>$('#presetFile').click());
 $('#presetFile').addEventListener('change',async e=>{ const f=e.target.files[0]; if(!f) return; try{ applyPreset(JSON.parse(await f.text())); }catch(err){ alert('Not a valid preset file.'); } e.target.value=''; });
 
 /* ============ export ============ */
-$('#export').addEventListener('click',()=>{
+/* Paints the current card (layout L) at export size. Returns null when the canvas would be too big for the browser. */
+function exportCanvas(){
   L=layout(); const g=exportGeometry();
+  if(g.W*g.H>64e6) return null;
   const c=document.createElement('canvas'); c.width=g.W; c.height=g.H;
-  if(c.width*c.height>64e6){ alert('That canvas is too large for the browser. Lower the export scale.'); return; }
   draw(c.getContext('2d'),g.W,g.H,{u:g.u,cx:g.cx,cy:g.cy,guides:false,sel:null});
+  return c;
+}
+$('#export').addEventListener('click',()=>{
+  const c=exportCanvas();
+  if(!c){ alert('That canvas is too large for the browser. Lower the export scale.'); return; }
   const stem=(S.text.replace(/\p{Extended_Pictographic}|️|‍/gu,'').trim().split(/\s+/).map(w=>w.replace(/[^\w\-]/g,'')).filter(Boolean).slice(0,5).join('-').replace(/[^\w\-]/g,'')||'titlecard').slice(0,40);
-  c.toBlob(b=>{ const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download=`titlecard_${stem}.png`; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),3000); },'image/png');
+  c.toBlob(b=>download(b,`titlecard_${stem}.png`),'image/png');
+});
+function download(blob,name){ const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),3000); }
+
+/* ============ cards (batch) ============ */
+/* The active card lives in S (text, colors, ital, nudges), so every existing control and test keeps working
+   unchanged. `cards[]` holds a copy of each card; switching stashes S into cards[active] and loads the next one.
+   Style settings (font, colors, box, canvas) are shared by all cards: that is what makes a batch consistent. */
+const copyCard = c => ({text:c.text, colors:c.colors.slice(), ital:c.ital.slice(), nudges:Array.from(c.nudges,n=>n?{...n}:null)});
+const newCard = (text='') => ({text, colors:Array(text.length).fill(null), ital:Array(text.length).fill(0), nudges:[]});
+const stash = () => { cards[active]=copyCard(S); };
+function adopt(c){ const k=copyCard(c); S.text=k.text; S.colors=k.colors; S.ital=k.ital; S.nudges=k.nudges; ta.value=S.text; nudgeSig=''; }
+function selectCard(i){
+  stash(); active=clamp(i,0,cards.length-1); adopt(cards[active]);
+  cardSig=''; render();
+}
+/* Runs fn with card `c` temporarily in S/L (layout and draw read those globals), then puts the active card back. */
+function withCard(c,fn){
+  const keep={text:S.text,colors:S.colors,ital:S.ital,nudges:S.nudges,L};
+  S.text=c.text; S.colors=c.colors; S.ital=c.ital; S.nudges=c.nudges;
+  try{ L=layout(); return fn(); }
+  finally{ S.text=keep.text; S.colors=keep.colors; S.ital=keep.ital; S.nudges=keep.nudges; L=keep.L; }
+}
+const cardLabel = t => (t.split('\n').map(x=>x.trim()).find(Boolean)||'');
+let cardSig='';
+function renderCards(){
+  const labels=cards.map((c,i)=>cardLabel(i===active?S.text:c.text));
+  const sig=active+'\u0001'+labels.join('\u0001');
+  if(sig===cardSig) return;
+  cardSig=sig;
+  const host=$('#cardList'); host.innerHTML='';
+  labels.forEach((t,i)=>{
+    const b=document.createElement('button'); b.type='button';
+    b.className=(i===active?'on':'')+(t?'':' empty'); b.dataset.card=i;
+    if(i===active) b.setAttribute('aria-current','true');
+    const n=document.createElement('b'); n.textContent=i+1;
+    const nm=document.createElement('span'); nm.className='nm'; nm.textContent=t||'(empty)';
+    b.append(n,nm); host.appendChild(b);
+  });
+  $('#cardUp').disabled=active===0; $('#cardDown').disabled=active===cards.length-1;
+  $('#cardDel').textContent=cards.length>1?'Delete':'Clear';
+}
+$('#cardList').addEventListener('click',e=>{ const b=e.target.closest('[data-card]'); if(b) selectCard(+b.dataset.card); });
+function insertCard(i,c){ stash(); cards.splice(i,0,c); active=i; adopt(c); cardSig=''; render(); }
+$('#cardAdd').addEventListener('click',()=>{ insertCard(active+1,newCard()); ta.focus(); });
+$('#cardDup').addEventListener('click',()=>{ stash(); insertCard(active+1,copyCard(cards[active])); });
+$('#cardDel').addEventListener('click',()=>{
+  if(cards.length===1){ adopt(newCard()); cardSig=''; render(); return; }
+  cards.splice(active,1); active=Math.min(active,cards.length-1); adopt(cards[active]); cardSig=''; render();
+});
+function moveCard(d){
+  const j=active+d; if(j<0||j>=cards.length) return;
+  stash(); [cards[active],cards[j]]=[cards[j],cards[active]]; active=j; cardSig=''; render();
+}
+$('#cardUp').addEventListener('click',()=>moveCard(-1));
+$('#cardDown').addEventListener('click',()=>moveCard(1));
+$('#listToggle').addEventListener('click',()=>{
+  const box=$('#listBox'); box.hidden=!box.hidden; $('#listToggle').setAttribute('aria-expanded',String(!box.hidden));
+  if(!box.hidden) $('#listText').focus();
+});
+$('#listAdd').addEventListener('click',()=>{
+  const raw=$('#listText').value.replace(/\r\n?/g,'\n').trim(); if(!raw) return;
+  const parts=($('#listMode').value==='block'?raw.split(/\n\s*\n/):raw.split('\n')).map(x=>x.trim()).filter(Boolean);
+  stash();
+  // a lone empty card (a fresh page, or one the user cleared) is replaced by the first pasted title instead of being kept
+  if(cards.length===1 && !cards[0].text.trim()) cards.length=0;
+  const at=cards.length; parts.forEach(t=>cards.push(newCard(t)));
+  active=at; adopt(cards[active]); $('#listText').value=''; $('#listBox').hidden=true; $('#listToggle').setAttribute('aria-expanded','false'); cardSig=''; render();
+});
+
+/* ============ batch export: names + ZIP ============ */
+/* "{n}" in the pattern becomes the number; a pattern without it gets "-<n>" so files can never collide. Characters
+   Windows/macOS reject in file names are replaced, and a name used twice gets a "-2", "-3"… suffix. Empty cards are
+   skipped and don't use up a number. */
+const safeName = s => s.replace(/[\\/:*?"<>|\u0000-\u001f]/g,'-').replace(/^[\s.]+|[\s.]+$/g,'').slice(0,120);
+function batchNames(pattern,start,digits,count){
+  const tok=/\{n\}/gi, pat=(pattern||'').trim()||'titlecard';
+  const has=tok.test(pat); tok.lastIndex=0;
+  const used=new Set(), out=[];
+  for(let i=0;i<count;i++){
+    const num=String(Math.max(0,Math.floor(+start)||0)+i).padStart(clamp(Math.floor(+digits)||1,1,6),'0');
+    let base=safeName(has?pat.replace(tok,num):`${pat}-${num}`)||`titlecard-${num}`, name=base, k=2;
+    while(used.has(name.toLowerCase())) name=`${base}-${k++}`;
+    used.add(name.toLowerCase()); out.push(name+'.png');
+  }
+  return out;
+}
+function zipStem(pattern){
+  const stem=safeName((pattern||'').replace(/\{n\}/gi,'').replace(/([-_ .])[-_ .]+/g,'$1').replace(/^[-_ .]+|[-_ .]+$/g,''));
+  return stem||'titlecards';
+}
+
+const CRC_TABLE=(()=>{ const t=new Uint32Array(256); for(let n=0;n<256;n++){ let c=n; for(let k=0;k<8;k++) c=c&1?0xEDB88320^(c>>>1):c>>>1; t[n]=c>>>0; } return t; })();
+function crc32(u8){ let c=0xFFFFFFFF; for(let i=0;i<u8.length;i++) c=CRC_TABLE[(c^u8[i])&255]^(c>>>8); return (c^0xFFFFFFFF)>>>0; }
+/* Minimal ZIP writer: one "stored" (uncompressed) entry per file. PNGs are already compressed, so deflating them again
+   would add code and time for no size gain. File names are flagged UTF-8. files: [{name, data:Uint8Array}] -> Blob. */
+function buildZip(files,date=new Date()){
+  const enc=new TextEncoder(), parts=[], central=[];
+  const time=(date.getHours()<<11)|(date.getMinutes()<<5)|(date.getSeconds()>>1);
+  const day=((Math.max(date.getFullYear(),1980)-1980)<<9)|((date.getMonth()+1)<<5)|date.getDate();
+  let offset=0, cdSize=0;
+  for(const f of files){
+    const name=enc.encode(f.name), size=f.data.length, crc=crc32(f.data);
+    const lh=new DataView(new ArrayBuffer(30));
+    lh.setUint32(0,0x04034b50,true); lh.setUint16(4,20,true); lh.setUint16(6,0x0800,true); lh.setUint16(8,0,true);
+    lh.setUint16(10,time,true); lh.setUint16(12,day,true); lh.setUint32(14,crc,true); lh.setUint32(18,size,true); lh.setUint32(22,size,true);
+    lh.setUint16(26,name.length,true); lh.setUint16(28,0,true);
+    parts.push(lh.buffer,name,f.data);
+    const ch=new DataView(new ArrayBuffer(46));
+    ch.setUint32(0,0x02014b50,true); ch.setUint16(4,20,true); ch.setUint16(6,20,true); ch.setUint16(8,0x0800,true); ch.setUint16(10,0,true);
+    ch.setUint16(12,time,true); ch.setUint16(14,day,true); ch.setUint32(16,crc,true); ch.setUint32(20,size,true); ch.setUint32(24,size,true);
+    ch.setUint16(28,name.length,true); ch.setUint32(42,offset,true);
+    central.push(ch.buffer,name);
+    offset+=30+name.length+size; cdSize+=46+name.length;
+  }
+  const end=new DataView(new ArrayBuffer(22));
+  end.setUint32(0,0x06054b50,true); end.setUint16(8,files.length,true); end.setUint16(10,files.length,true); end.setUint32(12,cdSize,true); end.setUint32(16,offset,true);
+  return new Blob([...parts,...central,end.buffer],{type:'application/zip'});
+}
+
+const dlg=$('#batchDlg');
+let batchItems=[];   // {idx, empty, fn:Element} per card, in list order
+function batchSettings(){ return {pattern:$('#bPattern').value, start:$('#bStart').value, digits:$('#bDigits').value}; }
+function refreshBatchNames(){
+  const live=batchItems.filter(b=>!b.empty), names=batchNames($('#bPattern').value,$('#bStart').value,$('#bDigits').value,live.length);
+  live.forEach((b,i)=>{ b.fn.textContent=names[i]; });
+  batchItems.filter(b=>b.empty).forEach(b=>{ b.fn.textContent='Empty, skipped'; });
+  $('#bGo').textContent=live.length?`Download ZIP (${live.length} PNG${live.length===1?'':'s'})`:'Nothing to export';
+  $('#bGo').disabled=!live.length;
+  store.set('opentitlecard.batch',batchSettings());
+}
+function openBatch(){
+  stash();
+  const b=store.get('opentitlecard.batch',{});
+  $('#bPattern').value=b.pattern||'titlecard-{n}'; $('#bStart').value=b.start??1; $('#bDigits').value=b.digits??1;
+  const grid=$('#bGrid'); grid.innerHTML=''; batchItems=[];
+  cards.forEach((c,idx)=>{
+    const item=document.createElement('div'), th=document.createElement('div'), fn=document.createElement('div');
+    item.className='bitem'; th.className='thumb'; fn.className='fn';
+    const cvs=withCard(c,()=>{
+      if(!L.lines.length) return null;
+      const g=exportGeometry(), k=Math.min(1,360/g.W), t=document.createElement('canvas');
+      t.width=Math.max(1,Math.round(g.W*k)); t.height=Math.max(1,Math.round(g.H*k));
+      draw(t.getContext('2d'),t.width,t.height,{u:g.u*k,cx:g.cx*k,cy:g.cy*k,guides:false,sel:null});
+      t.setAttribute('role','img'); t.setAttribute('aria-label',`Card ${idx+1}: ${cardLabel(c.text)}`);
+      return t;
+    });
+    if(cvs) th.appendChild(cvs); else item.classList.add('skip');
+    item.append(th,fn); grid.appendChild(item); batchItems.push({idx,empty:!cvs,fn});
+  });
+  const [W,H]=frameDims();
+  $('#bInfo').textContent=S.tight?`Each card is cropped to its own size at ${S.exportScale}× (change under Export → Tight crop).`:`${W} × ${H} px, transparent PNG (change under Export → Canvas).`;
+  const bad=!fontReady();
+  $('#bFont').style.display=bad?'block':'none';
+  if(bad) $('#bFont').textContent=`“${S.family}” isn't installed on this computer, so these cards use a fallback font. Install it or load the font file first.`;
+  $('#bStatus').textContent=''; $('#bGo').disabled=false;
+  refreshBatchNames();
+  dlg.showModal();
+}
+['#batchOpen','#batchOpenExport'].forEach(id=>$(id).addEventListener('click',openBatch));
+['#bPattern','#bStart','#bDigits'].forEach(id=>$(id).addEventListener('input',refreshBatchNames));
+$('#bCancel').addEventListener('click',()=>dlg.close());
+$('#bClose').addEventListener('click',()=>dlg.close());
+$('#bGo').addEventListener('click',async()=>{
+  const live=batchItems.filter(b=>!b.empty), names=batchNames($('#bPattern').value,$('#bStart').value,$('#bDigits').value,live.length);
+  const go=$('#bGo'), status=$('#bStatus'); go.disabled=true;
+  try{
+    const files=[];
+    for(let i=0;i<live.length;i++){
+      status.textContent=`Rendering ${i+1} of ${live.length}…`;
+      const c=withCard(cards[live[i].idx],exportCanvas);   // painted synchronously, so the active card is restored right away
+      if(!c){ status.textContent='A card is too large for the browser. Lower the export scale or canvas size.'; return; }
+      const blob=await new Promise(r=>c.toBlob(r,'image/png'));
+      files.push({name:names[i],data:new Uint8Array(await blob.arrayBuffer())});
+    }
+    status.textContent='Packing ZIP…';
+    download(buildZip(files),zipStem($('#bPattern').value)+'.zip');
+    dlg.close();
+  }catch(err){ status.textContent='Export failed: '+err.message; }
+  finally{ go.disabled=false; }
 });
 
 /* ============ boot ============ */
-buildSwatches(); refreshPresets(); syncControls();
+stash(); buildSwatches(); refreshPresets(); syncControls();
 window.addEventListener('resize',render);
 (document.fonts&&document.fonts.ready?document.fonts.ready:Promise.resolve()).then(render);
 render();
-window.__tt={S,render,renderNow,get L(){return L},exportGeometry,draw};
+window.__tt={S,render,renderNow,get L(){return L},exportGeometry,draw,get cards(){return cards},get active(){return active},batchNames,zipStem,crc32,buildZip};
 </script>
 </body>
 </html>
