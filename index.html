@@ -1184,6 +1184,7 @@ $('#cardAdd').addEventListener('click',()=>{ insertCard(active+1,newCard()); ta.
 $('#cardDup').addEventListener('click',()=>{ stash(); insertCard(active+1,copyCard(cards[active])); });
 $('#cardDel').addEventListener('click',()=>{
   if(cards.length===1){ stash(); const c=newCard(); c.style=cards[0].style; cards[0]=c; adopt(c); cardSig=''; render(); return; }   // clearing keeps the card's style
+  stash();   // keeps shared-style edits made on this card: sharedStyle only catches up with S when stashed
   cards.splice(active,1); active=Math.min(active,cards.length-1); adopt(cards[active]); cardSig=''; render();
 });
 function moveCard(d){

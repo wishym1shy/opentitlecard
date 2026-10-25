@@ -102,6 +102,19 @@ test.describe('per-card styles', () => {
     expect(await page.evaluate(() => ({ n: __tt.cards.length, text: __tt.S.text, size: __tt.S.size, own: !!__tt.cards[0].style }))).toEqual({ n: 1, text: '', size: 70, own: true });
   });
 
+  test('deleting a card keeps the shared-style edits made while it was selected', async ({ app: { page } }) => {
+    await threeCards(page);
+    await select(page, 1);
+    await setRange(page, 'size', 150); // a shared-style edit: every card without its own style follows it
+    await page.click('#cardDel');
+    await settle(page);
+    expect(await page.evaluate(() => __tt.cards.length)).toBe(2);
+    expect(await size(page)).toBe(150);
+    await select(page, 0);
+    expect(await size(page)).toBe(150);
+    expect(await page.evaluate(() => JSON.parse(localStorage.getItem('opentitlecard.style')).size)).toBe(150); // screen and saved settings agree
+  });
+
   test('the saved last-used style is the shared one, never a card\'s own style', async ({ app: { page } }) => {
     await setRange(page, 'size', 120);
     await addCard(page, 'Two');
