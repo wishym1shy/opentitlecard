@@ -205,3 +205,51 @@ test.describe('default preset', () => {
     expect(await page.evaluate(() => __tt.S.size)).toBe(100);
   });
 });
+
+test.describe('settings from files and older versions are checked', () => {
+  const bad = { bgColor: 5, textColor: 'not a color', outlineColor: '#00ff00', size: 'big', lh: null, align: 'diagonal', frame: 'abc', weight: 800, custom: [5, 'red', '#123456'] };
+
+  test('a preset with wrong values applies only the good ones and never breaks rendering', async ({ app: { page } }) => {
+    const payload = Buffer.from(JSON.stringify(bad));
+    await page.setInputFiles('#presetFile', { name: 'p.json', mimeType: 'application/json', buffer: payload });
+    await page.waitForFunction(() => __tt.S.weight === 800);
+    const s = await page.evaluate(() => { __tt.renderNow(); const S = __tt.S; return { bg: S.bgColor, tc: S.textColor, oc: S.outlineColor, size: S.size, lh: S.lh, align: S.align, frame: S.frame, custom: S.custom }; });
+    expect(s).toEqual({ bg: '#ffffff', tc: '#000000', oc: '#00ff00', size: 100, lh: 1.25, align: 'center', frame: '1920x1080', custom: ['#123456'] });
+    // the bad values were not saved either, so a reload is clean too (the fixture fails on any page error)
+    await page.reload();
+    await page.waitForFunction(() => window.__tt && window.__tt.L);
+    expect(await page.evaluate(() => [__tt.S.bgColor, __tt.S.weight])).toEqual(['#ffffff', 800]);
+  });
+
+  test('a file with nothing usable in it is refused and changes nothing', async ({ browser }) => {
+    const page = await browser.newPage();
+    const errors = [], dialogs = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    page.on('dialog', (d) => { dialogs.push(d.message()); d.dismiss(); });
+    await page.goto(APP_URL);
+    await page.waitForFunction(() => window.__tt && window.__tt.L);
+    const payload = Buffer.from(JSON.stringify({ app: 'opentitlecard', type: 'batch', v: 1, cards: [{ t: 'x' }] })); // a batch file, not a preset
+    await page.setInputFiles('#presetFile', { name: 'b.json', mimeType: 'application/json', buffer: payload });
+    await expect.poll(() => dialogs).toEqual(['Not a valid preset file.']);
+    expect(await page.evaluate(() => __tt.S.size)).toBe(100);
+    expect(errors).toEqual([]);
+    await page.close();
+  });
+
+  test('broken settings saved by an earlier version are ignored at startup', async ({ browser }) => {
+    const context = await browser.newContext();
+    await context.addInitScript((bad) => {
+      localStorage.setItem('opentitlecard.style', JSON.stringify({ ...bad, custom: undefined, size: 140 }));
+      localStorage.setItem('opentitlecard.custom', JSON.stringify(bad.custom));
+    }, bad);
+    const page = await context.newPage();
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    await page.goto(APP_URL);
+    await page.waitForFunction(() => window.__tt && window.__tt.L);
+    const s = await page.evaluate(() => { __tt.renderNow(); return { size: __tt.S.size, bg: __tt.S.bgColor, align: __tt.S.align, custom: __tt.S.custom }; });
+    expect(s).toEqual({ size: 140, bg: '#ffffff', align: 'center', custom: ['#123456'] });
+    expect(errors).toEqual([]);
+    await context.close();
+  });
+});
