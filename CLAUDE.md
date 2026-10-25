@@ -12,12 +12,14 @@ Read this first. It describes the app, the rules for changing it, and how to wor
 
 ## Git and PR rules (important)
 
-1. **Never push to `main`.** The initial commit was the only exception. After that, work on a branch (`feat/…`, `fix/…`, `docs/…`).
-2. **Never open a pull request on your own initiative.** When work is ready, say so and ask. Only open a PR when the maintainer asks you to.
-3. **Never merge, approve, or enable auto-merge.** The maintainer merges every PR, personally.
+1. **Never push to `main`.** The initial commit was the only exception. Every change goes on a branch (`feat/…`, `fix/…`, `docs/…`, `ci/…`) and reaches `main` through a pull request.
+2. **Open a pull request when a branch is ready** (tests pass locally). Don't wait to be asked, and don't open PRs for half-finished work. The PR description says what changed, why, how it was verified, and what could *not* be verified. For geometry changes, include the measurements.
+3. **Never merge, approve, or enable auto-merge.** The maintainer reviews and merges every PR, personally. Your job ends at an open PR with green CI.
 4. Never force-push, rewrite published history, or delete branches unless asked.
 5. Keep commits small and focused, with clear messages. One concern per branch.
-6. Don't commit test output, scratch scripts, downloaded fonts or exported PNGs. Anything under `docs/` must be intentional.
+6. Don't commit test output (`test-results/`, `playwright-report/`), scratch scripts, downloaded fonts or exported PNGs. Anything under `docs/` must be intentional.
+
+Tooling note: in Claude Code web sessions `gh pr create` fails because GraphQL is blocked. Open PRs with the REST API instead: `gh api repos/wishym1shy/opentok-titlecard/pulls --input pr.json` (JSON with `title`, `head`, `base`, `body`).
 
 ## CI (planned)
 
