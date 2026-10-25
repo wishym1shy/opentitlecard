@@ -1,0 +1,18 @@
+{
+  "name": "opentok-titlecard",
+  "version": "0.1.0",
+  "description": "TikTok-style titlecards as transparent PNGs, from your browser. The app itself is a single dependency-free index.html; dependencies here are for tests only.",
+  "private": true,
+  "license": "MIT",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "@fontsource/inter": "5.2.8",
+    "@playwright/test": "1.63.0"
+  }
+}

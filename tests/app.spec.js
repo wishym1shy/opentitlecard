@@ -1,0 +1,215 @@
+const { test, expect, APP_URL, loadTestFont, setText, settle, setSelection } = require('./helpers');
+
+test.describe('loading and fonts', () => {
+  test('opens cleanly with the default card', async ({ app: { page } }) => {
+    await expect(page).toHaveTitle('opentok-titlecard');
+    await expect(page.locator('#text')).toHaveValue('Type your Titlecard here! 😳');
+    const L = await settle(page);
+    expect(L.lines).toHaveLength(1);
+    expect(L.lines[0].items.filter((i) => i.k === 'slot')).toHaveLength(1);
+    // default formatting is plain: nothing coloured, nothing italic
+    expect(await page.evaluate(() => __tt.S.colors.every((c) => c === null) && __tt.S.ital.every((i) => !i))).toBe(true);
+  });
+
+  test('warns when the selected font is missing and clears once a font is loaded', async ({ page }) => {
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    await page.goto(APP_URL);
+    await page.waitForFunction(() => window.__tt && window.__tt.L);
+    await page.fill('#family', 'Definitely Not An Installed Font 12345');
+    await expect(page.locator('#fontChip')).toHaveClass(/bad/);
+    await expect(page.locator('#banner')).toBeVisible();
+    await expect(page.locator('#banner')).toContainText('isn\'t installed');
+    await expect(page.locator('#export')).toContainText('fallback font');
+    await loadTestFont(page);
+    await expect(page.locator('#fontChip')).toHaveClass(/ok/);
+    await expect(page.locator('#banner')).toBeHidden();
+    await expect(page.locator('#export')).toHaveText('Download PNG');
+    expect(errors).toEqual([]);
+  });
+});
+
+test.describe('emoji slots', () => {
+  test('text symbols and digits are not treated as emoji', async ({ app: { page } }) => {
+    await setText(page, 'A™ ©2026 #1 2');
+    const L = await settle(page);
+    expect(L.lines[0].items.filter((i) => i.k === 'slot')).toHaveLength(0);
+  });
+
+  test('skin tones, flags, keycaps, hearts and ZWJ families are one slot each', async ({ app: { page } }) => {
+    await setText(page, '👍🏽 🇵🇭 1️⃣ ❤️ 👨‍👩‍👧');
+    const L = await settle(page);
+    expect(L.lines[0].items.filter((i) => i.k === 'slot')).toHaveLength(5);
+  });
+
+  test('"+ Emoji slot" inserts a slot at the caret', async ({ app: { page } }) => {
+    await setText(page, 'Hello');
+    await setSelection(page, 5);
+    await page.click('#addSlot');
+    const L = await settle(page);
+    expect(L.lines[0].items.filter((i) => i.k === 'slot')).toHaveLength(1);
+  });
+
+  test('slot width follows the size slider', async ({ app: { page } }) => {
+    await setText(page, 'Hi 😳');
+    const before = (await settle(page)).lines[0].items.find((i) => i.k === 'slot').w;
+    await page.evaluate(() => { const e = document.querySelector('#slot'); e.value = '2'; e.dispatchEvent(new Event('input', { bubbles: true })); });
+    const L = await settle(page);
+    const after = L.lines[0].items.find((i) => i.k === 'slot').w;
+    expect(after).toBeCloseTo(2 * L.size, 3);
+    expect(after).toBeGreaterThan(before);
+  });
+});
+
+test.describe('per-word colour and italic', () => {
+  // Formatting is judged on visible letters only: whitespace carries no visible colour or slant.
+  const coloured = (page) => page.evaluate(() => __tt.S.colors.map((c, i) => (c && !/\s/.test(__tt.S.text[i]) ? __tt.S.text[i] : '')).join(''));
+  const italic = (page) => page.evaluate(() => __tt.S.ital.map((c, i) => (c && !/\s/.test(__tt.S.text[i]) ? __tt.S.text[i] : '')).join(''));
+
+  test('caret in a word + swatch colours the whole word', async ({ app: { page } }) => {
+    await setText(page, 'Big NEWS today');
+    await setSelection(page, 6); // inside NEWS
+    await page.click('#swatches .sw:nth-child(3)'); // Red
+    expect(await coloured(page)).toBe('NEWS');
+    expect(await page.evaluate(() => __tt.S.colors[4])).toBe('#ff2d2d');
+  });
+
+  test('Reset colour puts the word back to the default', async ({ app: { page } }) => {
+    await setText(page, 'Big NEWS today');
+    await setSelection(page, 6);
+    await page.click('#swatches .sw:nth-child(3)');
+    await page.click('#clr');
+    expect(await coloured(page)).toBe('');
+  });
+
+  test('Alt+number applies a palette colour and Ctrl+I toggles italic', async ({ app: { page } }) => {
+    await setText(page, 'Big NEWS today');
+    await setSelection(page, 1); // inside Big
+    await page.keyboard.press('Alt+4'); // Orange
+    expect(await page.evaluate(() => __tt.S.colors[0])).toBe('#ff8a00');
+    await page.keyboard.press('Control+I');
+    expect(await italic(page)).toBe('Big');
+    await page.keyboard.press('Control+I');
+    expect(await italic(page)).toBe('');
+  });
+
+  test('formatting stays attached to the right letters while editing', async ({ app: { page } }) => {
+    await setText(page, 'Big NEWS today');
+    await setSelection(page, 6);
+    await page.click('#swatches .sw:nth-child(3)');
+    // type at the very start
+    await setSelection(page, 0);
+    await page.keyboard.type('>> ');
+    expect(await coloured(page)).toBe('NEWS');
+    // delete a character before the coloured word (the second ">")
+    await setSelection(page, 2);
+    await page.keyboard.press('Backspace');
+    expect(await coloured(page)).toBe('NEWS');
+    // delete a character after it
+    const end = await page.evaluate(() => __tt.S.text.indexOf('today') + 5);
+    await setSelection(page, end);
+    await page.keyboard.press('Backspace');
+    expect(await coloured(page)).toBe('NEWS');
+    expect(await page.evaluate(() => __tt.S.text)).toBe('> Big NEWS toda');
+  });
+
+  test('typing at the end of a coloured word continues the colour, but a new word does not', async ({ app: { page } }) => {
+    await setText(page, 'Big NEWS today');
+    await setSelection(page, 6);
+    await page.click('#swatches .sw:nth-child(3)');
+    const endOfNews = await page.evaluate(() => __tt.S.text.indexOf('NEWS') + 4);
+    await setSelection(page, endOfNews);
+    await page.keyboard.type('X');
+    expect(await coloured(page)).toBe('NEWSX');
+    await page.keyboard.type(' ok');
+    expect(await coloured(page)).toBe('NEWSX');
+  });
+
+  test('pasted text takes no colour from its neighbours', async ({ app: { page } }) => {
+    await setText(page, 'Big NEWS today');
+    await setSelection(page, 6);
+    await page.click('#swatches .sw:nth-child(3)');
+    const endOfNews = await page.evaluate(() => __tt.S.text.indexOf('NEWS') + 4);
+    await setSelection(page, endOfNews);
+    await page.evaluate(() => {
+      const t = document.querySelector('#text');
+      t.setRangeText('abc', t.selectionStart, t.selectionEnd, 'end');
+      t.dispatchEvent(new InputEvent('input', { inputType: 'insertFromPaste', bubbles: true }));
+    });
+    expect(await coloured(page)).toBe('NEWS');
+  });
+
+  test('colour is applied to the rendered text run', async ({ app: { page } }) => {
+    await setText(page, 'Big NEWS today');
+    await setSelection(page, 6);
+    await page.click('#swatches .sw:nth-child(3)');
+    await settle(page);
+    const runs = await page.evaluate(() => __tt.L.lines[0].items.filter((i) => i.k === 't').map((i) => [i.text, i.c]));
+    expect(runs).toContainEqual(['NEWS', '#ff2d2d']);
+  });
+
+  test('custom colours can be pinned to the palette', async ({ app: { page } }) => {
+    const before = await page.locator('#swatches .sw').count();
+    await page.evaluate(() => { const p = document.querySelector('#pick'); p.value = '#123456'; });
+    await page.click('#pin');
+    await expect(page.locator('#swatches .sw')).toHaveCount(before + 1);
+  });
+});
+
+test.describe('preview interaction and line nudge', () => {
+  test('clicking a word in the preview selects it in the text box', async ({ app: { page } }) => {
+    await setText(page, 'Big NEWS today');
+    const pos = await page.evaluate(() => {
+      const g = __tt.exportGeometry(), l = __tt.L.lines[0], w = l.words[1];
+      const r = document.querySelector('#cv').getBoundingClientRect();
+      return { x: r.left + (g.cx + (l.tx + l.nx + (w.x0 + w.x1) / 2) * g.u) * (r.width / g.W), y: r.top + (g.cy + l.cy * g.u) * (r.height / g.H) };
+    });
+    await page.mouse.click(pos.x, pos.y);
+    expect(await page.evaluate(() => { const t = document.querySelector('#text'); return t.value.slice(t.selectionStart, t.selectionEnd); })).toBe('NEWS');
+  });
+
+  test('line nudge moves the text but not the box', async ({ app: { page } }) => {
+    await setText(page, 'First line\nSecond line');
+    const before = await settle(page);
+    await page.fill('#nudges input[data-i="1"][data-a="x"]', '-8');
+    await page.fill('#nudges input[data-i="1"][data-a="y"]', '12');
+    const after = await settle(page);
+    expect(after.lines[1].nx).toBe(-8);
+    expect(after.lines[1].ny).toBe(12);
+    expect(after.lines[0].nx).toBe(0);
+    for (const k of ['x0', 'x1', 'y0', 'y1']) expect(after.lines[1][k]).toBeCloseTo(before.lines[1][k], 6);
+  });
+
+  test('Shift+ArrowUp in a nudge field steps by 10', async ({ app: { page } }) => {
+    await setText(page, 'One\nTwo');
+    const field = page.locator('#nudges input[data-i="0"][data-a="y"]');
+    await field.focus();
+    await page.keyboard.press('Shift+ArrowUp');
+    expect(await page.evaluate(() => __tt.S.nudges[0].y)).toBe(10);
+  });
+
+  test('Alt-dragging a line in the preview nudges it', async ({ app: { page } }) => {
+    await setText(page, 'First line\nSecond line');
+    const p = await page.evaluate(() => {
+      const g = __tt.exportGeometry(), l = __tt.L.lines[1];
+      const r = document.querySelector('#cv').getBoundingClientRect();
+      return { x: r.left + g.cx * (r.width / g.W), y: r.top + (g.cy + l.cy * g.u) * (r.height / g.H) };
+    });
+    await page.keyboard.down('Alt');
+    await page.mouse.move(p.x, p.y);
+    await page.mouse.down();
+    await page.mouse.move(p.x + 20, p.y + 10, { steps: 5 });
+    await page.mouse.up();
+    await page.keyboard.up('Alt');
+    const n = await page.evaluate(() => __tt.S.nudges[1]);
+    expect(n.x).toBeGreaterThan(0);
+    expect(n.y).toBeGreaterThan(0);
+  });
+
+  test('the reset button clears a nudge', async ({ app: { page } }) => {
+    await setText(page, 'One\nTwo');
+    await page.fill('#nudges input[data-i="1"][data-a="x"]', '30');
+    await page.click('#nudges [data-reset="1"]');
+    expect(await page.evaluate(() => __tt.S.nudges[1])).toEqual({ x: 0, y: 0 });
+  });
+});

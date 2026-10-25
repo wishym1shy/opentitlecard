@@ -19,19 +19,19 @@ Tooling note: in Claude Code web sessions `gh pr create` fails because GraphQL i
 3. **Never merge, approve, or enable auto-merge.** The maintainer reviews and merges every PR, personally. Your job ends at an open PR with green CI.
 4. Never force-push, rewrite published history, or delete branches unless asked.
 5. Keep commits small and focused, with clear messages. One concern per branch.
-6. Don't commit test output, scratch scripts, downloaded fonts or exported PNGs. Anything under `docs/` must be intentional.
+6. Don't commit test output (`test-results/`, `playwright-report/`), scratch scripts, downloaded fonts or exported PNGs. Anything under `docs/` must be intentional.
 
-## CI (planned)
+## CI
 
-CI will run a headless-Chromium smoke test against `index.html`. Until it exists, run the same checks locally before proposing a change (see Testing). When CI is added it should cover, at minimum:
+GitHub Actions (`.github/workflows/ci.yml`) runs the Playwright suite in headless Chromium on every pull request and every push to `main`. A PR is only ready when CI is green. The maintainer still reviews and merges.
 
-- the page loads with no console or page errors;
-- default text renders one line with one emoji slot;
-- typing keeps per-character color/italic attributes aligned;
-- export produces an RGBA PNG whose corners are fully transparent;
-- box-geometry numbers for reference texts stay within tolerance (see Calibration).
-
-Keep `window.__tt` (state `S`, layout `L`, `render`, `renderNow`, `exportGeometry`, `draw`) stable. Tests depend on it. If you must change it, update the tests in the same branch.
+- Tests live in `tests/`: `app.spec.js` (loading, fonts, emoji slots, colour/italic, preview interaction, nudge), `geometry.spec.js` (box rules, descender clearance regression), `export.spec.js` (PNG output), `storage-and-presets.spec.js`.
+- `tests/helpers.js` has the shared fixture. It opens the app, loads the pinned Inter font through the app's own **Load font file…** input, and fails any test that logs a page error, console error or dialog.
+- Dependencies are **dev-only** (`@playwright/test`, `@fontsource/inter`), pinned exactly, with `package-lock.json` committed. The app has no runtime dependencies. Don't add any.
+- Keep `window.__tt` (state `S`, layout `L`, `render`, `renderNow`, `exportGeometry`, `draw`) stable. The tests depend on it. If you must change it, update the tests in the same branch.
+- **A bug fix needs a test that fails without the fix.** Prove it: break the code on purpose, watch the test fail, restore it.
+- Tests assert *rules* (em-based margins, alignment, transparency), not font-specific pixel values, so they hold on any machine.
+- Tests that fail only on CI: check the uploaded `playwright-report` artifact before guessing.
 
 ## Architecture in one screen
 
@@ -65,12 +65,13 @@ If you change geometry, re-measure against reference images (alpha channel) and 
 
 ## Testing
 
-No test suite is checked in yet. Locally:
+```bash
+npm ci && npx playwright install chromium   # once
+npm test                                    # whole suite, ~1 min
+npx playwright test --grep "descender"      # a subset
+```
 
-1. Use headless Chromium (Playwright). Scripts live **outside** the repo.
-2. Stand in an installed bold sans (e.g. Inter 800) when the target font is missing.
-3. Verify: no console/page errors; default render; typing/color/italic alignment; click-to-select; line nudge; tight and full-frame exports are RGBA with transparent corners; emoji slots stay blank in the export.
-4. For geometry changes, render the reference texts and measure box edges from the alpha channel.
+Before proposing a change: run the suite, and for geometry changes also render the reference texts and measure box edges from the alpha channel (see Calibration). Report what you verified and anything you couldn't (e.g. a font that isn't installed in the test environment).
 
 ## Working with the maintainer
 
