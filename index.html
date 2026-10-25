@@ -254,9 +254,9 @@
       <div class="row" style="margin-top:12px"><button id="export" class="primary">Download PNG</button><button id="batchOpenExport" title="Export every card at once, named by a pattern">All cards (ZIP)…</button></div>
       <hr style="border:0;border-top:1px solid var(--line);margin:14px 0 6px">
       <label>Client presets <span class="hint" style="float:right;margin:0">font, colors, sizes — not text</span></label>
-      <div class="row"><select id="presetSel" aria-label="Saved presets"></select><button id="presetLoad" class="sm" style="flex:none">Load</button><button id="presetDefault" class="sm" style="flex:none" title="The default preset is applied every time the app opens">Set as default</button></div>
-      <div class="row" style="margin-top:6px"><button id="presetAll" class="sm" title="Use this preset for every card, replacing any card's own style">Apply preset to all cards</button></div>
-      <div class="hint" id="presetHint">★ marks the default preset. It is applied whenever the app opens, instead of your last-used settings.</div>
+      <div class="row"><select id="presetSel" aria-label="Saved presets"></select><button id="presetLoad" class="sm" style="flex:none">Load</button><button id="presetDefault" class="sm" style="flex:none" title="The default preset is applied the first time the app opens, before any settings are saved">Set as default</button></div>
+      <div class="row" style="margin-top:6px"><button id="presetAll" class="sm" title="Use this preset for every card, replacing any card's own style (asks first)">Apply preset to all cards</button></div>
+      <div class="hint" id="presetHint">★ marks the default preset. It is applied the first time the app opens; after that your last-used settings come back. Use Load to return to a preset any time.</div>
       <div class="row" style="margin-top:6px"><input type="text" id="presetName" placeholder="Preset name"><button id="presetSave" class="sm" style="flex:none">Save</button><button id="presetDel" class="sm" style="flex:none">Delete</button></div>
       <div class="row" style="margin-top:6px"><button id="presetExport" class="sm">Export JSON</button><button id="presetImport" class="sm">Import JSON</button><input type="file" id="presetFile" accept=".json" hidden></div>
     </div>
@@ -276,6 +276,12 @@
   <div id="info"></div>
 </section>
 </div>
+
+<dialog id="confirmDlg" aria-labelledby="cTitle" aria-describedby="cMsg" style="width:min(460px,94vw)">
+  <div class="dh"><h2 id="cTitle"></h2></div>
+  <div class="db"><p id="cMsg" style="margin:10px 0 4px;line-height:1.5"></p></div>
+  <div class="df"><span class="status"></span><button id="cCancel">Cancel</button><button id="cOk" class="primary warn"></button></div>
+</dialog>
 
 <dialog id="batchDlg" aria-labelledby="batchTitle">
   <div class="dh"><h2 id="batchTitle">Export all cards</h2><button id="bClose" class="sm" style="margin-left:auto" aria-label="Close">✕</button></div>
@@ -342,9 +348,11 @@ S.colors = Array(S.text.length).fill(null);
 S.ital = Array(S.text.length).fill(0);
 S.nudges = []; S.custom = store.get('opentitlecard.custom',[]);
 S.previewBg = 'checker';
-{ const d=defaultPreset(); if(d) applyStyle(d); }   // a default preset wins over the last-used style on startup
-let cards=[], active=0;
-let sharedStyle=null;     // style of every card that has no own style (set after startup; see "cards" below)   // batch cards; the active one lives in S (see "cards" below)
+let cards=[], active=0;   // batch cards; the active one lives in S (see "cards" below)
+let sharedStyle=null;     // style of every card that has no own style (set after startup; see "cards" below)
+// First load only: with no saved last-used style yet, start from the default preset (and keep it as the last-used style).
+// Once any settings are saved, those come back on later loads, as they always did.
+if(store.get('opentitlecard.style',null)===null){ const d=defaultPreset(); if(d){ applyStyle(d); persistStyle(); } }
 
 let L = null;            // last layout
 let drag = null;
@@ -908,11 +916,20 @@ $('#presetDel').addEventListener('click',()=>{
 });
 $('#presetSel').addEventListener('change',updateDefaultBtn);
 // Sets the shared style from the preset and drops every card's own style, so all cards match it.
-$('#presetAll').addEventListener('click',()=>{
-  const o=presets()[$('#presetSel').value]; if(!o) return;
+async function applyPresetToAll(name){
+  const o=presets()[name]; if(!o) return false;
+  stash();
+  const own=cards.filter(c=>c.style).length, n=cards.length;
+  const ok=await confirmAction({
+    title:`Apply “${name}” to all cards?`,
+    message:`${n===1?'This card':`All ${n} cards`} will use this preset.`+(own?` ${own===1?'1 card has its own style and loses it':`${own} cards have their own style and lose it`}.`:''),
+    ok:'Apply to all'});
+  if(!ok) return false;
   stash(); applyStyle(o); sharedStyle=pickStyle(); cards.forEach(c=>{ c.style=null; });
   store.set('opentitlecard.custom',S.custom); buildSwatches(); adopt(cards[active]); persistStyle(); cardSig=''; render();
-});
+  return true;
+}
+$('#presetAll').addEventListener('click',()=>applyPresetToAll($('#presetSel').value));
 $('#presetDefault').addEventListener('click',()=>{
   const n=$('#presetSel').value; if(!n) return;
   store.set(DEFAULT_PRESET_KEY,n===defaultName()?null:n); refreshPresets();
@@ -940,6 +957,21 @@ $('#export').addEventListener('click',()=>{
   c.toBlob(b=>download(b,`titlecard_${stem}.png`),'image/png');
 });
 function download(blob,name){ const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),3000); }
+
+/* ============ confirmation dialog ============ */
+/* Asks before something that throws work away. Resolves true only for the confirm button: Cancel and Esc both mean
+   no. Focus starts on Cancel so a stray Enter never destroys anything. */
+function confirmAction({title,message,ok='Continue'}){
+  return new Promise(resolve=>{
+    const d=$('#confirmDlg');
+    $('#cTitle').textContent=title; $('#cMsg').textContent=message; $('#cOk').textContent=ok;
+    d.returnValue='';
+    d.addEventListener('close',()=>resolve(d.returnValue==='ok'),{once:true});
+    d.showModal(); $('#cCancel').focus();
+  });
+}
+$('#cOk').addEventListener('click',()=>$('#confirmDlg').close('ok'));
+$('#cCancel').addEventListener('click',()=>$('#confirmDlg').close('cancel'));
 
 /* ============ cards (batch) ============ */
 /* The active card lives in S (text, colors, ital, nudges), so every existing control and test keeps working
@@ -1007,11 +1039,12 @@ function moveCard(d){
   const j=active+d; if(j<0||j>=cards.length) return;
   stash(); [cards[active],cards[j]]=[cards[j],cards[active]]; active=j; cardSig=''; render();
 }
-$('#cardOwn').addEventListener('change',e=>{
-  stash();
-  if(e.target.checked) cards[active].style=pickStyle();           // start from what you see, then edit freely
-  else { cards[active].style=null; Object.assign(S,sharedStyle); nudgeSig=''; syncControls(); }
-  cardSig=''; render();
+$('#cardOwn').addEventListener('change',async e=>{
+  if(e.target.checked){ stash(); cards[active].style=pickStyle(); cardSig=''; render(); return; }   // start from what you see, then edit freely
+  e.target.checked=true;   // stays ticked until the user confirms; nothing changes if they cancel
+  const ok=await confirmAction({title:'Use the shared style for this card?',message:'This card goes back to the shared style. The settings you changed just for this card (font, colors, size, box…) are lost.',ok:'Use shared style'});
+  if(!ok) return;
+  stash(); cards[active].style=null; Object.assign(S,sharedStyle); nudgeSig=''; syncControls(); cardSig=''; render();
 });
 $('#cardUp').addEventListener('click',()=>moveCard(-1));
 $('#cardDown').addEventListener('click',()=>moveCard(1));

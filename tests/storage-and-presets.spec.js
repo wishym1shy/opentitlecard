@@ -156,17 +156,28 @@ test.describe('default preset', () => {
     await expect(page.locator('#presetDefault')).toBeEnabled();
   });
 
-  test('the default preset is applied on startup, beating the last-used style, and never touches the text', async ({ app: { page } }) => {
+  test('on a first load (no saved settings) the default preset is applied, kept as the last-used style, and never touches the text', async ({ app: { page } }) => {
     await setRange(page, 'size', 140);
     await savePreset(page, 'Client A');
     await page.click('#presetDefault');
-    await setRange(page, 'size', 90); // last-used style now differs from the default preset
+    await page.evaluate(() => localStorage.removeItem('opentitlecard.style')); // as if the app had never saved settings
     await reload(page);
-    const s = await page.evaluate(() => ({ size: __tt.S.size, text: __tt.S.text }));
-    expect(s.size).toBe(140);
-    expect(s.text).toBe('Type your Titlecard here! 😳');
+    const s = await page.evaluate(() => ({ size: __tt.S.size, text: __tt.S.text, saved: JSON.parse(localStorage.getItem('opentitlecard.style')).size }));
+    expect(s).toEqual({ size: 140, text: 'Type your Titlecard here! 😳', saved: 140 });
     await expect(page.locator('#size')).toHaveValue('140');
     await expect(page.locator('#presetSel option', { hasText: '★ Client A' })).toHaveCount(1);
+  });
+
+  test('after that, settings you changed come back: the default does not override them', async ({ app: { page } }) => {
+    await setRange(page, 'size', 140);
+    await savePreset(page, 'Client A');
+    await page.click('#presetDefault');
+    await setRange(page, 'size', 90); // saved as the last-used style
+    await reload(page);
+    expect(await page.evaluate(() => __tt.S.size)).toBe(90);
+    await page.selectOption('#presetSel', 'Client A'); // and Load still returns to the preset
+    await page.click('#presetLoad');
+    expect(await page.evaluate(() => __tt.S.size)).toBe(140);
   });
 
   test('without a default, the last-used style still wins on startup', async ({ app: { page } }) => {
