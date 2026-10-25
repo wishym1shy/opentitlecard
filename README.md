@@ -25,6 +25,7 @@ opentok-titlecard fixes each of those. Emoji are handled as an empty, correctly-
 - **Per-word color and italic.** Put the caret in a word (or select a range) and click a swatch. Click any word in the preview to select it. Includes a palette, custom colors, and an eyedropper.
 - **Emoji slots.** Type or paste an emoji and it becomes a blank slot in the layout. The background box wraps around it exactly as it would around the real thing. The slot is outlined in the preview only, never in the export.
 - **Smart background box.** Each line gets its own rounded box, with inverse corners where line widths differ, like TikTok's own captions. The box grows downward automatically when descenders (`g`, `y`, `p`, `q`, `j`) or an emoji would crowd the bottom edge.
+- **Optional auto-wrap.** Set a **Max card width** and long lines wrap at spaces to fit, with the padding included. Your own line breaks always win, and color, italic and emoji slots carry through the wrap.
 - **Line nudge.** Fine-tune the X/Y position of each line's text inside its box. Use the fields, arrow keys (**Shift** = 10px), or **Alt**-drag a line in the preview.
 - **Bring your own font.** Pick any installed font, or load a `.ttf`, `.otf`, `.woff` or `.woff2` file for a client's brand font.
 - **Background control.** Color, opacity, padding, corner radius, top/bottom margins, and optional soft shadows. Text outline and text shadow are available too.
@@ -66,7 +67,7 @@ Everything happens in your browser. No text, fonts, or images leave your compute
 ## Limitations
 
 - Output is a **flat PNG**: the text is not live or editable once exported. Re-open the app to change it.
-- Line breaks are manual (no auto-wrap) so line nudges stay attached to the lines you chose.
+- Auto-wrap breaks only at spaces (no hyphenation, no mid-word breaks), and a word wider than the limit keeps its own line. Line nudges are tied to line numbers, so changing the max width can change which text a nudge applies to.
 - Emoji are never drawn by the app. They're intentionally left as empty slots.
 - No animation. Exports are still images.
 

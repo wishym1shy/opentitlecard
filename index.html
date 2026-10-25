@@ -58,9 +58,9 @@
   .toolbar{display:flex;gap:8px;align-items:center;padding:8px 14px;border-bottom:1px solid var(--line);background:var(--panel);flex-wrap:wrap}
   .chips button{padding:3px 9px;font-size:12px}
   .view{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:18px;overflow:auto}
-  #wrap{position:relative;max-width:100%;max-height:100%;border-radius:4px;box-shadow:0 0 0 1px #000a,0 8px 40px #0008}
-  #wrap.checker{background:conic-gradient(#2b2d34 25%,#383b44 0 50%,#2b2d34 0 75%,#383b44 0) 0 0/24px 24px}
-  #wrap.white{background:#fff} #wrap.black{background:#000} #wrap.gray{background:#7a7d86}
+  #previewBox{position:relative;max-width:100%;max-height:100%;border-radius:4px;box-shadow:0 0 0 1px #000a,0 8px 40px #0008}
+  #previewBox.checker{background:conic-gradient(#2b2d34 25%,#383b44 0 50%,#2b2d34 0 75%,#383b44 0) 0 0/24px 24px}
+  #previewBox.white{background:#fff} #previewBox.black{background:#000} #previewBox.gray{background:#7a7d86}
   canvas{display:block;max-width:100%;max-height:calc(100vh - 150px);cursor:pointer}
   #info{padding:6px 14px;color:var(--mute);font-size:12px;border-top:1px solid var(--line);display:flex;gap:16px;flex-wrap:wrap}
   #banner{display:none;margin:0 0 10px;padding:8px 10px;border-radius:8px;background:#2a1714;border:1px solid #6b3028;color:#ffb3a8;font-size:12px}
@@ -133,6 +133,8 @@
       <label>Size <span class="val" id="v_size"></span></label><input type="range" id="size" min="30" max="260" step="1">
       <label>Line height <span class="val" id="v_lh"></span></label><input type="range" id="lh" min="0.9" max="1.8" step="0.01">
       <label>Tracking <span class="val" id="v_track"></span></label><input type="range" id="track" min="-6" max="20" step="0.5">
+      <label for="wrap">Max card width <span class="val" id="v_wrap"></span></label><input type="range" id="wrap" min="0" max="1900" step="10">
+      <div class="hint">Off = only your own line breaks. Otherwise long lines wrap at spaces to fit. Line nudges stay with line numbers.</div>
       <div class="row tight" style="margin-top:8px">
         <span style="color:var(--mute)">Default text color</span><input type="color" id="textColor">
         <span style="color:var(--mute);margin-left:10px">Outline</span><input type="color" id="outlineColor">
@@ -203,7 +205,7 @@
     </span>
     <span style="margin-left:auto;color:var(--mute)" id="dims"></span>
   </div>
-  <div class="view"><div id="wrap" class="checker"><canvas id="cv"></canvas></div></div>
+  <div class="view"><div id="previewBox" class="checker"><canvas id="cv"></canvas></div></div>
   <div id="info"></div>
 </section>
 </div>
@@ -231,7 +233,7 @@ const PALETTE = [
 const DEFAULTS = {
   family:'Linik Sans', weight:700, size:100, lh:1.25, track:0, align:'center',
   textColor:'#000000', outlineColor:'#000000', outlineW:0, textShadow:true,
-  bgOn:true, bgColor:'#ffffff', bgOpacity:100, padX:0.42, radius:0.17, boxShadow:true, topPad:0.44, botPad:0.49, clear:0.24,
+  bgOn:true, bgColor:'#ffffff', bgOpacity:100, padX:0.42, radius:0.17, boxShadow:true, topPad:0.44, botPad:0.49, clear:0.24, wrap:0,
   slot:1.25, showGuides:true,
   frame:'1920x1080', fw:1920, fh:1080, offX:0, offY:0, tight:false, exportScale:2
 };
@@ -274,8 +276,47 @@ function updateFontChip(){
 
 /* ============ layout ============ */
 const mctx = document.createElement('canvas').getContext('2d');
+/* Greedy word-wrap of ONE manual line. `items` are styled runs and emoji slots; `limit` is the widest the
+   TEXT may be (units), or 0 for "no wrapping". Returns one item list per visual line. Words are runs of
+   non-space pieces, so a slot typed right after a word stays glued to it; wrapping only happens at spaces.
+   A word wider than the limit keeps its own line rather than being split. */
+function wrapItems(items, limit){
+  if(!(limit>0)) return [items];
+  const pieces=[];
+  for(const it of items){
+    if(it.k==='slot'){ pieces.push({...it,sp:false}); continue; }
+    mctx.font=fontStr(it.it,S.size);
+    for(const m of it.text.matchAll(/\s+|\S+/g)){
+      pieces.push({k:'t',text:m[0],s:it.s+m.index,e:it.s+m.index+m[0].length,c:it.c,it:it.it,w:mctx.measureText(m[0]).width,sp:/^\s/.test(m[0])});
+    }
+  }
+  const out=[]; let line=[], lineW=0, gap=[], gapW=0, word=[], wordW=0;
+  const commit=()=>{
+    if(!word.length) return;
+    if(line.length && lineW+gapW+wordW>limit){ out.push(line); line=[]; lineW=0; }
+    else if(line.length){ line.push(...gap); lineW+=gapW; }
+    line.push(...word); lineW+=wordW; word=[]; wordW=0; gap=[]; gapW=0;
+  };
+  for(const p of pieces){
+    if(p.sp){ commit(); gap.push(p); gapW+=p.w; }
+    else { word.push(p); wordW+=p.w; }
+  }
+  commit(); if(line.length) out.push(line);
+  // glue neighbouring pieces with the same style back into runs
+  return out.map(list=>{
+    const res=[];
+    for(const p of list){
+      const last=res[res.length-1];
+      if(p.k==='t' && last && last.k==='t' && last.c===p.c && last.it===p.it && last.e===p.s){ last.text+=p.text; last.e=p.e; }
+      else res.push(p.k==='t'?{k:'t',text:p.text,s:p.s,e:p.e,c:p.c,it:p.it}:p);
+    }
+    return res;
+  });
+}
+
 function layout(){
   const size=S.size, pitch=size*S.lh, padX=S.padX*size, r=S.radius*size, slotW=S.slot*size;
+  const wrapLimit=S.wrap>0?Math.max(1,S.wrap-2*padX):0; // S.wrap is the whole card (box) width, padding included
   mctx.letterSpacing = S.track+'px';
   mctx.font = fontStr(0,size);
   const capH = (mctx.measureText('H').actualBoundingBoxAscent) || size*0.72;
@@ -283,14 +324,15 @@ function layout(){
   for(const raw of S.text.split('\n')){
     const start=idx; idx+=raw.length+1;
     if(!raw.trim()) continue;
-    const items=[];
+    const items0=[];
     for(const {segment,index} of SEG.segment(raw)){
       const gi=start+index;
-      if(isEmoji(segment)){ items.push({k:'slot',s:gi,e:gi+segment.length,w:slotW}); continue; }
-      const c=S.colors[gi]??null, it=S.ital[gi]|0, last=items[items.length-1];
+      if(isEmoji(segment)){ items0.push({k:'slot',s:gi,e:gi+segment.length,w:slotW}); continue; }
+      const c=S.colors[gi]??null, it=S.ital[gi]|0, last=items0[items0.length-1];
       if(last && last.k==='t' && last.c===c && last.it===it && last.e===gi){ last.text+=segment; last.e+=segment.length; }
-      else items.push({k:'t',text:segment,s:gi,e:gi+segment.length,c,it});
+      else items0.push({k:'t',text:segment,s:gi,e:gi+segment.length,c,it});
     }
+    for(const items of wrapItems(items0,wrapLimit)){
     // trim whitespace at both ends of the line
     while(items.length && items[0].k==='t'){ const m=items[0].text.match(/^\s+/); if(!m) break; items[0].text=items[0].text.slice(m[0].length); items[0].s+=m[0].length; if(!items[0].text) items.shift(); }
     while(items.length && items[items.length-1].k==='t'){ const t=items[items.length-1]; const m=t.text.match(/\s+$/); if(!m) break; t.text=t.text.slice(0,-m[0].length); t.e-=m[0].length; if(!t.text) items.pop(); }
@@ -308,6 +350,7 @@ function layout(){
       x+=it.w;
     }
     lines.push({items,words,w:x,hasSlot,below});
+    }
   }
   // box widths + snap near-equal neighbours (TikTok merges them)
   const snap=size*0.3;
@@ -448,7 +491,7 @@ function renderNow(){
   L=layout();
   syncNudgeRows(); updateFontChip();
   const g=exportGeometry();
-  const cv=$('#cv'), wrap=$('#wrap');
+  const cv=$('#cv');
   const availW=Math.max(300,($('.view').clientWidth-40)*(window.devicePixelRatio||1));
   const q=clamp(availW/g.W,0.15,1);
   cv.width=Math.max(1,Math.round(g.W*q)); cv.height=Math.max(1,Math.round(g.H*q));
@@ -612,13 +655,13 @@ cv.addEventListener('pointerup',e=>{
 
 /* ============ controls binding ============ */
 const bindings=[
-  ['family','text'],['weight','num'],['align','sel'],['size','num'],['lh','num'],['track','num'],
+  ['family','text'],['weight','num'],['align','sel'],['size','num'],['lh','num'],['track','num'],['wrap','num'],
   ['textColor','col'],['outlineColor','col'],['outlineW','num'],['textShadow','chk'],
   ['bgOn','chk'],['bgColor','col'],['bgOpacity','num'],['padX','num'],['radius','num'],['topPad','num'],['botPad','num'],['clear','num'],['boxShadow','chk'],
   ['slot','num'],['showGuides','chk'],['frame','sel'],['fw','num'],['fh','num'],['offX','num'],['offY','num'],
   ['tight','chk'],['exportScale','num']
 ];
-const fmt={size:v=>v+' px',lh:v=>(+v).toFixed(2)+'×',track:v=>v+' px',outlineW:v=>v+' px',bgOpacity:v=>v+'%',padX:v=>(+v).toFixed(2)+' em',topPad:v=>(+v).toFixed(2)+' em',botPad:v=>(+v).toFixed(2)+' em',clear:v=>(+v).toFixed(2)+' em',radius:v=>(+v).toFixed(2)+' em',slot:v=>(+v).toFixed(2)+' em',exportScale:v=>v+'×'};
+const fmt={size:v=>v+' px',lh:v=>(+v).toFixed(2)+'×',track:v=>v+' px',wrap:v=>(+v?v+' px':'Off'),outlineW:v=>v+' px',bgOpacity:v=>v+'%',padX:v=>(+v).toFixed(2)+' em',topPad:v=>(+v).toFixed(2)+' em',botPad:v=>(+v).toFixed(2)+' em',clear:v=>(+v).toFixed(2)+' em',radius:v=>(+v).toFixed(2)+' em',slot:v=>(+v).toFixed(2)+' em',exportScale:v=>v+'×'};
 function syncControls(){
   for(const [k,t] of bindings){
     const el=$('#'+k); if(!el) continue;
@@ -644,7 +687,7 @@ function persistStyle(){ const o={}; STYLE_KEYS.forEach(k=>o[k]=S[k]); store.set
 $('#pbg').addEventListener('click',e=>{
   const b=e.target.closest('button'); if(!b) return;
   $('#pbg').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));
-  $('#wrap').className=b.dataset.bg;
+  $('#previewBox').className=b.dataset.bg;
 });
 
 /* ============ fonts UI ============ */
