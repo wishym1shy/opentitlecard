@@ -11,6 +11,14 @@ test.describe('loading and fonts', () => {
     expect(await page.evaluate(() => __tt.S.colors.every((c) => c === null) && __tt.S.ital.every((i) => !i))).toBe(true);
   });
 
+  test('the default font is Inter Bold, an open-source font suited to everyone (nothing brand-specific)', async ({ page }) => {
+    await page.goto(APP_URL);
+    await page.waitForFunction(() => window.__tt && window.__tt.L);
+    expect(await page.evaluate(() => ({ family: __tt.S.family, weight: __tt.S.weight }))).toEqual({ family: 'Inter', weight: 700 });
+    await expect(page.locator('#family')).toHaveValue('Inter');
+    await expect(page.locator('#weight')).toHaveValue('700');
+  });
+
   test('header links to the GitHub repo and has no subtitle', async ({ app: { page } }) => {
     const link = page.locator('header a.gh');
     await expect(link).toHaveAttribute('href', 'https://github.com/wishym1shy/opentitlecard');

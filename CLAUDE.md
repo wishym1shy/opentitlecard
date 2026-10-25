@@ -16,7 +16,7 @@ Read this first. It describes the app, the rules for changing it, and how to wor
 - **Who it is for:** video editors who need TikTok-style titlecards (white rounded box, bold text, per-line boxes) as a transparent PNG without buying plugins. The workflow target is editors staying inside Premiere Pro; the PNG also works in After Effects, DaVinci Resolve, CapCut and anything else that reads PNGs.
 - **Static PNG only.** No animation, pop-ins or video export. Animated templates are a separate, later project (a MOGRT). A MOGRT is a zip of an After Effects project with expression logic and cannot be generated from this HTML app, so don't try to emit one here.
 - **Emoji are empty slots, never drawn.** Adobe's text engine can't render colour emoji fonts (they come out hollow and black-and-white), and Apple's emoji artwork is copyrighted and can't be bundled. The editor pastes the real iOS emoji on top in their editor. The slot reserves exactly the right space, and the **Emoji slot** panel gives its size and Position values. Don't "helpfully" draw emoji.
-- **Default font is Linik Sans Bold**, but it must stay swappable (installed fonts or a loaded file) because clients bring their own. Fonts are never bundled; if the selected family isn't installed the app says so.
+- **Default font is Inter Bold** (open source, SIL OFL; maintainer decision: the default must suit every short-form editor, not any one agency's brand font). It must stay swappable (installed fonts or a loaded file) because clients bring their own. Fonts are never bundled; if the selected family isn't installed the app says so. Don't special-case any brand font in the app.
 - **Per-word colour and italic are the headline features** that existing templates lack (they colour the whole text block only).
 - **Keep the repo neutral.** This is a public, general-purpose open-source tool. Don't put any employer, studio or client names, internal paths, sample client copy or branding in code, tests, docs, commit messages or PRs.
 
@@ -106,7 +106,7 @@ Before proposing a change: run the suite, and for geometry changes also render t
 
 ## Known gaps and backlog
 
-- Unverified things (Linik Sans, touch, screen readers, Premiere end to end, real italic faces, a real pre-rename browser profile) are tracked in issue #11. Don't claim any of them as verified until its box is ticked.
+- Unverified things (touch, screen readers, Premiere end to end, real italic faces, a real pre-rename browser profile) are tracked in issue #11. Don't claim any of them as verified until its box is ticked.
 - Repo settings and housekeeping that only the maintainer can do (branch protection, About text and topics, Pages check, retiring the older local copy) are tracked in issue #12. Claude never changes repo settings, merges, or approves.
 
 ## Working with the maintainer

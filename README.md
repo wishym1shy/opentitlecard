@@ -53,7 +53,7 @@ OpenTitlecard fixes each of those. Emoji are handled as an empty, correctly-size
 
 ## Fonts
 
-The default font family is `Linik Sans` (Bold). If it isn't installed on your machine, the app shows a warning and renders with a fallback font so you know the export won't match the intended look. To fix that, either:
+The default font is **Inter** (Bold), a free, open-source typeface (SIL Open Font License) that works well for this style. Fonts are never bundled with the app, so Inter has to be installed on your computer (it's free from [rsms.me/inter](https://rsms.me/inter/) and Google Fonts). If it isn't, the app shows a warning and renders with a fallback font so you know the export won't match the intended look. To fix that, either install Inter, or:
 
 - type another installed family into **Font family** (use **Installed fonts…** to browse the list), or
 - use **Load font file…** to load any font from disk for the current session.
