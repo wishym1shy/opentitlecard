@@ -15,6 +15,14 @@ test.describe('floating panels', () => {
     await expect(page.locator('aside #presetSel')).toBeVisible(); // presets stay with the style controls
   });
 
+  test('Export all as ZIP… is in the Export panel, once, and opens the export dialog', async ({ app: { page } }) => {
+    await expect(page.locator('#fp_export #batchOpen')).toHaveText('Export all as ZIP…');
+    await expect(page.locator('#fp_cards button', { hasText: /ZIP/ })).toHaveCount(0);
+    await expect(page.locator('#panels button', { hasText: /ZIP/ })).toHaveCount(1);
+    await page.click('#batchOpen');
+    await expect(page.locator('#batchDlg')).toBeVisible();
+  });
+
   test('a panel minimizes to its title and comes back, by mouse or keyboard', async ({ app: { page } }) => {
     const head = page.locator('#fph_cards');
     await expect(head).toHaveAttribute('aria-expanded', 'true');

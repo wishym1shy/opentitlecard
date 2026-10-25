@@ -1,4 +1,4 @@
-const { test, expect, setText, settle, setSelection, exportPng, readZip, crc32, pngSize, downloadZip, addCard } = require('./helpers');
+const { test, expect, expandUi, setText, settle, setSelection, exportPng, readZip, crc32, pngSize, downloadZip, addCard } = require('./helpers');
 
 test.describe('cards', () => {
   test('each card keeps its own text, word colors, italic and line nudges', async ({ app: { page } }) => {
@@ -180,7 +180,7 @@ test.describe('batch export dialog', () => {
 
   test('the ZIP holds one correctly named, full-size PNG per card, identical to a single-card export', async ({ app: { page } }) => {
     await threeCards(page);
-    await page.click('#batchOpenExport');
+    await page.click('#batchOpen');
     await page.fill('#bPattern', 'ClientA-Vid{n}_titlecard');
     const { buffer, filename } = await downloadZip(page);
     expect(filename).toBe('ClientA-Vid_titlecard.zip');
@@ -259,6 +259,7 @@ test.describe('batch export dialog', () => {
     await page.fill('#bDigits', '2');
     await page.reload();
     await page.waitForFunction(() => window.__tt && window.__tt.L);
+    await expandUi(page);
     await page.click('#batchOpen');
     await expect(page.locator('#bPattern')).toHaveValue('ClientA-Vid{n}-TC');
     await expect(page.locator('#bStart')).toHaveValue('7');
