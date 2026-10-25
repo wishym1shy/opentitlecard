@@ -355,7 +355,7 @@ const PALETTE = [
 
 /* ============ state ============ */
 const DEFAULTS = {
-  family:'Linik Sans', weight:700, size:100, lh:1.25, track:0, align:'center',
+  family:'Inter', weight:700, size:100, lh:1.25, track:0, align:'center',
   textColor:'#000000', outlineColor:'#000000', outlineW:0, textShadow:true,
   bgOn:true, bgColor:'#ffffff', bgOpacity:100, padX:0.42, radius:0.17, boxShadow:true, topPad:0.44, botPad:0.49, clear:0.24, wrap:0,
   slot:1.25, showGuides:true,
@@ -901,9 +901,8 @@ $('#loadInstalled').addEventListener('click',async()=>{
   try{
     const faces=await window.queryLocalFonts(); const fams=[...new Set(faces.map(f=>f.family))].sort((a,b)=>a.localeCompare(b));
     $('#fontlist').innerHTML=fams.map(f=>`<option value="${f.replace(/"/g,'&quot;')}">`).join('');
-    const lk=fams.filter(f=>/linik/i.test(f));
     $('#banner').style.display='block'; $('#banner').style.background='#14231c'; $('#banner').style.borderColor='#24553f'; $('#banner').style.color='#9ee8c4';
-    $('#banner').textContent=`${fams.length} installed font families loaded into the family box — start typing to search.`+(lk.length?` Linik found: ${lk.join(', ')}.`:'');
+    $('#banner').textContent=`${fams.length} installed font families loaded into the family box — start typing to search.`;
     setTimeout(()=>{ $('#banner').removeAttribute('style'); render(); },4500);
   }catch(e){ alert('Font access was blocked: '+e.message); }
 });
