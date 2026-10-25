@@ -11,6 +11,23 @@ test.describe('loading and fonts', () => {
     expect(await page.evaluate(() => __tt.S.colors.every((c) => c === null) && __tt.S.ital.every((i) => !i))).toBe(true);
   });
 
+  test('warns when the selected font is missing and clears once a font is loaded', async ({ page }) => {
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    await page.goto(APP_URL);
+    await page.waitForFunction(() => window.__tt && window.__tt.L);
+    await page.fill('#family', 'Definitely Not An Installed Font 12345');
+    await expect(page.locator('#fontChip')).toHaveClass(/bad/);
+    await expect(page.locator('#banner')).toBeVisible();
+    await expect(page.locator('#banner')).toContainText('isn\'t installed');
+    await expect(page.locator('#export')).toContainText('fallback font');
+    await loadTestFont(page);
+    await expect(page.locator('#fontChip')).toHaveClass(/ok/);
+    await expect(page.locator('#banner')).toBeHidden();
+    await expect(page.locator('#export')).toHaveText('Download PNG');
+    expect(errors).toEqual([]);
+  });
+
   test('every element id is unique (controls bind by id, so duplicates silently misbehave)', async ({ app: { page } }) => {
     const dupes = await page.evaluate(() => {
       const seen = {}, out = [];
@@ -29,23 +46,6 @@ test.describe('loading and fonts', () => {
       await expect(box).toHaveClass(new RegExp(bg));
     }
     await expect(page.locator('input#wrap')).not.toHaveClass(/checker|white|black|gray/);
-  });
-
-  test('warns when the selected font is missing and clears once a font is loaded', async ({ page }) => {
-    const errors = [];
-    page.on('pageerror', (e) => errors.push(e.message));
-    await page.goto(APP_URL);
-    await page.waitForFunction(() => window.__tt && window.__tt.L);
-    await page.fill('#family', 'Definitely Not An Installed Font 12345');
-    await expect(page.locator('#fontChip')).toHaveClass(/bad/);
-    await expect(page.locator('#banner')).toBeVisible();
-    await expect(page.locator('#banner')).toContainText('isn\'t installed');
-    await expect(page.locator('#export')).toContainText('fallback font');
-    await loadTestFont(page);
-    await expect(page.locator('#fontChip')).toHaveClass(/ok/);
-    await expect(page.locator('#banner')).toBeHidden();
-    await expect(page.locator('#export')).toHaveText('Download PNG');
-    expect(errors).toEqual([]);
   });
 });
 
