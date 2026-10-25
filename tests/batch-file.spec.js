@@ -310,4 +310,15 @@ test.describe('opening files that are not ours', () => {
     expect(await page.evaluate(() => __tt.S.text.length)).toBe(2000);
     await expect(page.locator('#fileMsg')).toContainText('Opened 500 cards');
   });
+
+  test('a font name in a file is shown as text, never run as HTML', async ({ app: { page } }) => {
+    const family = '<img src=x onerror="window.__ran=1">';
+    await openFile(page, { ...good, style: { family } });
+    await expect(page.locator('#fileMsg')).toContainText('Opened 1 card');
+    await settle(page);
+    await expect(page.locator('#banner')).toBeVisible();
+    await expect(page.locator('#banner b')).toHaveText(`“${family}” isn't installed on this computer`);
+    expect(await page.locator('#banner img').count()).toBe(0);
+    expect(await page.evaluate(() => window.__ran)).toBeUndefined();
+  });
 });

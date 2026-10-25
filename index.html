@@ -535,7 +535,9 @@ function updateFontChip(){
   if(ok){ ban.style.display='none'; }
   else {
     ban.style.display='block';
-    ban.innerHTML = `<b>“${S.family}” isn't installed on this computer</b>, so the preview and export use a fallback font. Install it, load the font file, or pick another family before exporting.`;
+    // the family can come from a preset or batch file, so it goes in as text, never as HTML
+    const b=document.createElement('b'); b.textContent=`“${S.family}” isn't installed on this computer`;
+    ban.replaceChildren(b, ', so the preview and export use a fallback font. Install it, load the font file, or pick another family before exporting.');
   }
   $('#export').classList.toggle('warn', !ok);
   $('#export').textContent = ok ? 'Download PNG' : 'Download PNG (fallback font!)';
