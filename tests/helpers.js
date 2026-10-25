@@ -82,7 +82,7 @@ async function exportPng(page) {
 
 /**
  * Decode a PNG inside the browser and answer pixel questions without shipping megabytes of pixels back.
- * queries: [{type:'px',x,y} | {type:'bbox'} | {type:'colBox',x} | {type:'lowestDark',x0,x1} | {type:'noBlue',x0,y0,x1,y1}]
+ * queries: [{type:'px',x,y} | {type:'bbox'} | {type:'inkRuns',gap} | {type:'colBox',x} | {type:'lowestDark',x0,x1} | {type:'noBlue',x0,y0,x1,y1}]
  */
 async function inspectPng(page, buffer, queries) {
   return page.evaluate(async ({ b64, queries }) => {
@@ -105,6 +105,17 @@ async function inspectPng(page, buffer, queries) {
         let a = -1, b = -1;
         for (let y = 0; y < H; y++) if (d[(y * W + q.x) * 4 + 3] > 128) { if (a < 0) a = y; b = y; }
         out.results.push(a < 0 ? null : { top: a, bottom: b });
+      } else if (q.type === 'inkRuns') {
+        // column ranges that contain ink, merging columns closer than q.gap px (i.e. one run per word)
+        const runs = []; let last = -1e9;
+        for (let x = 0; x < W; x++) {
+          let ink = false;
+          for (let y = 0; y < H && !ink; y++) if (d[(y * W + x) * 4 + 3] > 128) ink = true;
+          if (!ink) continue;
+          if (x - last > q.gap) runs.push([x, x]); else runs[runs.length - 1][1] = x;
+          last = x;
+        }
+        out.results.push(runs);
       } else if (q.type === 'lowestDark') {
         let low = -1;
         for (let y = 0; y < H; y++) for (let x = q.x0; x <= q.x1; x++) { const p = at(x, y); if (p[3] > 200 && p[0] + p[1] + p[2] < 150) { low = y; break; } }

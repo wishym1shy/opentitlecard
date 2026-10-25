@@ -1,4 +1,4 @@
-const { test, expect, APP_URL, loadTestFont, setText, settle, setSelection } = require('./helpers');
+const { test, expect, APP_URL, loadTestFont, setText, settle, setSelection, exportPng, inspectPng } = require('./helpers');
 
 test.describe('loading and fonts', () => {
   test('opens cleanly with the default card', async ({ app: { page } }) => {
@@ -113,6 +113,50 @@ test.describe('per-word colour and italic', () => {
     await page.click('#swatches .sw:nth-child(3)');
     await page.click('#clr');
     expect(await coloured(page)).toBe('');
+  });
+
+  test('an italic word keeps even gaps to its neighbours (slant is not left crowding the next word)', async ({ app: { page } }) => {
+    // H has equal side bearings, so with plain neighbours the two gaps must match when the italic ink is centred.
+    await page.uncheck('#bgOn');
+    await page.uncheck('#textShadow');
+    await setText(page, 'HH HHH HH');
+    await setSelection(page, 3, 6);
+    await page.click('#ital');
+    await settle(page);
+    const { buffer } = await exportPng(page);
+    const { results: [runs] } = await inspectPng(page, buffer, [{ type: 'inkRuns', gap: 15 }]); // size 100: word gap > 15px
+    expect(runs).toHaveLength(3);
+    const gapBefore = runs[1][0] - runs[0][1], gapAfter = runs[2][0] - runs[1][1];
+    expect(Math.abs(gapBefore - gapAfter), `gaps ${gapBefore}px / ${gapAfter}px`).toBeLessThanOrEqual(3);
+  });
+
+  test('every italic word is shifted by the same amount, whatever its letters', async ({ app: { page } }) => {
+    const shift = async (text) => {
+      await setText(page, text); // "<plain> <italic>"
+      await setSelection(page, text.indexOf(' ') + 1, text.length);
+      await page.click('#ital');
+      const L = await settle(page);
+      const [plain, ital] = L.lines[0].items;
+      await page.click('#ital'); // toggle back for the next call
+      return ital.x - (plain.x + plain.w + 0); // the italic run starts at the plain run's end (it includes its leading space)
+    };
+    const a = await shift('H xyz');   // short word, no ascenders
+    const b = await shift('H Titlecard'); // tall word
+    expect(a).toBeCloseTo(b, 3);
+    expect(a).toBeLessThan(0); // shifted left to cancel the right lean
+  });
+
+  test('italic does not change the card size, and the selection box follows the drawn word', async ({ app: { page } }) => {
+    await setText(page, 'HH HHH HH');
+    const plain = await settle(page);
+    await setSelection(page, 3, 6);
+    await page.click('#ital');
+    const it = await settle(page);
+    expect(it.cardW).toBeCloseTo(plain.cardW, 3);
+    // the word's hit/selection box sits where the italic run is drawn (centred on it), not on the unshifted advance box
+    const run = it.lines[0].items.find((i) => i.text.includes('HHH'));
+    const word = it.lines[0].words.find((w) => w.s === 3);
+    expect(word.x0).toBeCloseTo(run.x, 3);
   });
 
   test('Alt+number applies a palette colour and Ctrl+I toggles italic', async ({ app: { page } }) => {
