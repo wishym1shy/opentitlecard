@@ -242,7 +242,8 @@
       <div class="row" style="margin-top:12px"><button id="export" class="primary">Download PNG</button><button id="batchOpenExport" title="Export every card at once, named by a pattern">All cards (ZIP)…</button></div>
       <hr style="border:0;border-top:1px solid var(--line);margin:14px 0 6px">
       <label>Client presets <span class="hint" style="float:right;margin:0">font, colors, sizes — not text</span></label>
-      <div class="row"><select id="presetSel"></select><button id="presetLoad" class="sm" style="flex:none">Load</button></div>
+      <div class="row"><select id="presetSel" aria-label="Saved presets"></select><button id="presetLoad" class="sm" style="flex:none">Load</button><button id="presetDefault" class="sm" style="flex:none" title="The default preset is applied the first time the app opens, before any settings are saved">Set as default</button></div>
+      <div class="hint" id="presetHint">★ marks the default preset. It is applied the first time the app opens; after that your last-used settings come back. Use Load to return to a preset any time.</div>
       <div class="row" style="margin-top:6px"><input type="text" id="presetName" placeholder="Preset name"><button id="presetSave" class="sm" style="flex:none">Save</button><button id="presetDel" class="sm" style="flex:none">Delete</button></div>
       <div class="row" style="margin-top:6px"><button id="presetExport" class="sm">Export JSON</button><button id="presetImport" class="sm">Import JSON</button><input type="file" id="presetFile" accept=".json" hidden></div>
     </div>
@@ -298,6 +299,7 @@ const store = {
     }catch(e){}
   });
 })();
+const DEFAULT_PRESET_KEY='opentitlecard.defaultPreset';   // name of the preset applied at startup (declared early: startup code reads it)
 const SEG = new Intl.Segmenter(undefined,{granularity:'grapheme'});
 const EMOJI_RE = /\p{Emoji_Presentation}|️|\p{Regional_Indicator}|⃣|‍/u;
 const isEmoji = g => EMOJI_RE.test(g);
@@ -323,6 +325,9 @@ S.colors = Array(S.text.length).fill(null);
 S.ital = Array(S.text.length).fill(0);
 S.nudges = []; S.custom = store.get('opentitlecard.custom',[]);
 S.previewBg = 'checker';
+// First load only: with no saved last-used style yet, start from the default preset (and keep it as the last-used style).
+// Once any settings are saved, those come back on later loads, as they always did.
+if(store.get('opentitlecard.style',null)===null){ const d=defaultPreset(); if(d){ applyStyle(d); persistStyle(); } }
 let cards=[], active=0;   // batch cards; the active one lives in S (see "cards" below)
 
 let L = null;            // last layout
@@ -853,18 +858,38 @@ $('#fontFile').addEventListener('change',async e=>{
 
 /* ============ presets ============ */
 function presets(){ return store.get('opentitlecard.presets',{}); }
+function defaultName(){ return store.get(DEFAULT_PRESET_KEY,null); }
+function defaultPreset(){ const n=defaultName(), p=presets(); return n&&Object.prototype.hasOwnProperty.call(p,n)?p[n]:null; }
 function refreshPresets(){
-  const p=presets(), sel=$('#presetSel'); sel.innerHTML='';
-  const names=Object.keys(p); if(!names.length){ sel.innerHTML='<option value="">(none saved)</option>'; return; }
-  names.forEach(n=>{ const o=document.createElement('option'); o.value=o.textContent=n; sel.appendChild(o); });
+  const p=presets(), sel=$('#presetSel'), keep=sel.value, def=defaultName(); sel.innerHTML='';
+  const names=Object.keys(p); if(!names.length){ sel.innerHTML='<option value="">(none saved)</option>'; updateDefaultBtn(); return; }
+  names.forEach(n=>{ const o=document.createElement('option'); o.value=n; o.textContent=(n===def?'★ ':'')+n; sel.appendChild(o); });
+  if(names.includes(keep)) sel.value=keep;
+  updateDefaultBtn();
 }
-function applyPreset(o){ STYLE_KEYS.forEach(k=>{ if(k in o) S[k]=o[k]; }); if(o.custom) S.custom=[...new Set([...S.custom,...o.custom])]; store.set('opentitlecard.custom',S.custom); buildSwatches(); persistStyle(); syncControls(); nudgeSig=''; render(); }
+function updateDefaultBtn(){
+  const v=$('#presetSel').value, b=$('#presetDefault'), isDef=!!v && v===defaultName();
+  b.textContent=isDef?'Clear default':'Set as default'; b.disabled=!v;
+}
+/* Style only: copies the preset's settings into S (and its palette colors into memory). No rendering or saving, so it is
+   safe to call at startup before the controls exist. */
+function applyStyle(o){ STYLE_KEYS.forEach(k=>{ if(k in o) S[k]=o[k]; }); if(Array.isArray(o.custom)) S.custom=[...new Set([...S.custom,...o.custom])]; }
+function applyPreset(o){ applyStyle(o); store.set('opentitlecard.custom',S.custom); buildSwatches(); persistStyle(); syncControls(); nudgeSig=''; render(); }
 $('#presetSave').addEventListener('click',()=>{
   const n=$('#presetName').value.trim(); if(!n) return;
-  const p=presets(), o={}; STYLE_KEYS.forEach(k=>o[k]=S[k]); o.custom=S.custom; p[n]=o; store.set('opentitlecard.presets',p); refreshPresets(); $('#presetSel').value=n;
+  const p=presets(), o={}; STYLE_KEYS.forEach(k=>o[k]=S[k]); o.custom=S.custom; p[n]=o; store.set('opentitlecard.presets',p); refreshPresets(); $('#presetSel').value=n; updateDefaultBtn();
 });
 $('#presetLoad').addEventListener('click',()=>{ const o=presets()[$('#presetSel').value]; if(o) applyPreset(o); });
-$('#presetDel').addEventListener('click',()=>{ const p=presets(); delete p[$('#presetSel').value]; store.set('opentitlecard.presets',p); refreshPresets(); });
+$('#presetDel').addEventListener('click',()=>{
+  const n=$('#presetSel').value, p=presets(); delete p[n]; store.set('opentitlecard.presets',p);
+  if(n && n===defaultName()) store.set(DEFAULT_PRESET_KEY,null);   // a deleted preset can't stay the default
+  refreshPresets();
+});
+$('#presetSel').addEventListener('change',updateDefaultBtn);
+$('#presetDefault').addEventListener('click',()=>{
+  const n=$('#presetSel').value; if(!n) return;
+  store.set(DEFAULT_PRESET_KEY,n===defaultName()?null:n); refreshPresets();
+});
 $('#presetExport').addEventListener('click',()=>{
   const o={}; STYLE_KEYS.forEach(k=>o[k]=S[k]); o.custom=S.custom;
   const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([JSON.stringify(o,null,2)],{type:'application/json'})); a.download=($('#presetName').value.trim()||'opentitlecard-preset')+'.json'; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),2000);
