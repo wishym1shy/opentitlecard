@@ -29,7 +29,7 @@ test.describe('browser storage', () => {
     await page.reload();
     await page.waitForFunction(() => window.__tt && window.__tt.L);
     expect(await page.evaluate(() => __tt.S.size)).toBe(140);
-    // the text itself is intentionally NOT persisted
+    // an untouched card is never saved (see saved-cards.spec.js for edited batches), so the placeholder text comes back
     await expect(page.locator('#text')).toHaveValue('Type your Titlecard here! 😳');
   });
 });

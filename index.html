@@ -125,6 +125,7 @@
         <button id="cardDown" class="sm" aria-label="Move card down" title="Move card down">↓</button>
         <button id="cardDel" class="sm" title="Delete this card">Delete</button>
         <button id="listToggle" class="sm" aria-expanded="false" aria-controls="listBox">Add from list…</button>
+        <button id="cardsNew" class="sm" title="Remove every card and start a new batch">New batch</button>
       </div>
       <div class="row tight" style="margin-top:8px"><label style="margin:0"><input type="checkbox" id="cardOwn"> This card has its own style</label></div>
       <div id="listBox" hidden>
@@ -136,7 +137,7 @@
         </div>
       </div>
       <div class="row" style="margin-top:10px"><button id="batchOpen" class="primary">Export all as ZIP…</button></div>
-      <div class="hint">Cards share one style (font, colors, box) unless you tick <b>own style</b> for one (◆). Text, per-word color, italic and line nudges always belong to each card. Canvas size is shared by the whole export.</div>
+      <div class="hint">Cards share one style (font, colors, box) unless you tick <b>own style</b> for one (◆). Text, per-word color, italic and line nudges always belong to each card. Canvas size is shared by the whole export. Your cards are saved in this browser, so a refresh doesn't lose them.</div>
     </div>
   </details>
 
@@ -292,7 +293,8 @@ const $ = s => document.querySelector(s);
 const clamp = (v,a,b) => Math.min(b,Math.max(a,v));
 const store = {
   get(k,d){ try{ const v=localStorage.getItem(k); return v?JSON.parse(v):d }catch(e){ return d } },
-  set(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)) }catch(e){} }
+  set(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)) }catch(e){} },
+  del(k){ try{ localStorage.removeItem(k) }catch(e){} }
 };
 // Settings were saved under "opentok.*" before the project was renamed to OpenTitlecard.
 // Copy each old value to its new key once so people keep their style, palette and presets.
@@ -594,7 +596,7 @@ function exportGeometry(){
 }
 
 let raf=0;
-function render(){ cancelAnimationFrame(raf); raf=requestAnimationFrame(renderNow); }
+function render(){ cancelAnimationFrame(raf); raf=requestAnimationFrame(renderNow); saveSoon(); }
 function renderNow(){
   L=layout();
   syncNudgeRows(); updateFontChip(); renderCards();
@@ -1021,6 +1023,58 @@ $('#listAdd').addEventListener('click',()=>{
   active=at; adopt(cards[active]); $('#listText').value=''; $('#listBox').hidden=true; $('#listToggle').setAttribute('aria-expanded','false'); cardSig=''; render();
 });
 
+/* ============ saved cards ============ */
+/* The batch is autosaved in this browser's localStorage (never uploaded) so a refresh or a closed tab doesn't lose
+   it. Colors and italics are stored sparsely (only the characters that have one), so a long text costs little.
+   Whatever comes back from storage is treated as untrusted: it can be old, hand-edited or cut short, so every
+   field is checked and anything unusable is dropped rather than trusted. */
+const CARDS_KEY='opentitlecard.cards', MAX_CARDS=500, MAX_TEXT=2000;
+const HEX_RE=/^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i;
+function encodeCards(){
+  stash();
+  return {v:1, active, cards:cards.map(c=>{
+    const o={t:c.text};
+    const col={}; c.colors.forEach((h,i)=>{ if(h) col[i]=h; }); if(Object.keys(col).length) o.c=col;
+    const it=[]; c.ital.forEach((v,i)=>{ if(v) it.push(i); }); if(it.length) o.i=it;
+    let last=c.nudges.length; while(last>0 && !(c.nudges[last-1]&&(c.nudges[last-1].x||c.nudges[last-1].y))) last--;
+    if(last) o.n=c.nudges.slice(0,last).map(n=>n&&(n.x||n.y)?{x:n.x||0,y:n.y||0}:null);
+    if(c.style) o.s=c.style;
+    return o;
+  })};
+}
+function decodeCards(raw){
+  if(!raw || raw.v!==1 || !Array.isArray(raw.cards) || !raw.cards.length) return null;
+  const num=v=>typeof v==='number'&&isFinite(v);
+  const out=raw.cards.slice(0,MAX_CARDS).map(r=>{
+    const text=typeof(r&&r.t)==='string'?r.t.slice(0,MAX_TEXT):'';
+    const c=newCard(text);
+    if(r.c&&typeof r.c==='object') for(const k of Object.keys(r.c)){ const i=+k; if(Number.isInteger(i)&&i>=0&&i<text.length&&HEX_RE.test(r.c[k])) c.colors[i]=r.c[k]; }
+    if(Array.isArray(r.i)) for(const i of r.i) if(Number.isInteger(i)&&i>=0&&i<text.length) c.ital[i]=1;
+    if(Array.isArray(r.n)) c.nudges=r.n.slice(0,200).map(n=>n&&num(n.x)&&num(n.y)?{x:clamp(n.x,-5000,5000),y:clamp(n.y,-5000,5000)}:null);
+    if(r.s&&typeof r.s==='object'){
+      c.style={...sharedStyle};   // keys missing from (or invalid in) the saved style fall back to the shared one
+      for(const k of CARD_STYLE_KEYS) if(k in r.s && typeof r.s[k]===typeof DEFAULTS[k] && (typeof r.s[k]!=='number'||num(r.s[k]))) c.style[k]=r.s[k];
+    }
+    return c;
+  });
+  return {cards:out, active:clamp(Number.isInteger(raw.active)?raw.active:0,0,out.length-1)};
+}
+let pristineCards='', saveTimer=0;
+const isBlankBatch = e => e.cards.length===1 && !e.cards[0].t.trim() && !e.cards[0].s;
+function saveCards(){
+  clearTimeout(saveTimer); saveTimer=0;
+  const e=encodeCards(), json=JSON.stringify(e);
+  // an untouched or emptied batch is not worth saving: next visit starts clean
+  if(json===pristineCards || isBlankBatch(e)) store.del(CARDS_KEY); else store.set(CARDS_KEY,e);
+}
+function saveSoon(){ clearTimeout(saveTimer); saveTimer=setTimeout(saveCards,400); }
+window.addEventListener('pagehide',saveCards);
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') saveCards(); });
+$('#cardsNew').addEventListener('click',()=>{
+  cards=[newCard()]; active=0; adopt(cards[0]); cardSig=''; render();
+  store.del(CARDS_KEY);
+});
+
 /* ============ batch export: names + ZIP ============ */
 /* "{n}" in the pattern becomes the number; a pattern without it gets "-<n>" so files can never collide. Characters
    Windows/macOS reject in file names are replaced, and a name used twice gets a "-2", "-3"… suffix. Empty cards are
@@ -1140,7 +1194,10 @@ $('#bGo').addEventListener('click',async()=>{
 });
 
 /* ============ boot ============ */
-sharedStyle=pickStyle(); stash(); buildSwatches(); refreshPresets(); syncControls();
+sharedStyle=pickStyle(); stash();
+pristineCards=JSON.stringify(encodeCards());
+{ const saved=decodeCards(store.get(CARDS_KEY,null)); if(saved){ cards=saved.cards; active=saved.active; adopt(cards[active]); } }
+buildSwatches(); refreshPresets(); syncControls();
 window.addEventListener('resize',render);
 (document.fonts&&document.fonts.ready?document.fonts.ready:Promise.resolve()).then(render);
 render();
