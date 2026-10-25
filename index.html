@@ -341,7 +341,6 @@
           </div>
           <div class="hint" id="fileMsg" role="status"></div>
           <div class="row tight" style="margin-top:8px"><label style="margin:0"><input type="checkbox" id="cardOwn"> This card has its own style</label></div>
-          <div class="row" style="margin-top:10px"><button id="batchOpen" class="primary">Export all as ZIP…</button></div>
           <div class="hint">Cards share one style unless you tick <b>own style</b> (◆). Text, colors, italics and nudges belong to each card. Cards aren't kept in the browser: use <b>Save batch to file</b> in the ⋮ menu.</div>
         </div>
       </section>
@@ -392,7 +391,8 @@
       <section class="fp min" id="fp_export" data-panel="export" aria-labelledby="fph_export">
         <h2 class="fph"><button type="button" id="fph_export" aria-expanded="false" aria-controls="fpb_export" title="Minimize or expand this panel">Export<span class="chev" aria-hidden="true"></span></button></h2>
         <div class="fpb" id="fpb_export">
-          <div class="row"><button id="export" class="primary">Download PNG</button><button id="batchOpenExport" title="Export every card at once, named by a pattern">All cards (ZIP)…</button></div>
+          <div class="row"><button id="export" class="primary">Download PNG</button></div>
+          <div class="row" style="margin-top:6px"><button id="batchOpen" title="Every card as a PNG in one ZIP, named by a pattern">Export all as ZIP…</button></div>
         </div>
       </section>
     </div>
@@ -1911,7 +1911,7 @@ function openBatch(){
   fillBatchGrid();   // the dialog's canvas controls are kept in step with the panel's by syncControls()
   dlg.showModal();
 }
-['#batchOpen','#batchOpenExport'].forEach(id=>$(id).addEventListener('click',openBatch));
+$('#batchOpen').addEventListener('click',openBatch);
 ['#bPattern','#bStart','#bDigits'].forEach(id=>$(id).addEventListener('input',refreshBatchNames));
 $('#bCancel').addEventListener('click',()=>dlg.close());
 $('#bClose').addEventListener('click',()=>dlg.close());
