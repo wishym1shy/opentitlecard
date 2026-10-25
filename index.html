@@ -326,12 +326,25 @@ function wrapItems(items, limit){
   });
 }
 
+/* A slanted glyph leans right as it rises (its baseline stays put, its top moves right), so an italic run's ink
+   sits right of where its advance box says: it crowds the next word and leaves extra room after the previous one.
+   Designed italic faces compensate in their spacing; the slant browsers synthesize (what most fonts get) does not.
+   We measure how far the ink of one tall, symmetric reference glyph ("H") moves when italic, and shift every italic
+   run back by that amount, so the lean is centred at mid-height where neighbouring letters sit. Using a fixed
+   glyph (not the run's own ink) keeps the shift identical for every word: the ink of "Titlecard" is bounded by its
+   tall T and d, which would overshoot, and a short word would be shifted less than a tall one. */
+function italicShift(){
+  const ink=f=>{ mctx.font=fontStr(f,S.size); const m=mctx.measureText('H'); return ((m.actualBoundingBoxRight-m.actualBoundingBoxLeft)-m.width)/2; };
+  return -(ink(1)-ink(0));
+}
+
 function layout(){
   const size=S.size, pitch=size*S.lh, padX=S.padX*size, r=S.radius*size, slotW=S.slot*size;
   const wrapLimit=S.wrap>0?Math.max(1,S.wrap-2*padX):0; // S.wrap is the whole card (box) width, padding included
   mctx.letterSpacing = S.track+'px';
   mctx.font = fontStr(0,size);
   const capH = (mctx.measureText('H').actualBoundingBoxAscent) || size*0.72;
+  const slantDx=italicShift();
   const lines=[]; let idx=0;
   for(const raw of S.text.split('\n')){
     const start=idx; idx+=raw.length+1;
@@ -352,12 +365,13 @@ function layout(){
     let x=0; const words=[]; let hasSlot=false, below=0;
     for(const it of items){
       if(it.k==='slot'){ it.x=x; x+=it.w; hasSlot=true; below=Math.max(below,it.w/2-capH/2); continue; }
-      mctx.font = fontStr(it.it,size);
-      it.x=x; const mm=mctx.measureText(it.text); it.w=mm.width; below=Math.max(below,mm.actualBoundingBoxDescent||0);
+      const dx=it.it?slantDx:0;                 // keeps the slant centred on the run's advance box (see italicShift)
+      mctx.font = fontStr(it.it,size);         // italicShift changed the measuring font
+      it.x=x+dx; const mm=mctx.measureText(it.text); it.w=mm.width; below=Math.max(below,mm.actualBoundingBoxDescent||0);
       const re=/\S+/g; let m;
       while((m=re.exec(it.text))){
         const a=mctx.measureText(it.text.slice(0,m.index)).width, b=mctx.measureText(it.text.slice(0,m.index+m[0].length)).width;
-        words.push({x0:x+a,x1:x+b,s:it.s+m.index,e:it.s+m.index+m[0].length});
+        words.push({x0:x+dx+a,x1:x+dx+b,s:it.s+m.index,e:it.s+m.index+m[0].length});
       }
       x+=it.w;
     }
