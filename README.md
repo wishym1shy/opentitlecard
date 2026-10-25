@@ -33,7 +33,7 @@ OpenTitlecard fixes each of those. Emoji are handled as an empty, correctly-size
 - **Background control.** Color, opacity, padding, corner radius, top/bottom margins, and optional soft shadows. Text outline and text shadow are available too.
 - **Transparent PNG export.** Full-frame at 1920×1080, 1080×1920, 3840×2160, 1080×1080, 1080×1350 or a custom size, or a tight crop of just the card at up to 4×.
 - **Batch export.** Add several cards (or paste a list of titles), then **Export all as ZIP…** opens a preview of every card, lets you set a file name pattern such as `ClientA-Vid{n}-TC` (first number and zero-padding included), and downloads one transparent PNG per card in a single ZIP. All cards share the current style; text, per-word color, italic and line nudges are per card.
-- **Presets.** Save a style (font, colors, sizes) per client and export/import it as JSON.
+- **Presets.** Save a style (font, colors, sizes) per client and export/import it as JSON. Mark one as the **default** (★) and the app opens with it every time, instead of your last-used settings.
 
 ## Quick start
 
