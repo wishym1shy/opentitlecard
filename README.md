@@ -1,6 +1,6 @@
 # opentok-titlecard
 
-**TikTok-style titlecards as transparent PNGs, straight from your browser. No plugins, no After Effects.**
+**Open-source TikTok and Instagram-style titlecards as transparent PNGs, straight from your browser. No fussy plugins to install needed!**
 
 ![opentok-titlecard screenshot](docs/screenshot.png)
 
