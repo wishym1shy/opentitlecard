@@ -1,0 +1,706 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>opentok-titlecard</title>
+<style>
+  :root{
+    --bg:#15161a; --panel:#1d1f25; --panel2:#262932; --line:#333744; --text:#e8eaf0; --mute:#8d93a5;
+    --accent:#5b8cff; --accent2:#3d6ae0; --warn:#ff6b57; --ok:#3ecf8e;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;background:var(--bg);color:var(--text);font:13px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overflow:hidden}
+  header{display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid var(--line);background:var(--panel)}
+  header h1{font-size:14px;margin:0;font-weight:650;letter-spacing:.2px}
+  header .sub{color:var(--mute);font-size:12px}
+  #fontChip{margin-left:auto;font-size:12px;padding:3px 10px;border-radius:99px;border:1px solid var(--line)}
+  #fontChip.ok{color:var(--ok);border-color:#24553f}
+  #fontChip.bad{color:var(--warn);border-color:#6b3028;background:#2a1714}
+  .app{display:grid;grid-template-columns:400px 1fr;height:calc(100% - 45px)}
+  aside{overflow-y:auto;padding:12px 14px 40px;border-right:1px solid var(--line);background:var(--panel)}
+  section.stage{display:flex;flex-direction:column;min-width:0}
+  details{border:1px solid var(--line);border-radius:8px;margin-bottom:10px;background:var(--panel2)}
+  summary{cursor:pointer;padding:8px 12px;font-weight:600;font-size:12px;letter-spacing:.4px;text-transform:uppercase;color:var(--mute);list-style:none}
+  summary::-webkit-details-marker{display:none}
+  summary:before{content:"▸";display:inline-block;width:14px;transition:transform .15s}
+  details[open]>summary:before{transform:rotate(90deg)}
+  .body{padding:4px 12px 12px}
+  label{display:block;color:var(--mute);font-size:11.5px;margin:8px 0 3px}
+  .row{display:flex;gap:8px;align-items:center}
+  .row>*{flex:1;min-width:0}
+  .row.tight>*{flex:none}
+  textarea,input[type=text],input[type=number],select{width:100%;background:#14161b;color:var(--text);border:1px solid var(--line);border-radius:6px;padding:6px 8px;font:inherit}
+  textarea{height:96px;resize:vertical;font-size:14px;line-height:1.35}
+  input[type=range]{width:100%;accent-color:var(--accent)}
+  input[type=color]{width:34px;height:28px;padding:0;border:1px solid var(--line);border-radius:6px;background:none;cursor:pointer;flex:none}
+  button{background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:6px;padding:6px 10px;font:inherit;cursor:pointer}
+  button:hover{border-color:#4a5066;background:#2d3039}
+  button.primary{background:var(--accent2);border-color:var(--accent);font-weight:600}
+  button.primary:hover{background:var(--accent)}
+  button.primary.warn{background:#8a2c20;border-color:var(--warn)}
+  button.sm{padding:3px 8px;font-size:12px}
+  button.on{background:var(--accent2);border-color:var(--accent)}
+  .swatches{display:flex;flex-wrap:wrap;gap:5px;margin:6px 0}
+  .sw{width:24px;height:24px;border-radius:6px;border:2px solid #0006;cursor:pointer;position:relative;padding:0}
+  .sw:hover{outline:2px solid var(--accent);outline-offset:1px}
+  .hint{color:var(--mute);font-size:11.5px;margin-top:6px}
+  .val{float:right;color:var(--text);font-variant-numeric:tabular-nums}
+  .nudge{display:grid;grid-template-columns:1fr 62px 62px auto;gap:6px;align-items:center;margin:5px 0}
+  .nudge .nm{overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:12px}
+  .nudge input{padding:4px 6px}
+  .slotrow{font-variant-numeric:tabular-nums;font-size:12px;padding:4px 0;border-bottom:1px dashed var(--line);display:flex;gap:8px;align-items:center}
+  .slotrow code{color:var(--accent);background:#14161b;padding:1px 6px;border-radius:4px}
+  .toolbar{display:flex;gap:8px;align-items:center;padding:8px 14px;border-bottom:1px solid var(--line);background:var(--panel);flex-wrap:wrap}
+  .chips button{padding:3px 9px;font-size:12px}
+  .view{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:18px;overflow:auto}
+  #wrap{position:relative;max-width:100%;max-height:100%;border-radius:4px;box-shadow:0 0 0 1px #000a,0 8px 40px #0008}
+  #wrap.checker{background:conic-gradient(#2b2d34 25%,#383b44 0 50%,#2b2d34 0 75%,#383b44 0) 0 0/24px 24px}
+  #wrap.white{background:#fff} #wrap.black{background:#000} #wrap.gray{background:#7a7d86}
+  canvas{display:block;max-width:100%;max-height:calc(100vh - 150px);cursor:pointer}
+  #info{padding:6px 14px;color:var(--mute);font-size:12px;border-top:1px solid var(--line);display:flex;gap:16px;flex-wrap:wrap}
+  #banner{display:none;margin:0 0 10px;padding:8px 10px;border-radius:8px;background:#2a1714;border:1px solid #6b3028;color:#ffb3a8;font-size:12px}
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+  .seg button{border:0;border-radius:0;padding:5px 10px}
+  .seg button+button{border-left:1px solid var(--line)}
+  kbd{background:#14161b;border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:0 5px;font-size:11px}
+</style>
+</head>
+<body>
+<header>
+  <h1>opentok-titlecard</h1>
+  <span class="sub">TikTok-style titlecards → transparent PNG for Premiere</span>
+  <span id="fontChip" class="ok">font</span>
+</header>
+
+<div class="app">
+<aside>
+  <div id="banner"></div>
+
+  <details open>
+    <summary>Text</summary>
+    <div class="body">
+      <textarea id="text" spellcheck="false" placeholder="Type your titlecard. Enter = new line."></textarea>
+      <div class="hint">Select a word (or just put the caret in it) then click a color. Click a word in the preview to select it. Paste or type an emoji and it becomes an empty slot.</div>
+      <div class="swatches" id="swatches"></div>
+      <div class="row tight">
+        <input type="color" id="pick" value="#ff3b30" title="Custom color">
+        <button id="applyPick" class="sm">Apply</button>
+        <button id="pin" class="sm" title="Add this color to your palette">＋ Palette</button>
+        <button id="eye" class="sm" title="Pick a color from the screen">Eyedropper</button>
+        <button id="clr" class="sm" title="Back to default text color">Reset color</button>
+      </div>
+      <div class="row tight" style="margin-top:8px;flex-wrap:wrap">
+        <button id="ital" class="sm" title="Ctrl+I"><i>Italic</i></button>
+        <button id="addSlot" class="sm">＋ Emoji slot</button>
+        <span class="hint" style="margin:0 0 0 auto"><kbd>Alt</kbd>+<kbd>1–9</kbd> palette · <kbd>Ctrl</kbd>+<kbd>I</kbd> italic</span>
+      </div>
+    </div>
+  </details>
+
+  <details open>
+    <summary>Line nudge (text inside fill)</summary>
+    <div class="body">
+      <div id="nudges"></div>
+      <div class="hint">Moves each line's text (and its emoji slot) without moving the box. Units are px at 1080p. Alt-drag text in the preview, or focus a field and use <kbd>↑</kbd><kbd>↓</kbd> (<kbd>Shift</kbd> = 10).</div>
+    </div>
+  </details>
+
+  <details open>
+    <summary>Font &amp; type</summary>
+    <div class="body">
+      <label>Font family</label>
+      <input type="text" id="family" list="fontlist" autocomplete="off">
+      <datalist id="fontlist"></datalist>
+      <div class="row" style="margin-top:6px">
+        <button id="loadInstalled" class="sm">Installed fonts…</button>
+        <button id="loadFile" class="sm">Load font file…</button>
+        <input type="file" id="fontFile" accept=".ttf,.otf,.woff,.woff2" hidden>
+      </div>
+      <div class="row">
+        <div><label>Weight</label>
+          <select id="weight"><option value="400">Regular 400</option><option value="500">Medium 500</option><option value="600">Semibold 600</option><option value="700">Bold 700</option><option value="800">Extra Bold 800</option><option value="900">Black 900</option></select></div>
+        <div><label>Align</label>
+          <select id="align"><option value="center">Center</option><option value="left">Left</option><option value="right">Right</option></select></div>
+      </div>
+      <label>Size <span class="val" id="v_size"></span></label><input type="range" id="size" min="30" max="260" step="1">
+      <label>Line height <span class="val" id="v_lh"></span></label><input type="range" id="lh" min="0.9" max="1.8" step="0.01">
+      <label>Tracking <span class="val" id="v_track"></span></label><input type="range" id="track" min="-6" max="20" step="0.5">
+      <div class="row tight" style="margin-top:8px">
+        <span style="color:var(--mute)">Default text color</span><input type="color" id="textColor">
+        <span style="color:var(--mute);margin-left:10px">Outline</span><input type="color" id="outlineColor">
+      </div>
+      <label>Outline width <span class="val" id="v_outlineW"></span></label><input type="range" id="outlineW" min="0" max="16" step="0.5">
+      <div class="row tight" style="margin-top:6px"><label style="margin:0"><input type="checkbox" id="textShadow"> Soft text shadow</label></div>
+    </div>
+  </details>
+
+  <details open>
+    <summary>Background</summary>
+    <div class="body">
+      <div class="row tight"><label style="margin:0"><input type="checkbox" id="bgOn"> Fill box behind lines</label></div>
+      <div class="row tight" style="margin-top:8px"><span style="color:var(--mute)">Color</span><input type="color" id="bgColor"></div>
+      <label>Opacity <span class="val" id="v_bgOpacity"></span></label><input type="range" id="bgOpacity" min="0" max="100" step="1">
+      <label>Side padding <span class="val" id="v_padX"></span></label><input type="range" id="padX" min="0.1" max="1" step="0.01">
+      <label>Corner radius <span class="val" id="v_radius"></span></label><input type="range" id="radius" min="0" max="0.5" step="0.01">
+      <label>Top margin (above caps) <span class="val" id="v_topPad"></span></label><input type="range" id="topPad" min="0.1" max="1" step="0.01">
+      <label>Bottom margin (below baseline) <span class="val" id="v_botPad"></span></label><input type="range" id="botPad" min="0.1" max="1" step="0.01">
+      <label>Clearance below g, y, p, emoji… <span class="val" id="v_clear"></span></label><input type="range" id="clear" min="0" max="0.6" step="0.01">
+      <div class="row tight" style="margin-top:6px"><label style="margin:0"><input type="checkbox" id="boxShadow"> Soft box shadow</label></div>
+    </div>
+  </details>
+
+  <details open>
+    <summary>Emoji slot</summary>
+    <div class="body">
+      <label>Slot size <span class="val" id="v_slot"></span></label><input type="range" id="slot" min="0.6" max="2" step="0.01">
+      <div class="row tight" style="margin-top:6px"><label style="margin:0"><input type="checkbox" id="showGuides"> Show slot outline in preview (never exported)</label></div>
+      <div id="slotInfo" style="margin-top:8px"></div>
+    </div>
+  </details>
+
+  <details open>
+    <summary>Export</summary>
+    <div class="body">
+      <label>Canvas</label>
+      <select id="frame">
+        <option value="1920x1080">1920 × 1080 (landscape)</option>
+        <option value="1080x1920">1080 × 1920 (vertical)</option>
+        <option value="3840x2160">3840 × 2160 (4K)</option>
+        <option value="1080x1080">1080 × 1080 (square)</option>
+        <option value="1080x1350">1080 × 1350 (4:5)</option>
+        <option value="custom">Custom…</option>
+      </select>
+      <div class="row" id="customRow" style="display:none;margin-top:6px"><input type="number" id="fw" min="64" max="8192"><input type="number" id="fh" min="64" max="8192"></div>
+      <div class="row tight" style="margin-top:8px"><label style="margin:0"><input type="checkbox" id="tight"> Tight crop (just the card)</label></div>
+      <div id="tightOpts" style="display:none"><label>Export scale <span class="val" id="v_exportScale"></span></label><input type="range" id="exportScale" min="1" max="4" step="0.5"></div>
+      <div id="frameOpts">
+        <label>Card position in canvas (X / Y offset, units)</label>
+        <div class="row"><input type="number" id="offX"><input type="number" id="offY"></div>
+      </div>
+      <div class="row" style="margin-top:12px"><button id="export" class="primary">Download PNG</button></div>
+      <hr style="border:0;border-top:1px solid var(--line);margin:14px 0 6px">
+      <label>Client presets <span class="hint" style="float:right;margin:0">font, colors, sizes — not text</span></label>
+      <div class="row"><select id="presetSel"></select><button id="presetLoad" class="sm" style="flex:none">Load</button></div>
+      <div class="row" style="margin-top:6px"><input type="text" id="presetName" placeholder="Preset name"><button id="presetSave" class="sm" style="flex:none">Save</button><button id="presetDel" class="sm" style="flex:none">Delete</button></div>
+      <div class="row" style="margin-top:6px"><button id="presetExport" class="sm">Export JSON</button><button id="presetImport" class="sm">Import JSON</button><input type="file" id="presetFile" accept=".json" hidden></div>
+    </div>
+  </details>
+</aside>
+
+<section class="stage">
+  <div class="toolbar">
+    <span style="color:var(--mute)">Preview on</span>
+    <span class="seg chips" id="pbg">
+      <button data-bg="checker" class="on">Checker</button><button data-bg="white">White</button><button data-bg="black">Black</button><button data-bg="gray">Gray</button>
+    </span>
+    <span style="margin-left:auto;color:var(--mute)" id="dims"></span>
+  </div>
+  <div class="view"><div id="wrap" class="checker"><canvas id="cv"></canvas></div></div>
+  <div id="info"></div>
+</section>
+</div>
+
+<script>
+"use strict";
+/* ============ helpers ============ */
+const $ = s => document.querySelector(s);
+const clamp = (v,a,b) => Math.min(b,Math.max(a,v));
+const store = {
+  get(k,d){ try{ const v=localStorage.getItem(k); return v?JSON.parse(v):d }catch(e){ return d } },
+  set(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)) }catch(e){} }
+};
+const SEG = new Intl.Segmenter(undefined,{granularity:'grapheme'});
+const EMOJI_RE = /\p{Emoji_Presentation}|️|\p{Regional_Indicator}|⃣|‍/u;
+const isEmoji = g => EMOJI_RE.test(g);
+
+const PALETTE = [
+  ['White','#ffffff'],['Black','#000000'],['Red','#ff2d2d'],['Orange','#ff8a00'],['Yellow','#ffd60a'],
+  ['Green','#0acc09'],['Sea Foam','#3ee6a8'],['Light Blue','#4fc3ff'],['Blue','#2f6bff'],['Purple','#9b4dff'],
+  ['Pink','#ff5fa8'],['Brown','#8a5a36'],['Dark Green','#0d6b32'],['Pale Blue','#b9dcff'],['Grey','#9a9a9a'],['Dark Grey','#4a4a4a']
+];
+
+/* ============ state ============ */
+const DEFAULTS = {
+  family:'Linik Sans', weight:700, size:100, lh:1.25, track:0, align:'center',
+  textColor:'#000000', outlineColor:'#000000', outlineW:0, textShadow:true,
+  bgOn:true, bgColor:'#ffffff', bgOpacity:100, padX:0.42, radius:0.17, boxShadow:true, topPad:0.44, botPad:0.49, clear:0.24,
+  slot:1.25, showGuides:true,
+  frame:'1920x1080', fw:1920, fh:1080, offX:0, offY:0, tight:false, exportScale:2
+};
+const STYLE_KEYS = Object.keys(DEFAULTS).filter(k=>!['showGuides','offX','offY'].includes(k));
+const S = Object.assign({}, DEFAULTS, store.get('opentok.style',{}));
+S.text = "Type your Titlecard here! 😳";
+S.colors = Array(S.text.length).fill(null);
+S.ital = Array(S.text.length).fill(0);
+S.nudges = []; S.custom = store.get('opentok.custom',[]);
+S.previewBg = 'checker';
+
+let L = null;            // last layout
+let drag = null;
+let loadedFaces = new Set();
+
+/* ============ fonts ============ */
+const probe = document.createElement('canvas').getContext('2d');
+function fontInstalled(fam, weight){
+  if(!fam) return false;
+  const str='mmmmmmmmmmlliWWW@@ABC123'; const q=JSON.stringify(fam);
+  const w = f => { probe.font = `${weight} 72px ${f}`; return probe.measureText(str).width; };
+  return w(`${q}, monospace`)!==w('monospace') || w(`${q}, serif`)!==w('serif') || w(`${q}, sans-serif`)!==w('sans-serif');
+}
+const fontStack = fam => `${JSON.stringify(fam)}, "Helvetica Neue", Arial, sans-serif`;
+const fontStr = (it,px) => `${it?'italic ':''}${S.weight} ${px}px ${fontStack(S.family)}`;
+function updateFontChip(){
+  const ok = fontInstalled(S.family, S.weight) || loadedFaces.has(S.family);
+  const chip=$('#fontChip'), ban=$('#banner');
+  chip.className = ok?'ok':'bad';
+  chip.textContent = ok ? `✓ ${S.family} ${S.weight}` : `⚠ “${S.family}” not found`;
+  if(ok){ ban.style.display='none'; }
+  else {
+    ban.style.display='block';
+    ban.innerHTML = `<b>“${S.family}” isn't installed on this computer</b>, so the preview and export use a fallback font. Install it, load the font file, or pick another family before exporting.`;
+  }
+  $('#export').classList.toggle('warn', !ok);
+  $('#export').textContent = ok ? 'Download PNG' : 'Download PNG (fallback font!)';
+  return ok;
+}
+
+/* ============ layout ============ */
+const mctx = document.createElement('canvas').getContext('2d');
+function layout(){
+  const size=S.size, pitch=size*S.lh, padX=S.padX*size, r=S.radius*size, slotW=S.slot*size;
+  mctx.letterSpacing = S.track+'px';
+  mctx.font = fontStr(0,size);
+  const capH = (mctx.measureText('H').actualBoundingBoxAscent) || size*0.72;
+  const lines=[]; let idx=0;
+  for(const raw of S.text.split('\n')){
+    const start=idx; idx+=raw.length+1;
+    if(!raw.trim()) continue;
+    const items=[];
+    for(const {segment,index} of SEG.segment(raw)){
+      const gi=start+index;
+      if(isEmoji(segment)){ items.push({k:'slot',s:gi,e:gi+segment.length,w:slotW}); continue; }
+      const c=S.colors[gi]??null, it=S.ital[gi]|0, last=items[items.length-1];
+      if(last && last.k==='t' && last.c===c && last.it===it && last.e===gi){ last.text+=segment; last.e+=segment.length; }
+      else items.push({k:'t',text:segment,s:gi,e:gi+segment.length,c,it});
+    }
+    // trim whitespace at both ends of the line
+    while(items.length && items[0].k==='t'){ const m=items[0].text.match(/^\s+/); if(!m) break; items[0].text=items[0].text.slice(m[0].length); items[0].s+=m[0].length; if(!items[0].text) items.shift(); }
+    while(items.length && items[items.length-1].k==='t'){ const t=items[items.length-1]; const m=t.text.match(/\s+$/); if(!m) break; t.text=t.text.slice(0,-m[0].length); t.e-=m[0].length; if(!t.text) items.pop(); }
+    if(!items.length) continue;
+    let x=0; const words=[]; let hasSlot=false, below=0;
+    for(const it of items){
+      if(it.k==='slot'){ it.x=x; x+=it.w; hasSlot=true; below=Math.max(below,it.w/2-capH/2); continue; }
+      mctx.font = fontStr(it.it,size);
+      it.x=x; const mm=mctx.measureText(it.text); it.w=mm.width; below=Math.max(below,mm.actualBoundingBoxDescent||0);
+      const re=/\S+/g; let m;
+      while((m=re.exec(it.text))){
+        const a=mctx.measureText(it.text.slice(0,m.index)).width, b=mctx.measureText(it.text.slice(0,m.index+m[0].length)).width;
+        words.push({x0:x+a,x1:x+b,s:it.s+m.index,e:it.s+m.index+m[0].length});
+      }
+      x+=it.w;
+    }
+    lines.push({items,words,w:x,hasSlot,below});
+  }
+  // box widths + snap near-equal neighbours (TikTok merges them)
+  const snap=size*0.3;
+  lines.forEach(l=>l.W=l.w+2*padX);
+  for(let i=1;i<lines.length;i++){ if(Math.abs(lines[i].W-lines[i-1].W)<snap){ const m=Math.max(lines[i].W,lines[i-1].W); lines[i].W=lines[i-1].W=m; } }
+  const cardW=Math.max(0,...lines.map(l=>l.W));
+  // Vertical: baselines sit on a fixed pitch; each line's box overlaps its neighbours.
+  // Top = cap line + topPad. Bottom = whichever is lower: botPad below the baseline, or the lowest ink
+  // (descenders / emoji slot) + clearance, so g, y, p, q, j never crowd the edge.
+  let p0=-Infinity,p1=-Infinity;
+  lines.forEach((l,i)=>{
+    l.base=i*pitch;
+    l.y0=Math.max(p0,l.base-capH-S.topPad*size);
+    l.y1=Math.max(p1,l.base+Math.max(S.botPad*size,l.below+S.clear*size));
+    p0=l.y0; p1=l.y1; l.cy=l.base-capH/2; l.boxH=l.y1-l.y0;
+  });
+  const topEdge=lines.length?lines[0].y0:0, botEdge=lines.length?lines[lines.length-1].y1:0, mid=(topEdge+botEdge)/2, cardH=botEdge-topEdge;
+  lines.forEach(l=>{ l.base-=mid; l.y0-=mid; l.y1-=mid; l.cy-=mid; });
+  lines.forEach((l,i)=>{
+    if(S.align==='center'){ l.x0=-l.W/2; l.x1=l.W/2; l.tx=(l.x0+l.x1)/2-l.w/2; }
+    else if(S.align==='left'){ l.x0=-cardW/2; l.x1=l.x0+l.W; l.tx=l.x0+padX; }
+    else { l.x1=cardW/2; l.x0=l.x1-l.W; l.tx=l.x1-padX-l.w; }
+    const n=S.nudges[i]||{x:0,y:0}; l.nx=n.x||0; l.ny=n.y||0;
+  });
+  return {lines,cardW,cardH,capH,r,size,slotW,padX};
+}
+
+/* ============ drawing ============ */
+function roundedUnion(ctx, rects, r, u, ox, oy){
+  const n=rects.length; if(!n) return;
+  const p=[]; const E=0.01;
+  const pushR=(x,y)=>{ const l=p[p.length-1]; p.push([x, l?Math.max(y,l[1]):y]); };   // right side runs downward
+  const pushL=(x,y)=>{ const l=p[p.length-1]; p.push([x, l?Math.min(y,l[1]):y]); };   // left side runs upward
+  pushR(rects[0].x1,rects[0].y0);
+  for(let i=0;i<n;i++){
+    const a=rects[i], bb=rects[i+1];
+    if(!bb){ pushR(a.x1,a.y1); break; }
+    if(bb.x1>a.x1+E){ pushR(a.x1,bb.y0); pushR(bb.x1,bb.y0); }          // next line wider: step out at its top
+    else if(bb.x1<a.x1-E){ pushR(a.x1,a.y1); pushR(bb.x1,a.y1); }       // next line narrower: step in at this bottom
+  }
+  pushL(rects[n-1].x0,rects[n-1].y1);
+  for(let i=n-1;i>0;i--){
+    const a=rects[i], up=rects[i-1];
+    if(up.x0>a.x0+E){ pushL(a.x0,a.y0); pushL(up.x0,a.y0); }            // lower line wider: step in at its top
+    else if(up.x0<a.x0-E){ pushL(a.x0,up.y1); pushL(up.x0,up.y1); }      // lower line narrower: step out at upper bottom
+  }
+  pushL(rects[0].x0,rects[0].y0);
+  // drop duplicates + collinear points
+  const q=[]; for(const pt of p){ const l=q[q.length-1]; if(!l||Math.abs(l[0]-pt[0])>0.01||Math.abs(l[1]-pt[1])>0.01) q.push(pt); }
+  if(q.length>1){ const a=q[0],b=q[q.length-1]; if(Math.abs(a[0]-b[0])<0.01&&Math.abs(a[1]-b[1])<0.01) q.pop(); }
+  const v=[]; for(let i=0;i<q.length;i++){
+    const a=q[(i+q.length-1)%q.length], b=q[i], c=q[(i+1)%q.length];
+    const cross=(b[0]-a[0])*(c[1]-b[1])-(b[1]-a[1])*(c[0]-b[0]);
+    if(Math.abs(cross)>0.01) v.push(b);
+  }
+  const m=v.length, T=pt=>[ox+pt[0]*u, oy+pt[1]*u];
+  const d=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]);
+  ctx.beginPath();
+  const s0=T([(v[0][0]+v[1][0])/2,(v[0][1]+v[1][1])/2]); ctx.moveTo(s0[0],s0[1]);
+  for(let i=1;i<=m;i++){
+    const prev=v[(i-1)%m], cur=v[i%m], next=v[(i+1)%m];
+    const rad=Math.min(r, d(prev,cur)/2, d(cur,next)/2)*u;
+    const c=T(cur), nx=T(next); ctx.arcTo(c[0],c[1],nx[0],nx[1],rad);
+  }
+  ctx.closePath();
+}
+
+function hexA(hex,a){ const h=hex.replace('#',''); const n=parseInt(h.length===3?h.split('').map(c=>c+c).join(''):h,16); return `rgba(${n>>16&255},${n>>8&255},${n&255},${a})`; }
+
+/* o: {u:px per unit, cx, cy: card centre in px, guides:bool, sel:[s,e]|null} */
+function draw(ctx, W, H, o){
+  ctx.clearRect(0,0,W,H);
+  const {lines}=L, u=o.u;
+  if(!lines.length) return;
+  // background
+  if(S.bgOn && S.bgOpacity>0){
+    ctx.save();
+    if(S.boxShadow){ ctx.shadowColor='rgba(0,0,0,0.10)'; ctx.shadowBlur=16*u; ctx.shadowOffsetY=3*u; }
+    ctx.fillStyle=hexA(S.bgColor,S.bgOpacity/100);
+    roundedUnion(ctx, lines.map(l=>({x0:l.x0,x1:l.x1,y0:l.y0,y1:l.y1})), L.r, u, o.cx, o.cy);
+    ctx.fill(); ctx.restore();
+  }
+  // selection highlight (preview only)
+  if(o.sel && o.guides){
+    ctx.save(); ctx.fillStyle='rgba(91,140,255,0.38)';
+    for(const l of lines) for(const w of l.words){
+      if(w.e>o.sel[0] && w.s<o.sel[1]) ctx.fillRect(o.cx+(l.tx+l.nx+w.x0-4)*u, o.cy+(l.base-L.capH-L.size*0.08+l.ny)*u, (w.x1-w.x0+8)*u, (L.capH+L.size*0.34)*u);
+    }
+    ctx.restore();
+  }
+  // text
+  ctx.save();
+  ctx.letterSpacing=(S.track*u)+'px'; ctx.textBaseline='alphabetic'; ctx.lineJoin='round';
+  for(const l of lines){
+    for(const it of l.items){
+      if(it.k!=='t') continue;
+      ctx.font=fontStr(it.it,S.size*u);
+      const x=o.cx+(l.tx+l.nx+it.x)*u, y=o.cy+(l.base+l.ny)*u;
+      if(S.textShadow){ ctx.shadowColor='rgba(0,0,0,0.32)'; ctx.shadowBlur=7*u; ctx.shadowOffsetY=3*u; } else { ctx.shadowColor='transparent'; }
+      if(S.outlineW>0){ ctx.strokeStyle=S.outlineColor; ctx.lineWidth=S.outlineW*2*u; ctx.strokeText(it.text,x,y); }
+      ctx.fillStyle=it.c||S.textColor; ctx.fillText(it.text,x,y);
+    }
+  }
+  ctx.restore();
+  // slot guides (preview only)
+  if(o.guides && S.showGuides){
+    ctx.save(); ctx.setLineDash([6*u,5*u]); ctx.lineWidth=Math.max(1.5,2*u); ctx.strokeStyle='rgba(91,140,255,.95)'; ctx.fillStyle='rgba(91,140,255,.10)';
+    let n=0;
+    for(const l of lines) for(const it of l.items) if(it.k==='slot'){
+      n++; const sx=o.cx+(l.tx+l.nx+it.x)*u, sy=o.cy+(l.cy+l.ny-it.w/2)*u, sw=it.w*u;
+      ctx.beginPath(); ctx.roundRect(sx,sy,sw,sw,sw*0.22); ctx.fill(); ctx.stroke();
+      ctx.save(); ctx.setLineDash([]); ctx.fillStyle='rgba(91,140,255,.95)'; ctx.font=`600 ${Math.max(10,14*u)}px system-ui,sans-serif`; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('😀 '+n,sx+sw/2,sy+sw/2); ctx.restore();
+    }
+    ctx.restore();
+  }
+}
+
+/* ============ render pipeline ============ */
+function frameDims(){
+  if(S.frame==='custom') return [clamp(+S.fw||1920,64,8192), clamp(+S.fh||1080,64,8192)];
+  return S.frame.split('x').map(Number);
+}
+const baseScale = (W,H)=>Math.max(W,H)/1920;
+const TIGHT_MARGIN = 44; // units around the card for shadows
+
+function exportGeometry(){
+  if(S.tight){
+    const u=S.exportScale, W=Math.ceil((L.cardW+2*TIGHT_MARGIN)*u), H=Math.ceil((L.cardH+2*TIGHT_MARGIN)*u);
+    return {W,H,u,cx:W/2,cy:H/2};
+  }
+  const [W,H]=frameDims(), u=baseScale(W,H);
+  return {W,H,u,cx:W/2+S.offX*u,cy:H/2+S.offY*u};
+}
+
+let raf=0;
+function render(){ cancelAnimationFrame(raf); raf=requestAnimationFrame(renderNow); }
+function renderNow(){
+  L=layout();
+  syncNudgeRows(); updateFontChip();
+  const g=exportGeometry();
+  const cv=$('#cv'), wrap=$('#wrap');
+  const availW=Math.max(300,($('.view').clientWidth-40)*(window.devicePixelRatio||1));
+  const q=clamp(availW/g.W,0.15,1);
+  cv.width=Math.max(1,Math.round(g.W*q)); cv.height=Math.max(1,Math.round(g.H*q));
+  cv.style.aspectRatio=`${g.W}/${g.H}`;
+  cv.style.width = Math.min(cv.width/(window.devicePixelRatio||1), 99999)+'px';
+  const k=cv.width/g.W;
+  const ta=$('#text');
+  const sel = ta.selectionStart!==ta.selectionEnd ? [ta.selectionStart,ta.selectionEnd] : wordAt(ta.selectionStart);
+  draw(cv.getContext('2d'),cv.width,cv.height,{u:g.u*k,cx:g.cx*k,cy:g.cy*k,guides:true,sel});
+  $('#dims').textContent = `${g.W} × ${g.H} px${S.tight?' (tight crop)':''}`;
+  updateSlotInfo(g);
+  $('#info').innerHTML = `<span>${L.lines.length} line${L.lines.length===1?'':'s'}</span><span>card ${Math.round(L.cardW*g.u)} × ${Math.round(L.cardH*g.u)} px</span>`;
+}
+function wordAt(pos){
+  const t=S.text; if(pos==null) return null;
+  let a=pos,b=pos; while(a>0 && /\S/.test(t[a-1])) a--; while(b<t.length && /\S/.test(t[b])) b++;
+  return a===b?null:[a,b];
+}
+
+/* ============ slot info ============ */
+function updateSlotInfo(g){
+  const box=$('#slotInfo'); let n=0, html='';
+  for(const l of L.lines) for(const it of l.items) if(it.k==='slot'){
+    n++; const cx=(l.tx+l.nx+it.x+it.w/2), cy=(l.cy+l.ny);
+    const px=Math.round(it.w*g.u);
+    if(S.tight) html+=`<div class="slotrow"><b>Slot ${n}</b> <code>${px}px</code> centre ${cx>=0?'+':''}${Math.round(cx*g.u)}, ${cy>=0?'+':''}${Math.round(cy*g.u)} from card centre</div>`;
+    else html+=`<div class="slotrow"><b>Slot ${n}</b> <code>${px}px</code> Premiere Position <code>${Math.round(g.cx+cx*g.u)}, ${Math.round(g.cy+cy*g.u)}</code></div>`;
+  }
+  box.innerHTML = html || '<div class="hint">No emoji in the text yet. Type or paste one, or use “＋ Emoji slot”.</div>';
+  if(html && !S.tight) box.innerHTML += '<div class="hint">Position assumes this PNG sits at default position and 100% scale in a sequence of the same size.</div>';
+}
+
+/* ============ nudge rows ============ */
+let nudgeSig='';
+function syncNudgeRows(){
+  const sig=L.lines.map(l=>l.items.map(i=>i.k==='t'?i.text:'·').join('')).join('|');
+  const host=$('#nudges');
+  if(sig!==nudgeSig || host.children.length!==L.lines.length){
+    nudgeSig=sig; host.innerHTML='';
+    L.lines.forEach((l,i)=>{
+      const n=S.nudges[i]||(S.nudges[i]={x:0,y:0});
+      const row=document.createElement('div'); row.className='nudge';
+      const name=l.items.map(it=>it.k==='t'?it.text:'😀').join('');
+      row.innerHTML=`<div class="nm" title="${name.replace(/"/g,'&quot;')}"><b>${i+1}</b> ${name.replace(/</g,'&lt;')}</div>
+        <input type="number" step="1" data-i="${i}" data-a="x" value="${n.x}" title="X"><input type="number" step="1" data-i="${i}" data-a="y" value="${n.y}" title="Y"><button class="sm" data-reset="${i}" title="Reset">↺</button>`;
+      host.appendChild(row);
+    });
+  } else {
+    host.querySelectorAll('input[data-i]').forEach(inp=>{ const v=(S.nudges[+inp.dataset.i]||{})[inp.dataset.a]||0; if(document.activeElement!==inp) inp.value=v; });
+  }
+}
+$('#nudges').addEventListener('input',e=>{
+  const t=e.target; if(!t.dataset.i) return;
+  const n=S.nudges[+t.dataset.i]||(S.nudges[+t.dataset.i]={x:0,y:0}); n[t.dataset.a]=+t.value||0; render();
+});
+$('#nudges').addEventListener('keydown',e=>{
+  const t=e.target; if(!t.dataset||!t.dataset.i) return;
+  if((e.key==='ArrowUp'||e.key==='ArrowDown')&&e.shiftKey){ e.preventDefault(); t.value=(+t.value||0)+(e.key==='ArrowUp'?10:-10); t.dispatchEvent(new Event('input',{bubbles:true})); }
+});
+$('#nudges').addEventListener('click',e=>{
+  const b=e.target.closest('[data-reset]'); if(!b) return; S.nudges[+b.dataset.reset]={x:0,y:0}; nudgeSig=''; render();
+});
+
+/* ============ text input + run attributes ============ */
+const ta=$('#text');
+ta.value=S.text;
+ta.addEventListener('input',e=>{
+  const old=S.text, nw=ta.value, delta=nw.length-old.length, caret=ta.selectionStart;
+  let p, rem, ins;
+  const it=e.inputType||'';
+  if(delta>0 && it.startsWith('insert') && old.slice(0,caret-delta)===nw.slice(0,caret-delta) && old.slice(caret-delta)===nw.slice(caret)){ p=caret-delta; rem=0; ins=delta; }
+  else if(delta<0 && it.startsWith('delete') && old.slice(0,caret)===nw.slice(0,caret) && old.slice(caret-delta)===nw.slice(caret)){ p=caret; rem=-delta; ins=0; }
+  else {
+    p=0; const m=Math.min(old.length,nw.length); while(p<m && old[p]===nw[p]) p++;
+    let a=old.length,b=nw.length; while(a>p&&b>p&&old[a-1]===nw[b-1]){a--;b--;}
+    rem=a-p; ins=b-p;
+  }
+  let c=null,i=0;
+  if(ins===1 && it==='insertText' && p>0 && !/\s/.test(old[p-1])){ c=S.colors[p-1]??null; i=S.ital[p-1]|0; }
+  S.colors.splice(p,rem,...Array(ins).fill(c));
+  S.ital.splice(p,rem,...Array(ins).fill(i));
+  S.text=nw; render();
+});
+['select','keyup','mouseup','focus','click'].forEach(ev=>ta.addEventListener(ev,render));
+document.addEventListener('selectionchange',()=>{ if(document.activeElement===ta) render(); });
+
+function targetRange(){
+  let s=ta.selectionStart, e=ta.selectionEnd;
+  if(s===e){ const w=wordAt(s); if(!w) return null; [s,e]=w; }
+  return [s,e];
+}
+function applyColor(hex){
+  const r=targetRange(); if(!r) return;
+  for(let k=r[0];k<r[1];k++) if(!/\s/.test(S.text[k])) S.colors[k]=hex;
+  render();
+}
+function toggleItalic(){
+  const r=targetRange(); if(!r) return;
+  let all=true; for(let k=r[0];k<r[1];k++) if(!/\s/.test(S.text[k]) && !S.ital[k]) all=false;
+  for(let k=r[0];k<r[1];k++) if(!/\s/.test(S.text[k])) S.ital[k]=all?0:1;
+  render();
+}
+function insertSlot(){
+  const s=ta.selectionStart,e=ta.selectionEnd, ins=' 🙂';
+  S.text=S.text.slice(0,s)+ins+S.text.slice(e);
+  S.colors.splice(s,e-s,...Array(ins.length).fill(null)); S.ital.splice(s,e-s,...Array(ins.length).fill(0));
+  ta.value=S.text; ta.focus(); ta.setSelectionRange(s+ins.length,s+ins.length); render();
+}
+
+/* swatches */
+function buildSwatches(){
+  const host=$('#swatches'); host.innerHTML='';
+  const all=PALETTE.map(([n,h])=>({n,h})).concat(S.custom.map(h=>({n:h,h,custom:true})));
+  all.forEach((c,i)=>{
+    const b=document.createElement('button'); b.className='sw'; b.style.background=c.h; b.title=(i<9?`Alt+${i+1} · `:'')+c.n+(c.custom?' (right-click to remove)':'');
+    b.addEventListener('mousedown',e=>e.preventDefault());
+    b.addEventListener('click',()=>applyColor(c.h));
+    if(c.custom) b.addEventListener('contextmenu',e=>{ e.preventDefault(); S.custom=S.custom.filter(x=>x!==c.h); store.set('opentok.custom',S.custom); buildSwatches(); });
+    host.appendChild(b);
+  });
+}
+$('#applyPick').addEventListener('click',()=>applyColor($('#pick').value));
+$('#pin').addEventListener('click',()=>{ const v=$('#pick').value; if(!S.custom.includes(v)&&!PALETTE.some(p=>p[1]===v)){ S.custom.push(v); store.set('opentok.custom',S.custom); buildSwatches(); } });
+$('#clr').addEventListener('click',()=>applyColor(null));
+$('#ital').addEventListener('click',toggleItalic);
+$('#addSlot').addEventListener('click',insertSlot);
+if(window.EyeDropper){ $('#eye').addEventListener('click',async()=>{ try{ const r=await new EyeDropper().open(); $('#pick').value=r.sRGBHex; applyColor(r.sRGBHex);}catch(e){} }); }
+else $('#eye').style.display='none';
+ta.addEventListener('keydown',e=>{
+  if(e.ctrlKey&&e.key.toLowerCase()==='i'){ e.preventDefault(); toggleItalic(); }
+  if(e.altKey&&/^[1-9]$/.test(e.key)){ e.preventDefault(); const all=PALETTE.map(p=>p[1]).concat(S.custom); const h=all[+e.key-1]; if(h) applyColor(h); }
+});
+
+/* ============ preview interaction: click word / alt-drag line ============ */
+const cv=$('#cv');
+function evToUnits(e){
+  const r=cv.getBoundingClientRect(), g=exportGeometry();
+  const px=(e.clientX-r.left)*(g.W/r.width), py=(e.clientY-r.top)*(g.H/r.height);
+  return {x:(px-g.cx)/g.u, y:(py-g.cy)/g.u};
+}
+function lineAt(p){ let best=-1,bd=1e9; L.lines.forEach((l,i)=>{ if(p.y<l.y0-4||p.y>l.y1+4) return; const d=Math.abs(p.y-l.cy); if(d<bd){bd=d;best=i;} }); return best; }
+cv.addEventListener('pointerdown',e=>{
+  const p=evToUnits(e), i=lineAt(p); if(i<0) return;
+  drag={i,sx:e.clientX,sy:e.clientY,p0:p,n0:{...(S.nudges[i]||{x:0,y:0})},moved:false,alt:e.altKey};
+  cv.setPointerCapture(e.pointerId);
+});
+cv.addEventListener('pointermove',e=>{
+  if(!drag||!drag.alt) return;
+  if(!drag.moved && Math.hypot(e.clientX-drag.sx,e.clientY-drag.sy)<3) return;
+  drag.moved=true; const p=evToUnits(e);
+  S.nudges[drag.i]={x:Math.round(drag.n0.x+p.x-drag.p0.x),y:Math.round(drag.n0.y+p.y-drag.p0.y)}; render();
+});
+cv.addEventListener('pointerup',e=>{
+  if(!drag) return; const d=drag; drag=null;
+  if(d.moved) return;
+  const p=evToUnits(e), l=L.lines[d.i];
+  const lx=p.x-(l.tx+l.nx);
+  const w=l.words.find(w=>lx>=w.x0-6&&lx<=w.x1+6);
+  if(w){ ta.focus(); ta.setSelectionRange(w.s,w.e); render(); }
+});
+
+/* ============ controls binding ============ */
+const bindings=[
+  ['family','text'],['weight','num'],['align','sel'],['size','num'],['lh','num'],['track','num'],
+  ['textColor','col'],['outlineColor','col'],['outlineW','num'],['textShadow','chk'],
+  ['bgOn','chk'],['bgColor','col'],['bgOpacity','num'],['padX','num'],['radius','num'],['topPad','num'],['botPad','num'],['clear','num'],['boxShadow','chk'],
+  ['slot','num'],['showGuides','chk'],['frame','sel'],['fw','num'],['fh','num'],['offX','num'],['offY','num'],
+  ['tight','chk'],['exportScale','num']
+];
+const fmt={size:v=>v+' px',lh:v=>(+v).toFixed(2)+'×',track:v=>v+' px',outlineW:v=>v+' px',bgOpacity:v=>v+'%',padX:v=>(+v).toFixed(2)+' em',topPad:v=>(+v).toFixed(2)+' em',botPad:v=>(+v).toFixed(2)+' em',clear:v=>(+v).toFixed(2)+' em',radius:v=>(+v).toFixed(2)+' em',slot:v=>(+v).toFixed(2)+' em',exportScale:v=>v+'×'};
+function syncControls(){
+  for(const [k,t] of bindings){
+    const el=$('#'+k); if(!el) continue;
+    if(t==='chk') el.checked=!!S[k]; else el.value=S[k];
+    const vv=$('#v_'+k); if(vv) vv.textContent=(fmt[k]||(v=>v))(S[k]);
+  }
+  $('#customRow').style.display=S.frame==='custom'?'flex':'none';
+  $('#tightOpts').style.display=S.tight?'block':'none';
+  $('#frameOpts').style.display=S.tight?'none':'block';
+}
+for(const [k,t] of bindings){
+  const el=$('#'+k); if(!el) continue;
+  el.addEventListener(t==='chk'||t==='sel'||t==='col'?'change':'input',()=>{
+    S[k]= t==='chk'?el.checked : t==='num'?+el.value : el.value;
+    if(k==='frame' && S.frame!=='custom'){ const [w,h]=S.frame.split('x').map(Number); S.fw=w; S.fh=h; }
+    if(k==='size'||k==='weight'||k==='family') nudgeSig='';
+    persistStyle(); syncControls(); render();
+  });
+}
+function persistStyle(){ const o={}; STYLE_KEYS.forEach(k=>o[k]=S[k]); store.set('opentok.style',o); }
+
+/* preview background chips */
+$('#pbg').addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b) return;
+  $('#pbg').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));
+  $('#wrap').className=b.dataset.bg;
+});
+
+/* ============ fonts UI ============ */
+$('#loadInstalled').addEventListener('click',async()=>{
+  if(!window.queryLocalFonts){ alert('This browser cannot list installed fonts. Use Chrome or Edge, or just type the family name.'); return; }
+  try{
+    const faces=await window.queryLocalFonts(); const fams=[...new Set(faces.map(f=>f.family))].sort((a,b)=>a.localeCompare(b));
+    $('#fontlist').innerHTML=fams.map(f=>`<option value="${f.replace(/"/g,'&quot;')}">`).join('');
+    const lk=fams.filter(f=>/linik/i.test(f));
+    $('#banner').style.display='block'; $('#banner').style.background='#14231c'; $('#banner').style.borderColor='#24553f'; $('#banner').style.color='#9ee8c4';
+    $('#banner').textContent=`${fams.length} installed font families loaded into the family box — start typing to search.`+(lk.length?` Linik found: ${lk.join(', ')}.`:'');
+    setTimeout(()=>{ $('#banner').removeAttribute('style'); render(); },4500);
+  }catch(e){ alert('Font access was blocked: '+e.message); }
+});
+$('#loadFile').addEventListener('click',()=>$('#fontFile').click());
+$('#fontFile').addEventListener('change',async e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const name=f.name.replace(/\.[^.]+$/,'').replace(/[^\w\- ]/g,'');
+  try{
+    const face=new FontFace(name,await f.arrayBuffer(),{weight:'1 1000'}); await face.load(); document.fonts.add(face);
+    loadedFaces.add(name); S.family=name; syncControls(); persistStyle(); nudgeSig=''; render();
+  }catch(err){ alert('Could not load that font file: '+err.message); }
+  e.target.value='';
+});
+
+/* ============ presets ============ */
+function presets(){ return store.get('opentok.presets',{}); }
+function refreshPresets(){
+  const p=presets(), sel=$('#presetSel'); sel.innerHTML='';
+  const names=Object.keys(p); if(!names.length){ sel.innerHTML='<option value="">(none saved)</option>'; return; }
+  names.forEach(n=>{ const o=document.createElement('option'); o.value=o.textContent=n; sel.appendChild(o); });
+}
+function applyPreset(o){ STYLE_KEYS.forEach(k=>{ if(k in o) S[k]=o[k]; }); if(o.custom) S.custom=[...new Set([...S.custom,...o.custom])]; store.set('opentok.custom',S.custom); buildSwatches(); persistStyle(); syncControls(); nudgeSig=''; render(); }
+$('#presetSave').addEventListener('click',()=>{
+  const n=$('#presetName').value.trim(); if(!n) return;
+  const p=presets(), o={}; STYLE_KEYS.forEach(k=>o[k]=S[k]); o.custom=S.custom; p[n]=o; store.set('opentok.presets',p); refreshPresets(); $('#presetSel').value=n;
+});
+$('#presetLoad').addEventListener('click',()=>{ const o=presets()[$('#presetSel').value]; if(o) applyPreset(o); });
+$('#presetDel').addEventListener('click',()=>{ const p=presets(); delete p[$('#presetSel').value]; store.set('opentok.presets',p); refreshPresets(); });
+$('#presetExport').addEventListener('click',()=>{
+  const o={}; STYLE_KEYS.forEach(k=>o[k]=S[k]); o.custom=S.custom;
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([JSON.stringify(o,null,2)],{type:'application/json'})); a.download=($('#presetName').value.trim()||'opentok-preset')+'.json'; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+});
+$('#presetImport').addEventListener('click',()=>$('#presetFile').click());
+$('#presetFile').addEventListener('change',async e=>{ const f=e.target.files[0]; if(!f) return; try{ applyPreset(JSON.parse(await f.text())); }catch(err){ alert('Not a valid preset file.'); } e.target.value=''; });
+
+/* ============ export ============ */
+$('#export').addEventListener('click',()=>{
+  L=layout(); const g=exportGeometry();
+  const c=document.createElement('canvas'); c.width=g.W; c.height=g.H;
+  if(c.width*c.height>64e6){ alert('That canvas is too large for the browser. Lower the export scale.'); return; }
+  draw(c.getContext('2d'),g.W,g.H,{u:g.u,cx:g.cx,cy:g.cy,guides:false,sel:null});
+  const stem=(S.text.replace(/\p{Extended_Pictographic}|️|‍/gu,'').trim().split(/\s+/).map(w=>w.replace(/[^\w\-]/g,'')).filter(Boolean).slice(0,5).join('-').replace(/[^\w\-]/g,'')||'titlecard').slice(0,40);
+  c.toBlob(b=>{ const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download=`titlecard_${stem}.png`; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),3000); },'image/png');
+});
+
+/* ============ boot ============ */
+buildSwatches(); refreshPresets(); syncControls();
+window.addEventListener('resize',render);
+(document.fonts&&document.fonts.ready?document.fonts.ready:Promise.resolve()).then(render);
+render();
+window.__tt={S,render,renderNow,get L(){return L},exportGeometry,draw};
+</script>
+</body>
+</html>
