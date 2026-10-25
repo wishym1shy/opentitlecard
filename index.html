@@ -242,8 +242,8 @@
       <div class="row" style="margin-top:12px"><button id="export" class="primary">Download PNG</button><button id="batchOpenExport" title="Export every card at once, named by a pattern">All cards (ZIP)…</button></div>
       <hr style="border:0;border-top:1px solid var(--line);margin:14px 0 6px">
       <label>Client presets <span class="hint" style="float:right;margin:0">font, colors, sizes — not text</span></label>
-      <div class="row"><select id="presetSel" aria-label="Saved presets"></select><button id="presetLoad" class="sm" style="flex:none">Load</button><button id="presetDefault" class="sm" style="flex:none" title="The default preset is applied every time the app opens">Set as default</button></div>
-      <div class="hint" id="presetHint">★ marks the default preset. It is applied whenever the app opens, instead of your last-used settings.</div>
+      <div class="row"><select id="presetSel" aria-label="Saved presets"></select><button id="presetLoad" class="sm" style="flex:none">Load</button><button id="presetDefault" class="sm" style="flex:none" title="The default preset is applied the first time the app opens, before any settings are saved">Set as default</button></div>
+      <div class="hint" id="presetHint">★ marks the default preset. It is applied the first time the app opens; after that your last-used settings come back. Use Load to return to a preset any time.</div>
       <div class="row" style="margin-top:6px"><input type="text" id="presetName" placeholder="Preset name"><button id="presetSave" class="sm" style="flex:none">Save</button><button id="presetDel" class="sm" style="flex:none">Delete</button></div>
       <div class="row" style="margin-top:6px"><button id="presetExport" class="sm">Export JSON</button><button id="presetImport" class="sm">Import JSON</button><input type="file" id="presetFile" accept=".json" hidden></div>
     </div>
@@ -325,7 +325,9 @@ S.colors = Array(S.text.length).fill(null);
 S.ital = Array(S.text.length).fill(0);
 S.nudges = []; S.custom = store.get('opentitlecard.custom',[]);
 S.previewBg = 'checker';
-{ const d=defaultPreset(); if(d) applyStyle(d); }   // a default preset wins over the last-used style on startup
+// First load only: with no saved last-used style yet, start from the default preset (and keep it as the last-used style).
+// Once any settings are saved, those come back on later loads, as they always did.
+if(store.get('opentitlecard.style',null)===null){ const d=defaultPreset(); if(d){ applyStyle(d); persistStyle(); } }
 let cards=[], active=0;   // batch cards; the active one lives in S (see "cards" below)
 
 let L = null;            // last layout
