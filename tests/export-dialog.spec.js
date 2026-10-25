@@ -52,13 +52,15 @@ test.describe('export dialog: canvas', () => {
     await expect(page.locator('#x_frameOpts')).toBeHidden();
     await expect(page.locator('#tight')).toBeChecked();
     const sizes = async () => readZip((await downloadZip(page)).buffer).map((f) => pngSize(f.data));
+    const scale = (v) => page.evaluate((v) => { const e = document.querySelector('#x_exportScale'); e.value = v; e.dispatchEvent(new Event('input', { bubbles: true })); }, v);
+    await scale('1');
     const one = await sizes(); // the download closes the dialog
     expect(one[1][0]).toBeGreaterThan(one[0][0]); // a longer text gets a wider card
     await page.click('#batchOpen');
-    await page.evaluate(() => { const e = document.querySelector('#x_exportScale'); e.value = '4'; e.dispatchEvent(new Event('input', { bubbles: true })); });
-    await expect(page.locator('#xv_exportScale')).toHaveText('4×');
-    const four = await sizes();
-    expect(four[0][0]).toBeGreaterThan(one[0][0] * 1.5);
+    await scale('2'); // the long card at 4x would pass the 4K limit (see the test below)
+    await expect(page.locator('#xv_exportScale')).toHaveText('2×');
+    const two = await sizes();
+    expect(two[0][0]).toBeGreaterThan(one[0][0] * 1.5);
   });
 
   test('the card offset typed in the dialog moves the card in the export, like the Export panel', async ({ app: { page } }) => {
@@ -74,16 +76,14 @@ test.describe('export dialog: canvas', () => {
     expect(zip[0].data.equals(single.buffer)).toBe(true);
   });
 
-  test('a canvas the browser cannot make is flagged up front and the download is disabled', async ({ app: { page } }) => {
-    await setText(page, 'Hi');
+  test('an export over the 4K limit is flagged up front and the download is disabled', async ({ app: { page } }) => {
+    await setText(page, 'A fairly long titlecard line'); // about 1500 units wide: over 3840 px at 4x
     await page.click('#batchOpen');
-    await pickFrame(page, 'custom');
-    await page.fill('#x_fw', '8192');
-    await page.fill('#x_fh', '8192');
-    await expect(page.locator('#bStatus')).toContainText('too large');
+    await page.check('#x_tight');
+    await page.evaluate(() => { const el = document.querySelector('#x_exportScale'); el.value = '4'; el.dispatchEvent(new Event('input')); });
+    await expect(page.locator('#bStatus')).toContainText('3840 px');
     await expect(page.locator('#bGo')).toBeDisabled();
-    await page.fill('#x_fw', '1920');
-    await page.fill('#x_fh', '1080');
+    await page.evaluate(() => { const el = document.querySelector('#x_exportScale'); el.value = '1'; el.dispatchEvent(new Event('input')); });
     await expect(page.locator('#bStatus')).toHaveText('');
     await expect(page.locator('#bGo')).toBeEnabled();
   });

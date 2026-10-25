@@ -78,6 +78,7 @@
   .seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
   .seg button{border:0;border-radius:0;padding:5px 10px}
   .seg button+button{border-left:1px solid var(--line)}
+  #orient button[aria-pressed="true"]{background:var(--accent2)}
   .seg button:disabled{color:var(--mute);opacity:.5;cursor:default;background:var(--panel2)}
   #fileMsg.bad{color:#ffb3a8}
   #scope{font-size:12px;color:var(--mute);padding:3px 10px;border:1px solid var(--line);border-radius:99px}
@@ -248,11 +249,16 @@
         <option value="1920x1080">1920 × 1080 (landscape)</option>
         <option value="1080x1920">1080 × 1920 (vertical)</option>
         <option value="3840x2160">3840 × 2160 (4K)</option>
+            <option value="2160x3840">2160 × 3840 (4K vertical)</option>
         <option value="1080x1080">1080 × 1080 (square)</option>
         <option value="1080x1350">1080 × 1350 (4:5)</option>
         <option value="custom">Custom…</option>
       </select>
-      <div class="row" id="customRow" style="display:none;margin-top:6px"><input type="number" id="fw" min="64" max="8192"><input type="number" id="fh" min="64" max="8192"></div>
+      <div class="row" id="customRow" style="display:none;margin-top:6px"><input type="number" id="fw" min="64" max="3840" aria-label="Canvas width"><input type="number" id="fh" min="64" max="3840" aria-label="Canvas height"></div>
+      <div class="row tight" style="margin-top:8px;align-items:center">
+        <span class="seg" id="orient" role="group" aria-label="Orientation"><button type="button" data-orient="h">Landscape</button><button type="button" data-orient="v">Vertical</button></span>
+        <span class="hint" style="margin:0">Up to 3840 px on each side (4K).</span>
+      </div>
       <div class="row tight" style="margin-top:8px"><label style="margin:0"><input type="checkbox" id="tight"> Tight crop (just the card)</label></div>
       <div id="tightOpts" style="display:none"><label>Export scale <span class="val" id="v_exportScale"></span></label><input type="range" id="exportScale" min="1" max="4" step="0.5"></div>
       <div id="frameOpts">
@@ -309,11 +315,12 @@
             <option value="1920x1080">1920 × 1080 (landscape)</option>
             <option value="1080x1920">1080 × 1920 (vertical)</option>
             <option value="3840x2160">3840 × 2160 (4K)</option>
+            <option value="2160x3840">2160 × 3840 (4K vertical)</option>
             <option value="1080x1080">1080 × 1080 (square)</option>
             <option value="1080x1350">1080 × 1350 (4:5)</option>
             <option value="custom">Custom…</option>
           </select></div>
-        <div id="x_customRow" class="row" style="display:none;flex:2;align-items:end"><div><label for="x_fw">Width</label><input type="number" id="x_fw" min="64" max="8192"></div><div><label for="x_fh">Height</label><input type="number" id="x_fh" min="64" max="8192"></div></div>
+        <div id="x_customRow" class="row" style="display:none;flex:2;align-items:end"><div><label for="x_fw">Width</label><input type="number" id="x_fw" min="64" max="3840"></div><div><label for="x_fh">Height</label><input type="number" id="x_fh" min="64" max="3840"></div></div>
         <div style="flex:none;align-self:end"><label style="margin:0 0 6px"><input type="checkbox" id="x_tight"> Tight crop</label></div>
       </div>
       <div id="x_tightOpts" style="display:none"><label for="x_exportScale">Export scale <span class="val" id="xv_exportScale"></span></label><input type="range" id="x_exportScale" min="1" max="4" step="0.5"></div>
@@ -480,7 +487,7 @@ const pickStyle = () => { const o={}; CARD_STYLE_KEYS.forEach(k=>o[k]=S[k]); ret
    would do so on every reload too. So a value is only taken when it has the type of its default, numbers are finite,
    colors are hex and choices are one of the options; anything else is dropped and the caller's value stays. */
 const COLOR_KEYS=['textColor','outlineColor','bgColor'];
-const CHOICES={align:['center','left','right'], frame:['1920x1080','1080x1920','3840x2160','1080x1080','1080x1350','custom']};
+const CHOICES={align:['center','left','right'], frame:['1920x1080','1080x1920','3840x2160','2160x3840','1080x1080','1080x1350','custom']};
 function validStyle(raw,keys=STYLE_KEYS){
   const o={};
   if(raw&&typeof raw==='object') for(const k of keys){
@@ -550,8 +557,6 @@ function updateFontChip(){
     const b=document.createElement('b'); b.textContent=`“${S.family}” isn't installed on this computer`;
     ban.replaceChildren(b, ', so the preview and export use a fallback font. Install it, load the font file, or pick another family before exporting.');
   }
-  $('#export').classList.toggle('warn', !ok);
-  $('#export').textContent = ok ? 'Download PNG' : 'Download PNG (fallback font!)';
   return ok;
 }
 
@@ -773,8 +778,12 @@ function draw(ctx, W, H, o){
 }
 
 /* ============ render pipeline ============ */
+/* Nothing bigger than 4K on either side, landscape or vertical: past that, files get slow to make and to edit, and no
+   social video needs it. Custom sizes are clamped to it; a tight crop that would be larger is refused (tooLarge). */
+const MAX_SIDE=3840;
+const tooLarge = g => g.W>MAX_SIDE || g.H>MAX_SIDE;
 function frameDims(){
-  if(S.frame==='custom') return [clamp(+S.fw||1920,64,8192), clamp(+S.fh||1080,64,8192)];
+  if(S.frame==='custom') return [clamp(Math.round(+S.fw)||1920,64,MAX_SIDE), clamp(Math.round(+S.fh)||1080,64,MAX_SIDE)];
   return S.frame.split('x').map(Number);
 }
 const baseScale = (W,H)=>Math.max(W,H)/1920;
@@ -793,8 +802,12 @@ let raf=0;
 function render(){ cancelAnimationFrame(raf); raf=requestAnimationFrame(renderNow); }
 function renderNow(){
   L=layout();
-  syncNudgeRows(); updateFontChip(); renderCards();
+  syncNudgeRows(); const fontOk=updateFontChip(); renderCards();
   const g=exportGeometry();
+  const big=tooLarge(g), xb=$('#export');
+  xb.disabled=big; xb.classList.toggle('warn',!fontOk&&!big);
+  xb.textContent = big ? `Too large: max ${MAX_SIDE} px a side` : fontOk ? 'Download PNG' : 'Download PNG (fallback font!)';
+  xb.title = big ? 'Lower the export scale (tight crop) to stay within 4K.' : '';
   const cv=$('#cv');
   const availW=Math.max(300,($('.view').clientWidth-40)*(window.devicePixelRatio||1));
   const q=clamp(availW/g.W,0.15,1);
@@ -1026,6 +1039,11 @@ function syncControls(){
     for(const id of ['v_'+k,'xv_'+k]){ const vv=$('#'+id); if(vv) vv.textContent=(fmt[k]||(v=>v))(S[k]); }
   }
   document.querySelectorAll('[data-reset-key]').forEach(b=>{ b.disabled=S[b.dataset.resetKey]===DEFAULTS[b.dataset.resetKey]; });
+  const [fw,fh]=frameDims();
+  document.querySelectorAll('[data-orient]').forEach(b=>{
+    b.setAttribute('aria-pressed',String(b.dataset.orient==='h'?fw>fh:fh>fw));
+    b.disabled=fw===fh; b.title=fw===fh?'A square canvas has no orientation':'';
+  });
   for(const pre of ['','x_']){
     $('#'+pre+'customRow').style.display=S.frame==='custom'?'flex':'none';
     $('#'+pre+'tightOpts').style.display=S.tight?'block':'none';
@@ -1045,6 +1063,21 @@ for(const [k,t] of bindings){
     });
   }
 }
+/* Landscape / Vertical swaps the canvas width and height. A swapped preset (1920 x 1080 <-> 1080 x 1920, 4K <-> 4K
+   vertical) stays a preset; any other size becomes a custom one. */
+function setOrientation(o){
+  const [w,h]=frameDims();
+  if(w===h || (o==='v')===(h>w)) return;
+  const key=`${h}x${w}`;
+  S.frame=CHOICES.frame.includes(key)?key:'custom'; S.fw=h; S.fh=w;
+  persistStyle(); syncControls(); record(); render();
+}
+$('#orient').addEventListener('click',e=>{ const b=e.target.closest('[data-orient]'); if(b) setOrientation(b.dataset.orient); });
+// A custom size is clamped once you leave the field (clamping while you type would fight every keystroke).
+for(const id of ['fw','fh','x_fw','x_fh']) $('#'+id).addEventListener('change',()=>{
+  const k=id.replace('x_',''), v=clamp(Math.round(+S[k])||(k==='fw'?1920:1080),64,MAX_SIDE);
+  if(v!==S[k]){ S[k]=v; persistStyle(); syncControls(); record(); render(); if(id.startsWith('x_')) fillBatchGrid(); }
+});
 /* Reset buttons: every Font & type and Background slider gets a ↺ that puts it back to the app's default (DEFAULTS, not a
    preset: the default preset only applies on a first load). It goes through the slider's own input event, so saving,
    a card's own style and redrawing behave exactly as for a drag. Double-clicking the slider does the same, like the
@@ -1162,14 +1195,14 @@ $('#presetFile').addEventListener('change',async e=>{ const f=e.target.files[0];
 /* Paints the current card (layout L) at export size. Returns null when the canvas would be too big for the browser. */
 function exportCanvas(){
   L=layout(); const g=exportGeometry();
-  if(g.W*g.H>64e6) return null;
+  if(tooLarge(g)) return null;
   const c=document.createElement('canvas'); c.width=g.W; c.height=g.H;
   draw(c.getContext('2d'),g.W,g.H,{u:g.u,cx:g.cx,cy:g.cy,guides:false,sel:null});
   return c;
 }
 $('#export').addEventListener('click',()=>{
   const c=exportCanvas();
-  if(!c){ alert('That canvas is too large for the browser. Lower the export scale.'); return; }
+  if(!c) return;   // the button is disabled while the export would be over 4K
   const stem=(S.text.replace(/\p{Extended_Pictographic}|️|‍/gu,'').trim().split(/\s+/).map(w=>w.replace(/[^\w\-]/g,'')).filter(Boolean).slice(0,5).join('-').replace(/[^\w\-]/g,'')||'titlecard').slice(0,40);
   c.toBlob(b=>download(b,`titlecard_${stem}.png`),'image/png');
 });
@@ -1487,7 +1520,7 @@ function fillBatchGrid(){
     const cvs=withCard(c,()=>{
       if(!L.lines.length) return null;
       const g=exportGeometry(), k=Math.min(1,360/g.W), t=document.createElement('canvas');
-      if(g.W*g.H>64e6) batchTooLarge=true;   // same limit exportCanvas() enforces
+      if(tooLarge(g)) batchTooLarge=true;   // same limit exportCanvas() enforces
       t.width=Math.max(1,Math.round(g.W*k)); t.height=Math.max(1,Math.round(g.H*k));
       draw(t.getContext('2d'),t.width,t.height,{u:g.u*k,cx:g.cx*k,cy:g.cy*k,guides:false,sel:null});
       t.setAttribute('role','img'); t.setAttribute('aria-label',`Card ${idx+1}: ${cardLabel(c.text)}`);
@@ -1501,7 +1534,7 @@ function fillBatchGrid(){
   const missing=missingFonts();
   $('#bFont').style.display=missing.length?'block':'none';
   if(missing.length) $('#bFont').textContent=`${missing.map(f=>`“${f}”`).join(', ')} ${missing.length===1?"isn't":"aren't"} installed on this computer, so some cards use a fallback font. Install ${missing.length===1?'it':'them'} or load the font file first.`;
-  $('#bStatus').textContent=batchTooLarge?'That canvas is too large for the browser. Lower the canvas size or the export scale.':'';
+  $('#bStatus').textContent=batchTooLarge?`A card would be too large: exports are limited to ${MAX_SIDE} px on each side (4K). Lower the export scale.`:'';
   refreshBatchNames();
 }
 function openBatch(){
@@ -1523,7 +1556,7 @@ $('#bGo').addEventListener('click',async()=>{
     for(let i=0;i<live.length;i++){
       status.textContent=`Rendering ${i+1} of ${live.length}…`;
       const c=withCard(cards[live[i].idx],exportCanvas);   // painted synchronously, so the active card is restored right away
-      if(!c){ status.textContent='A card is too large for the browser. Lower the export scale or canvas size.'; return; }
+      if(!c){ status.textContent=`A card would be too large: exports are limited to ${MAX_SIDE} px on each side (4K).`; return; }
       const blob=await new Promise(r=>c.toBlob(r,'image/png'));
       files.push({name:names[i],data:new Uint8Array(await blob.arrayBuffer())});
     }
