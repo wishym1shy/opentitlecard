@@ -320,6 +320,7 @@ const store = {
   });
 })();
 const DEFAULT_PRESET_KEY='opentitlecard.defaultPreset';   // name of the preset applied at startup (declared early: startup code reads it)
+const PLACEHOLDER_TEXT = "Type your Titlecard here! 😳";   // what a fresh page shows; an untouched card with it holds no work
 const SEG = new Intl.Segmenter(undefined,{granularity:'grapheme'});
 const EMOJI_RE = /\p{Emoji_Presentation}|️|\p{Regional_Indicator}|⃣|‍/u;
 const isEmoji = g => EMOJI_RE.test(g);
@@ -343,7 +344,7 @@ const STYLE_KEYS = Object.keys(DEFAULTS).filter(k=>!['showGuides','offX','offY']
 const CARD_STYLE_KEYS = STYLE_KEYS.filter(k=>!['frame','fw','fh','tight','exportScale'].includes(k));
 const pickStyle = () => { const o={}; CARD_STYLE_KEYS.forEach(k=>o[k]=S[k]); return o; };
 const S = Object.assign({}, DEFAULTS, store.get('opentitlecard.style',{}));
-S.text = "Type your Titlecard here! 😳";
+S.text = PLACEHOLDER_TEXT;
 S.colors = Array(S.text.length).fill(null);
 S.ital = Array(S.text.length).fill(0);
 S.nudges = []; S.custom = store.get('opentitlecard.custom',[]);
@@ -1119,12 +1120,26 @@ $('#batchFile').addEventListener('change',async e=>{
     stash();   // sharedStyle lags behind S until stashed; a file with no style of its own falls back to what you see now
     const b=decodeBatch(data);
     if(!b) throw new Error('not a batch');
+    if(batchHasWork() && !await confirmAction({title:'Open this batch?',message:`“${f.name}” replaces ${cards.length===1?'your current card':`your ${cards.length} current cards`}. Cards aren't saved anywhere, so use “Save batch to file” first if you want to keep ${cards.length===1?'it':'them'}.`,ok:'Replace cards'})) { fileMsg('Cancelled. Nothing was changed.'); return; }
     // the file's look comes with it: cards without their own style use the batch's shared style
     sharedStyle=b.style; cards=b.cards; active=b.active; adopt(cards[active]); persistStyle(); cardSig=''; render();
-    fileMsg(`Opened ${cards.length} card${cards.length===1?'':'s'} from “${f.name}”.`);
+    fileMsg(`Opened ${cardsWord(cards.length)} from “${f.name}”.`);
   }catch(err){ fileMsg('That file isn\'t an OpenTitlecard batch, so nothing was changed.',true); }
 });
-$('#cardsNew').addEventListener('click',()=>{ cards=[newCard()]; active=0; adopt(cards[0]); cardSig=''; render(); fileMsg(''); });
+/* True when the page holds something worth asking about: more than one card, or a card with text beyond the untouched
+   placeholder, formatting, nudges or its own style. A fresh page or an emptied card holds nothing. */
+function batchHasWork(){
+  stash();
+  if(cards.length>1) return true;
+  const c=cards[0]; if(c.style) return true;
+  if(c.colors.some(Boolean)||c.ital.some(Boolean)||c.nudges.some(n=>n&&(n.x||n.y))) return true;
+  return !!c.text.trim() && c.text!==PLACEHOLDER_TEXT;
+}
+const cardsWord = n => `${n} card${n===1?'':'s'}`;
+$('#cardsNew').addEventListener('click',async()=>{
+  if(batchHasWork() && !await confirmAction({title:'Start a new batch?',message:`This removes ${cards.length===1?'your card':`all ${cards.length} cards`} from the page. Cards aren't saved anywhere, so use “Save batch to file” first if you want to keep ${cards.length===1?'it':'them'}.`,ok:'Remove cards'})) return;
+  cards=[newCard()]; active=0; adopt(cards[0]); cardSig=''; render(); fileMsg('');
+});
 
 /* ============ batch export: names + ZIP ============ */
 /* "{n}" in the pattern becomes the number; a pattern without it gets "-<n>" so files can never collide. Characters

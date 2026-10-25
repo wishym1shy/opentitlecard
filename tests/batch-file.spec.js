@@ -1,4 +1,4 @@
-const { test, expect, FONT_FAMILY, setText, settle, setRange, setSelection, readZip, downloadZip, addCard } = require('./helpers');
+const { test, expect, FONT_FAMILY, setText, settle, setRange, setSelection, readZip, downloadZip, addCard, confirmDialog } = require('./helpers');
 
 async function saveBatch(page) {
   const [dl] = await Promise.all([page.waitForEvent('download'), page.click('#batchSave')]);
@@ -68,6 +68,7 @@ test.describe('save and open a batch file', () => {
     const { text } = await saveBatch(page);
 
     await page.click('#cardsNew');
+    await confirmDialog(page);
     await settle(page);
     expect((await snapshot(page)).cards).toHaveLength(1);
 
@@ -87,8 +88,10 @@ test.describe('save and open a batch file', () => {
     await buildBatch(page);
     const { text } = await saveBatch(page);
     await openFile(page, text);
+    await confirmDialog(page); // the page holds a batch that would be replaced
     await expect(page.locator('#fileMsg')).toContainText('Opened 3 cards');
     await page.click('#cardsNew');
+    await confirmDialog(page);
     await openFile(page, text);
     await expect(page.locator('#fileMsg')).toContainText('Opened 3 cards');
     expect((await snapshot(page)).cards).toHaveLength(3);
@@ -100,6 +103,7 @@ test.describe('save and open a batch file', () => {
     await setRange(page, 'size', 140);
     const { text } = await saveBatch(page);
     await page.click('#cardsNew');
+    await confirmDialog(page);
     await setRange(page, 'size', 90); // this computer's own look
     await openFile(page, text);
     await settle(page);
@@ -114,6 +118,90 @@ test.describe('save and open a batch file', () => {
     await openFile(page, { app: 'opentitlecard', type: 'batch', v: 1, active: 0, cards: [{ t: 'From file' }] });
     await settle(page);
     expect(await page.evaluate(() => ({ n: __tt.cards.length, text: __tt.S.text }))).toEqual({ n: 1, text: 'From file' });
+  });
+});
+
+test.describe('confirmations', () => {
+  const file = { app: 'opentitlecard', type: 'batch', v: 1, active: 0, cards: [{ t: 'From file' }] };
+
+  test('New batch asks first, naming the card count; Cancel and Esc keep everything', async ({ app: { page } }) => {
+    await buildBatch(page);
+    const before = await snapshot(page);
+    await page.click('#cardsNew');
+    await expect(page.locator('#cTitle')).toHaveText('Start a new batch?');
+    await expect(page.locator('#cMsg')).toContainText('all 3 cards');
+    await expect(page.locator('#cMsg')).toContainText('Save batch to file');
+    await confirmDialog(page, false);
+    expect(await snapshot(page)).toEqual(before);
+    await page.click('#cardsNew');
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#confirmDlg')).not.toBeVisible();
+    expect(await snapshot(page)).toEqual(before);
+    await page.click('#cardsNew');
+    await confirmDialog(page);
+    expect((await snapshot(page)).cards).toHaveLength(1);
+  });
+
+  test('Open asks first when the page holds cards; Cancel keeps them and says so', async ({ app: { page } }) => {
+    await buildBatch(page);
+    const before = await snapshot(page);
+    await openFile(page, file, 'mine.json');
+    await expect(page.locator('#cTitle')).toHaveText('Open this batch?');
+    await expect(page.locator('#cMsg')).toContainText('“mine.json” replaces your 3 current cards');
+    await confirmDialog(page, false);
+    await expect(page.locator('#fileMsg')).toContainText('Cancelled');
+    expect(await snapshot(page)).toEqual(before);
+    await openFile(page, file);
+    await confirmDialog(page);
+    expect(await page.evaluate(() => ({ n: __tt.cards.length, text: __tt.S.text }))).toEqual({ n: 1, text: 'From file' });
+  });
+
+  test('a file that is not a batch is refused without asking', async ({ app: { page } }) => {
+    await buildBatch(page);
+    await openFile(page, 'not json');
+    await expect(page.locator('#fileMsg')).toHaveClass(/bad/);
+    await expect(page.locator('#confirmDlg')).not.toBeVisible();
+  });
+
+  test('nothing is asked when there is nothing to lose: a fresh page, or an emptied card', async ({ app: { page } }) => {
+    await page.click('#cardsNew'); // the untouched placeholder card is not work
+    await expect(page.locator('#confirmDlg')).not.toBeVisible();
+    await openFile(page, file);
+    await expect(page.locator('#confirmDlg')).not.toBeVisible();
+    await expect(page.locator('#fileMsg')).toContainText('Opened 1 card');
+    await setText(page, '');
+    await page.click('#cardsNew');
+    await expect(page.locator('#confirmDlg')).not.toBeVisible();
+  });
+
+  test('a batch whose first card is empty still counts as work when another card has text', async ({ app: { page } }) => {
+    await setText(page, '');
+    await addCard(page, 'Only the second card has text');
+    await page.click('#cardList [data-card="0"]');
+    await settle(page);
+    await page.click('#cardsNew');
+    await expect(page.locator('#cMsg')).toContainText('all 2 cards');
+    await confirmDialog(page, false);
+  });
+
+  test('coloring the untouched placeholder text counts as work', async ({ app: { page } }) => {
+    await setSelection(page, 0, 4);
+    await page.click('#swatches .sw:nth-child(3)');
+    await page.click('#cardsNew');
+    await confirmDialog(page, false);
+    await page.click('#swatches .sw:nth-child(1)'); // repainting it is still formatting, so it still asks
+    await page.click('#cardsNew');
+    await confirmDialog(page, false);
+  });
+
+  test('typed text, a color, or an own style each count as work', async ({ app: { page } }) => {
+    await setText(page, 'Something');
+    await page.click('#cardsNew');
+    await confirmDialog(page, false);
+    await setText(page, '');
+    await page.check('#cardOwn'); // an emptied card that still has its own style
+    await page.click('#cardsNew');
+    await confirmDialog(page, false);
   });
 });
 
@@ -137,6 +225,7 @@ test.describe('nothing about the cards is stored in the browser', () => {
   test('New batch only clears the cards on screen', async ({ app: { page } }) => {
     await buildBatch(page);
     await page.click('#cardsNew');
+    await confirmDialog(page);
     await settle(page);
     expect(await page.evaluate(() => ({ n: __tt.cards.length, text: __tt.S.text, own: !!__tt.cards[0].style }))).toEqual({ n: 1, text: '', own: false });
   });
@@ -162,7 +251,8 @@ test.describe('opening files that are not ours', () => {
       await expect(page.locator('#fileMsg')).toHaveClass(/bad/);
       expect(await page.evaluate(() => __tt.S.text), JSON.stringify(b)).toBe('Original');
     }
-    await openFile(page, good); // control: a good file does open
+    await openFile(page, good); // control: a good file does open (after confirming, as 'Original' would be replaced)
+    await confirmDialog(page);
     await expect(page.locator('#fileMsg')).toContainText('Opened 1 card from');
     expect(await page.evaluate(() => __tt.S.text)).toBe('Keep me');
   });
