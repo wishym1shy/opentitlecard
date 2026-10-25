@@ -1171,18 +1171,23 @@ function download(blob,name){ const a=document.createElement('a'); a.href=URL.cr
 
 /* ============ confirmation dialog ============ */
 /* Asks before something that throws work away. Resolves true only for the confirm button: Cancel and Esc both mean
-   no. Focus starts on Cancel so a stray Enter never destroys anything. */
+   no. Focus starts on Cancel so a stray Enter never destroys anything. The buttons answer directly: the dialog's close
+   event fires in a later task, so waiting for it would leave a moment where the dialog is gone but the answer isn't
+   applied yet. The close event still answers Esc (and anything else that closes the dialog). */
+let confirmAnswer=null;   // settles the open confirmation once; null when none is open
 function confirmAction({title,message,ok='Continue'}){
   return new Promise(resolve=>{
     const d=$('#confirmDlg');
     $('#cTitle').textContent=title; $('#cMsg').textContent=message; $('#cOk').textContent=ok;
     d.returnValue='';
-    d.addEventListener('close',()=>resolve(d.returnValue==='ok'),{once:true});
+    confirmAnswer=v=>{ confirmAnswer=null; resolve(v); };
+    d.addEventListener('close',()=>{ if(confirmAnswer) confirmAnswer(d.returnValue==='ok'); },{once:true});
     d.showModal(); $('#cCancel').focus();
   });
 }
-$('#cOk').addEventListener('click',()=>$('#confirmDlg').close('ok'));
-$('#cCancel').addEventListener('click',()=>$('#confirmDlg').close('cancel'));
+function answerConfirm(yes){ const a=confirmAnswer; $('#confirmDlg').close(yes?'ok':'cancel'); if(a) a(yes); }
+$('#cOk').addEventListener('click',()=>answerConfirm(true));
+$('#cCancel').addEventListener('click',()=>answerConfirm(false));
 
 /* ============ cards (batch) ============ */
 /* The active card lives in S (text, colors, ital, nudges), so every existing control and test keeps working

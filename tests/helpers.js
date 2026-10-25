@@ -11,8 +11,12 @@ const FONT_FAMILY = 'inter-latin-800-normal'; // the app derives the family from
 
 async function loadTestFont(page) {
   await page.setInputFiles('#fontFile', FONT_FILE);
+  // Wait for the chip to name the test font, not just to be "ok" (the bundled Inter is ok too): it is only written by
+  // the redraw that follows the font change, which also rebuilds the line-nudge rows. Without this a test could grab a
+  // nudge slider just before that rebuild replaces it.
   await page.waitForFunction(
-    (fam) => window.__tt && window.__tt.S.family === fam && document.querySelector('#fontChip').classList.contains('ok'),
+    (fam) => window.__tt && window.__tt.S.family === fam && document.querySelector('#fontChip').classList.contains('ok')
+      && document.querySelector('#fontChip').textContent.includes(fam),
     FONT_FAMILY
   );
 }
