@@ -78,6 +78,7 @@
   .seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
   .seg button{border:0;border-radius:0;padding:5px 10px}
   .seg button+button{border-left:1px solid var(--line)}
+  .seg button:disabled{color:var(--mute);opacity:.5;cursor:default;background:var(--panel2)}
   #fileMsg.bad{color:#ffb3a8}
   #scope{font-size:12px;color:var(--mute);padding:3px 10px;border:1px solid var(--line);border-radius:99px}
   #scope.own{color:#ffd9a0;border-color:#6b4f24;background:#2a2114}
@@ -272,6 +273,7 @@
 
 <section class="stage">
   <div class="toolbar">
+    <span class="seg"><button id="undo" title="Undo (Ctrl+Z, ⌘Z on a Mac)" disabled>↶ Undo</button><button id="redo" title="Redo (Ctrl+Shift+Z or Ctrl+Y, ⌘⇧Z on a Mac)" disabled>↷ Redo</button></span>
     <span style="color:var(--mute)">Preview on</span>
     <span class="seg chips" id="pbg">
       <button data-bg="checker" class="on">Checker</button><button data-bg="white">White</button><button data-bg="black">Black</button><button data-bg="gray">Gray</button>
@@ -833,7 +835,7 @@ function updateSlotInfo(g){
 const NUDGE_RANGE=200, NUDGE_DETENT=2;   // drags within +-2 of centre snap to exactly 0
 let nudgeSig='', sliderDrag=false;
 const nudgeVal=(i,a)=>(S.nudges[i]||{})[a]||0;
-function setNudge(i,a,v){ const n=S.nudges[i]||(S.nudges[i]={x:0,y:0}); n[a]=v; render(); }
+function setNudge(i,a,v){ const n=S.nudges[i]||(S.nudges[i]={x:0,y:0}); n[a]=v; record('nudge'+i+a); render(); }
 function axisHTML(i,a,v){
   const A=a.toUpperCase();
   return `<div class="ax"><span class="scrub" data-scrub="${a}" data-line="${i}" title="Drag to scrub ${A}. Shift = 10x. Double-click to reset.">${A}</span>
@@ -877,7 +879,7 @@ nudgeHost.addEventListener('keydown',e=>{
   if(t.dataset.i && (e.key==='ArrowUp'||e.key==='ArrowDown')&&e.shiftKey){ e.preventDefault(); t.value=(+t.value||0)+(e.key==='ArrowUp'?10:-10); t.dispatchEvent(new Event('input',{bubbles:true})); }
 });
 nudgeHost.addEventListener('click',e=>{
-  const b=e.target.closest('[data-reset]'); if(!b) return; S.nudges[+b.dataset.reset]={x:0,y:0}; nudgeSig=''; render();
+  const b=e.target.closest('[data-reset]'); if(!b) return; S.nudges[+b.dataset.reset]={x:0,y:0}; record(); nudgeSig=''; render();
 });
 nudgeHost.addEventListener('dblclick',e=>{
   const t=e.target.closest('[data-slider],[data-scrub]'); if(!t) return;
@@ -918,7 +920,10 @@ ta.addEventListener('input',e=>{
   if(ins===1 && it==='insertText' && p>0 && !/\s/.test(old[p-1])){ c=S.colors[p-1]??null; i=S.ital[p-1]|0; }
   S.colors.splice(p,rem,...Array(ins).fill(c));
   S.ital.splice(p,rem,...Array(ins).fill(i));
-  S.text=nw; render();
+  S.text=nw;
+  // a burst of typing (or of deleting) is one undo step; a paste, drop or cut is always its own
+  record(it==='insertText'||it==='insertLineBreak'?'type':it.startsWith('deleteContent')?'delete':'');
+  render();
 });
 ['select','keyup','mouseup','focus','click'].forEach(ev=>ta.addEventListener(ev,render));
 document.addEventListener('selectionchange',()=>{ if(document.activeElement===ta) render(); });
@@ -931,19 +936,19 @@ function targetRange(){
 function applyColor(hex){
   const r=targetRange(); if(!r) return;
   for(let k=r[0];k<r[1];k++) if(!/\s/.test(S.text[k])) S.colors[k]=hex;
-  render();
+  record(); render();
 }
 function toggleItalic(){
   const r=targetRange(); if(!r) return;
   let all=true; for(let k=r[0];k<r[1];k++) if(!/\s/.test(S.text[k]) && !S.ital[k]) all=false;
   for(let k=r[0];k<r[1];k++) if(!/\s/.test(S.text[k])) S.ital[k]=all?0:1;
-  render();
+  record(); render();
 }
 function insertSlot(){
   const s=ta.selectionStart,e=ta.selectionEnd, ins=' 🙂';
   S.text=S.text.slice(0,s)+ins+S.text.slice(e);
   S.colors.splice(s,e-s,...Array(ins.length).fill(null)); S.ital.splice(s,e-s,...Array(ins.length).fill(0));
-  ta.value=S.text; ta.focus(); ta.setSelectionRange(s+ins.length,s+ins.length); render();
+  ta.value=S.text; ta.focus(); ta.setSelectionRange(s+ins.length,s+ins.length); record(); render();
 }
 
 /* swatches */
@@ -993,7 +998,7 @@ cv.addEventListener('pointermove',e=>{
 });
 cv.addEventListener('pointerup',e=>{
   if(!drag) return; const d=drag; drag=null;
-  if(d.moved) return;
+  if(d.moved){ record(); return; }   // the whole Alt-drag is one step
   const p=evToUnits(e), l=L.lines[d.i];
   const lx=p.x-(l.tx+l.nx);
   const w=l.words.find(w=>lx>=w.x0-6&&lx<=w.x1+6);
@@ -1034,6 +1039,7 @@ for(const [k,t] of bindings){
       S[k]= t==='chk'?el.checked : t==='num'?+el.value : el.value;
       if(k==='frame' && S.frame!=='custom'){ const [w,h]=S.frame.split('x').map(Number); S.fw=w; S.fh=h; }
       if(k==='size'||k==='weight'||k==='family') nudgeSig='';
+      record(t==='num'||t==='text'?'style:'+k:'');   // a slider drag or typing a family name is one step
       persistStyle(); syncControls(); render();
       if(id.startsWith('x_')) fillBatchGrid();   // the dialog's thumbnails follow the canvas settings
     });
@@ -1044,7 +1050,7 @@ for(const [k,t] of bindings){
    a card's own style and redrawing behave exactly as for a drag. Double-clicking the slider does the same, like the
    nudge sliders. syncControls() greys a button out while its slider is already at the default. */
 const RESET_KEYS=['size','lh','track','stretchX','stretchY','wrap','outlineW','bgOpacity','padX','radius','topPad','botPad','clear'];
-function resetSlider(k){ const el=$('#'+k); el.value=DEFAULTS[k]; el.dispatchEvent(new Event('input')); }
+function resetSlider(k){ const el=$('#'+k); el.value=DEFAULTS[k]; lastKind=''; el.dispatchEvent(new Event('input')); }   // its own undo step, never merged into the drag before it
 RESET_KEYS.forEach(k=>{
   const v=$('#v_'+k), b=document.createElement('button'), name=v.parentElement.firstChild.textContent.trim();
   b.type='button'; b.className='sm rs'; b.dataset.resetKey=k; b.textContent='↺';
@@ -1084,7 +1090,7 @@ $('#fontFile').addEventListener('change',async e=>{
   const name=f.name.replace(/\.[^.]+$/,'').replace(/[^\w\- ]/g,'');
   try{
     const face=new FontFace(name,await f.arrayBuffer(),{weight:'1 1000'}); await face.load(); document.fonts.add(face);
-    loadedFaces.add(name); S.family=name; syncControls(); persistStyle(); nudgeSig=''; render();
+    loadedFaces.add(name); S.family=name; syncControls(); persistStyle(); record(); nudgeSig=''; render();
   }catch(err){ alert('Could not load that font file: '+err.message); }
   e.target.value='';
 });
@@ -1112,7 +1118,7 @@ function applyStyle(o){
   Object.assign(S,v); if(colors.length) S.custom=[...new Set([...S.custom,...colors])];
   return Object.keys(v).length+colors.length;
 }
-function applyPreset(o){ if(!applyStyle(o)) return false; store.set('opentitlecard.custom',S.custom); buildSwatches(); persistStyle(); syncControls(); nudgeSig=''; render(); return true; }
+function applyPreset(o){ if(!applyStyle(o)) return false; store.set('opentitlecard.custom',S.custom); buildSwatches(); persistStyle(); syncControls(); record(); nudgeSig=''; render(); return true; }
 $('#presetSave').addEventListener('click',()=>{
   const n=$('#presetName').value.trim(); if(!n) return;
   const p=presets(), o={}; STYLE_KEYS.forEach(k=>o[k]=S[k]); o.custom=S.custom; p[n]=o; store.set('opentitlecard.presets',p); refreshPresets(); $('#presetSel').value=n; updateDefaultBtn();
@@ -1135,7 +1141,7 @@ async function applyPresetToAll(name){
     ok:'Apply to all'});
   if(!ok) return false;
   stash(); applyStyle(o); sharedStyle=pickStyle(); cards.forEach(c=>{ c.style=null; });
-  store.set('opentitlecard.custom',S.custom); buildSwatches(); adopt(cards[active]); persistStyle(); cardSig=''; render();
+  store.set('opentitlecard.custom',S.custom); buildSwatches(); adopt(cards[active]); persistStyle(); record(); cardSig=''; render();
   return true;
 }
 $('#presetAll').addEventListener('click',()=>applyPresetToAll($('#presetSel').value));
@@ -1244,24 +1250,24 @@ function renderCards(){
   $('#scope').classList.toggle('own',own[active]);
 }
 $('#cardList').addEventListener('click',e=>{ const b=e.target.closest('[data-card]'); if(b) selectCard(+b.dataset.card); });
-function insertCard(i,c){ stash(); cards.splice(i,0,c); active=i; adopt(c); cardSig=''; render(); }
+function insertCard(i,c){ stash(); cards.splice(i,0,c); active=i; adopt(c); record(); cardSig=''; render(); }
 $('#cardAdd').addEventListener('click',()=>{ insertCard(active+1,newCard()); ta.focus(); });
 $('#cardDup').addEventListener('click',()=>{ stash(); insertCard(active+1,copyCard(cards[active])); });
 $('#cardDel').addEventListener('click',()=>{
-  if(cards.length===1){ stash(); const c=newCard(); c.style=cards[0].style; cards[0]=c; adopt(c); cardSig=''; render(); return; }   // clearing keeps the card's style
+  if(cards.length===1){ stash(); const c=newCard(); c.style=cards[0].style; cards[0]=c; adopt(c); record(); cardSig=''; render(); return; }   // clearing keeps the card's style
   stash();   // keeps shared-style edits made on this card: sharedStyle only catches up with S when stashed
-  cards.splice(active,1); active=Math.min(active,cards.length-1); adopt(cards[active]); cardSig=''; render();
+  cards.splice(active,1); active=Math.min(active,cards.length-1); adopt(cards[active]); record(); cardSig=''; render();
 });
 function moveCard(d){
   const j=active+d; if(j<0||j>=cards.length) return;
-  stash(); [cards[active],cards[j]]=[cards[j],cards[active]]; active=j; cardSig=''; render();
+  stash(); [cards[active],cards[j]]=[cards[j],cards[active]]; active=j; record(); cardSig=''; render();
 }
 $('#cardOwn').addEventListener('change',async e=>{
-  if(e.target.checked){ stash(); cards[active].style=pickStyle(); cardSig=''; render(); return; }   // start from what you see, then edit freely
+  if(e.target.checked){ stash(); cards[active].style=pickStyle(); record(); cardSig=''; render(); return; }   // start from what you see, then edit freely
   e.target.checked=true;   // stays ticked until the user confirms; nothing changes if they cancel
   const ok=await confirmAction({title:'Use the shared style for this card?',message:'This card goes back to the shared style. The settings you changed just for this card (font, colors, size, box…) are lost.',ok:'Use shared style'});
   if(!ok) return;
-  stash(); cards[active].style=null; Object.assign(S,sharedStyle); nudgeSig=''; syncControls(); cardSig=''; render();
+  stash(); cards[active].style=null; Object.assign(S,sharedStyle); nudgeSig=''; syncControls(); record(); cardSig=''; render();
 });
 $('#cardUp').addEventListener('click',()=>moveCard(-1));
 $('#cardDown').addEventListener('click',()=>moveCard(1));
@@ -1276,7 +1282,7 @@ $('#listAdd').addEventListener('click',()=>{
   // a lone empty card (a fresh page, or one the user cleared) is replaced by the first pasted title instead of being kept
   if(cards.length===1 && !cards[0].text.trim()) cards.length=0;
   const at=cards.length; parts.forEach(t=>cards.push(newCard(t)));
-  active=at; adopt(cards[active]); $('#listText').value=''; $('#listBox').hidden=true; $('#listToggle').setAttribute('aria-expanded','false'); cardSig=''; render();
+  active=at; adopt(cards[active]); $('#listText').value=''; $('#listBox').hidden=true; $('#listToggle').setAttribute('aria-expanded','false'); record(); cardSig=''; render();
 });
 
 /* ============ batch files (save / open) ============ */
@@ -1333,7 +1339,7 @@ $('#batchFile').addEventListener('change',async e=>{
     if(!b) throw new Error('not a batch');
     if(batchHasWork() && !await confirmAction({title:'Open this batch?',message:`“${f.name}” replaces ${cards.length===1?'your current card':`your ${cards.length} current cards`}. Cards aren't saved anywhere, so use “Save batch to file” first if you want to keep ${cards.length===1?'it':'them'}.`,ok:'Replace cards'})) { fileMsg('Cancelled. Nothing was changed.'); return; }
     // the file's look comes with it: cards without their own style use the batch's shared style
-    sharedStyle=b.style; cards=b.cards; active=b.active; adopt(cards[active]); persistStyle(); cardSig=''; render();
+    sharedStyle=b.style; cards=b.cards; active=b.active; adopt(cards[active]); persistStyle(); record(); cardSig=''; render();
     fileMsg(`Opened ${cardsWord(cards.length)} from “${f.name}”.`);
   }catch(err){ fileMsg('That file isn\'t an OpenTitlecard batch, so nothing was changed.',true); }
 });
@@ -1349,7 +1355,59 @@ function batchHasWork(){
 const cardsWord = n => `${n} card${n===1?'':'s'}`;
 $('#cardsNew').addEventListener('click',async()=>{
   if(batchHasWork() && !await confirmAction({title:'Start a new batch?',message:`This removes ${cards.length===1?'your card':`all ${cards.length} cards`} from the page. Cards aren't saved anywhere, so use “Save batch to file” first if you want to keep ${cards.length===1?'it':'them'}.`,ok:'Remove cards'})) return;
-  cards=[newCard()]; active=0; adopt(cards[0]); cardSig=''; render(); fileMsg('');
+  cards=[newCard()]; active=0; adopt(cards[0]); record(); cardSig=''; render(); fileMsg('');
+});
+
+/* ============ undo / redo ============ */
+/* A list of snapshots of the design: every card (text, colors, italics, nudges, own style), the shared style and the
+   canvas settings. Not the preset library, the palette or the preview background: those are tools, not the design.
+   Like the cards, history lives only in memory and is never stored.
+   record() runs after every change and adds a step. Changes of the same kind in quick succession (a burst of typing,
+   one slider drag, one nudge scrub) merge into one step, so Ctrl+Z undoes a gesture rather than a single pixel. A
+   snapshot is kept as a JSON string: cheap to compare (a change that changes nothing adds no step) and immutable.
+   Each step also remembers the card its change was made on. Selecting a card is not a step; undo and redo show the
+   card of the change they take back or bring back, so you always see what moved. */
+const HISTORY_MAX=100, MERGE_MS=1000;
+const GLOBAL_KEYS=[...STYLE_KEYS.filter(k=>!CARD_STYLE_KEYS.includes(k)),'offX','offY'];   // canvas settings, shared by all cards
+let hist=[], histAt=-1, lastKind='', lastTime=0;
+function designKey(){
+  stash();
+  const g={}; GLOBAL_KEYS.forEach(k=>g[k]=S[k]);
+  return JSON.stringify({cards:cards.map(copyCard), shared:sharedStyle, g});
+}
+function record(kind=''){
+  const key=designKey(), now=Date.now(), top=hist[histAt];
+  if(top && top.key===key) return;
+  const merge = kind && kind===lastKind && now-lastTime<MERGE_MS && histAt>0 && histAt===hist.length-1;
+  lastKind=kind; lastTime=now;
+  const step={key, active, sel:[ta.selectionStart,ta.selectionEnd]};
+  if(merge) hist[histAt]=step;
+  else { hist.length=histAt+1; hist.push(step); if(hist.length>HISTORY_MAX) hist.shift(); histAt=hist.length-1; }
+  syncHistoryButtons();
+}
+function restoreStep(i,show){
+  const h=hist[i], d=JSON.parse(h.key);
+  histAt=i; lastKind='';
+  cards=d.cards; sharedStyle=d.shared; Object.assign(S,d.g); active=clamp(show,0,cards.length-1);
+  adopt(cards[active]); persistStyle(); cardSig=''; render();
+  ta.setSelectionRange(...h.sel);
+  syncHistoryButtons();
+}
+function undoStep(){ if(histAt>0) restoreStep(histAt-1,hist[histAt].active); }
+function redoStep(){ if(histAt<hist.length-1) restoreStep(histAt+1,hist[histAt+1].active); }
+function syncHistoryButtons(){ $('#undo').disabled=histAt<=0; $('#redo').disabled=histAt>=hist.length-1; }
+$('#undo').addEventListener('click',undoStep);
+$('#redo').addEventListener('click',redoStep);
+// Fields whose text isn't part of the design keep the browser's own undo while you type in them.
+const OWN_UNDO=new Set(['presetName','listText','bPattern','bStart','bDigits']);
+document.addEventListener('keydown',e=>{
+  if(!(e.ctrlKey||e.metaKey)||e.altKey) return;
+  const k=e.key.toLowerCase(), redo=(k==='z'&&e.shiftKey)||(k==='y'&&e.ctrlKey&&!e.shiftKey), undo=k==='z'&&!e.shiftKey;
+  if(!undo&&!redo) return;
+  if(document.activeElement && OWN_UNDO.has(document.activeElement.id)) return;
+  if(document.querySelector('dialog[open]')) return;   // a dialog shows the cards as they are; don't change them behind it
+  e.preventDefault();   // also stops the text box's own undo, which knows nothing about colors and italics
+  if(redo) redoStep(); else undoStep();
 });
 
 /* ============ batch export: names + ZIP ============ */
@@ -1477,13 +1535,13 @@ $('#bGo').addEventListener('click',async()=>{
 });
 
 /* ============ boot ============ */
-sharedStyle=pickStyle(); stash();
+sharedStyle=pickStyle(); stash(); record();   // the first step: the page as it opens
 buildSwatches(); refreshPresets(); syncControls();
 window.addEventListener('resize',render);
 loadBundledInter();
 (document.fonts&&document.fonts.ready?document.fonts.ready:Promise.resolve()).then(render);
 render();
-window.__tt={S,render,renderNow,get L(){return L},exportGeometry,draw,get cards(){return cards},get sharedStyle(){return sharedStyle},get active(){return active},batchNames,zipStem,crc32,buildZip};
+window.__tt={S,render,renderNow,get L(){return L},exportGeometry,draw,get cards(){return cards},get sharedStyle(){return sharedStyle},get active(){return active},batchNames,zipStem,crc32,buildZip,undo:undoStep,redo:redoStep,get history(){return {length:hist.length,at:histAt}}};
 </script>
 </body>
 </html>

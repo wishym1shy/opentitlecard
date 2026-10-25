@@ -36,6 +36,7 @@ OpenTitlecard fixes each of those. Emoji are handled as an empty, correctly-size
 - **Transparent PNG export.** Full-frame at 1920×1080, 1080×1920, 3840×2160, 1080×1080, 1080×1350 or a custom size, or a tight crop of just the card at up to 4×.
 - **Batch export.** Add several cards (or paste a list of titles), then **Export all as ZIP…** opens a preview of every card, lets you set the canvas (size, custom size, tight crop and scale, card position), apply a preset to the whole batch, and set a file name pattern such as `ClientA-Vid{n}-TC` (first number and zero-padding included), and downloads one transparent PNG per card in a single ZIP. Cards share one style (font, colors, box) unless a card is given its own (◆); text, per-word color, italic and line nudges are always per card. **Apply preset to all cards** restyles the whole batch (after asking you to confirm).
 - **Save and open batches.** **Save batch to file** downloads your cards (text, per-word colors, italics, nudges and styles) as a `.json` file; **Open batch file…** loads it again later. **New batch** starts over. Both ask before replacing cards you haven't saved (a fresh page doesn't ask). Nothing about your cards is kept in the browser.
+- **Undo and redo.** **Ctrl+Z** / **Ctrl+Shift+Z** (or **Ctrl+Y**; **⌘Z** / **⌘⇧Z** on a Mac), or the buttons above the preview, step back and forward through text, colors, styles, nudges and card changes, including *New batch* and *Open batch file…*. A burst of typing or one slider drag is a single step. The last 100 steps are kept while the page is open.
 - **Presets.** Save a style (font, colors, sizes) per client and export/import it as JSON. Mark one as the **default** (★) and the app starts with it the first time it opens (before any settings are saved); after that your last-used settings come back, and **Load** returns to any preset.
 
 ## Quick start
@@ -72,7 +73,7 @@ Use a Chromium browser (Chrome, Edge, Brave, Arc) for the full experience. The a
 
 ## Privacy
 
-Everything happens in your browser. No text, fonts, or images leave your computer. Your last style settings, custom palette colors, saved presets, your batch file-name pattern are stored in your browser's `localStorage` and nowhere else. Your cards and their text are **not** stored: they exist only on the page until you save them to a file you choose.
+Everything happens in your browser. No text, fonts, or images leave your computer. Your last style settings, custom palette colors, saved presets, your batch file-name pattern are stored in your browser's `localStorage` and nowhere else. Your cards and their text are **not** stored: they exist only on the page until you save them to a file you choose. The undo history is kept in memory too, and is gone when you close or reload the page.
 
 ## Limitations
 
