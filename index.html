@@ -85,8 +85,16 @@
   .slotrow code{color:var(--accent);background:#14161b;padding:1px 6px;border-radius:4px}
   .toolbar{display:flex;gap:8px;align-items:center;padding:8px 14px;border-bottom:1px solid var(--line);background:var(--panel);flex-wrap:wrap}
   .chips button{padding:3px 9px;font-size:12px}
-  .view{flex:1;min-width:0;min-height:0;display:flex;align-items:center;justify-content:center;padding:18px;overflow:auto}
-  #previewBox{position:relative;max-width:100%;max-height:100%;border-radius:4px;box-shadow:0 0 0 1px #000a,0 8px 40px #0008}
+  /* The view is a window onto the canvas: the preview box is placed in it by zoom and pan (placeView). Its padding is the
+     area "Fit" uses, so a fitted canvas stays clear of the floating panels. */
+  .view{flex:1;min-width:0;min-height:0;position:relative;padding:18px 18px 56px;overflow:hidden;touch-action:none}
+  .view.pan,.view.pan #cv{cursor:grab} .view.panning,.view.panning #cv{cursor:grabbing}
+  #previewBox{position:absolute;left:0;top:0;border-radius:4px;box-shadow:0 0 0 1px #000a,0 8px 40px #0008}
+  #cv{width:100%;height:100%;max-width:none;max-height:none}
+  .zoombar{position:absolute;left:12px;bottom:12px;display:flex;gap:6px;align-items:center;padding:4px;background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 30px #0008}
+  .zoombar button{padding:3px 9px;font-size:12px}
+  .zoombar #zoomPct{min-width:46px;text-align:center;font-variant-numeric:tabular-nums;font-size:12px;color:var(--text)}
+  .zoombar button[aria-pressed="true"]{background:var(--accent2);border-color:var(--accent)}
   #previewBox.checker{background:conic-gradient(#2b2d34 25%,#383b44 0 50%,#2b2d34 0 75%,#383b44 0) 0 0/24px 24px}
   #previewBox.white{background:#fff} #previewBox.black{background:#000} #previewBox.gray{background:#7a7d86}
   canvas{display:block;max-width:100%;max-height:calc(100vh - 150px);cursor:pointer}
@@ -251,6 +259,10 @@
   </div>
   <div class="stagebody">
     <div class="view"><div id="previewBox" class="checker"><canvas id="cv"></canvas></div></div>
+    <div class="zoombar" role="group" aria-label="Zoom">
+      <button id="zoomOut" aria-label="Zoom out" title="Zoom out (Ctrl+−, or Ctrl+scroll)">−</button><span id="zoomPct" aria-live="polite">100%</span><button id="zoomIn" aria-label="Zoom in" title="Zoom in (Ctrl+=, or Ctrl+scroll)">+</button>
+      <button id="zoomFit" title="Fit the canvas in the view (Ctrl+0)">Fit</button><button id="zoom100" title="Actual size: one canvas pixel per screen pixel">100%</button>
+    </div>
     <div class="panels" id="panels">
       <section class="fp" id="fp_cards" data-panel="cards" aria-labelledby="fph_cards">
         <h2 class="fph"><button type="button" id="fph_cards" aria-expanded="true" aria-controls="fpb_cards" title="Minimize or expand this panel">Cards<span class="chev" aria-hidden="true"></span></button></h2>
@@ -839,12 +851,11 @@ function renderNow(){
   xb.textContent = big ? `Too large: max ${MAX_SIDE} px a side` : fontOk ? 'Download PNG' : 'Download PNG (fallback font!)';
   xb.title = big ? 'Lower the export scale (tight crop) to stay within 4K.' : '';
   const cv=$('#cv');
-  const view=$('.view'), vcs=getComputedStyle(view);   // fit the space the view leaves for the canvas (not under the panels)
-  const availW=Math.max(300,(view.clientWidth-parseFloat(vcs.paddingLeft)-parseFloat(vcs.paddingRight)-4)*(window.devicePixelRatio||1));
-  const q=clamp(availW/g.W,0.15,1);
-  cv.width=Math.max(1,Math.round(g.W*q)); cv.height=Math.max(1,Math.round(g.H*q));
-  cv.style.aspectRatio=`${g.W}/${g.H}`;
-  cv.style.width = Math.min(cv.width/(window.devicePixelRatio||1), 99999)+'px';
+  placeView(g);
+  // The bitmap is as sharp as the screen needs at this zoom, but never larger than the export itself: past 100% the
+  // preview shows real export pixels, magnified.
+  const kq=Math.min(1,viewState.z*(window.devicePixelRatio||1));
+  cv.width=Math.max(1,Math.round(g.W*kq)); cv.height=Math.max(1,Math.round(g.H*kq));
   const k=cv.width/g.W;
   const ta=$('#text');
   const sel = ta.selectionStart!==ta.selectionEnd ? [ta.selectionStart,ta.selectionEnd] : wordAt(ta.selectionStart);
@@ -858,6 +869,85 @@ function wordAt(pos){
   let a=pos,b=pos; while(a>0 && /\S/.test(t[a-1])) a--; while(b<t.length && /\S/.test(t[b])) b++;
   return a===b?null:[a,b];
 }
+
+/* ============ zoom & pan ============ */
+/* viewState.z is screen (CSS) px per canvas px, so 100% is actual size. "Fit" (the default) centres the whole canvas in
+   the view's padded area, never above 100%, and follows window and canvas size changes. Zooming or panning leaves Fit;
+   a canvas that then changes size (a tight crop while typing) keeps its centre where it was. Zoom and pan are a way of
+   looking, not part of the design: not in undo, presets or storage. */
+const ZOOM_MIN=0.05, ZOOM_MAX=4, ZOOM_STEP=1.25, PAN_KEEP=60;   // PAN_KEEP: px of canvas that always stay in view
+const viewState={fit:true,z:1,x:0,y:0,W:0,H:0};
+const viewEl=$('.view');
+function fitArea(){
+  const cs=getComputedStyle(viewEl), l=parseFloat(cs.paddingLeft), t=parseFloat(cs.paddingTop);
+  return {x:l, y:t, w:Math.max(50,viewEl.clientWidth-l-parseFloat(cs.paddingRight)), h:Math.max(50,viewEl.clientHeight-t-parseFloat(cs.paddingBottom))};
+}
+function placeView(g){
+  const v=viewState;
+  if(v.fit){
+    const a=fitArea(); v.z=clamp(Math.min(a.w/g.W,a.h/g.H,1),ZOOM_MIN,ZOOM_MAX);
+    v.x=a.x+(a.w-g.W*v.z)/2; v.y=a.y+(a.h-g.H*v.z)/2;
+  } else if(v.W && (v.W!==g.W || v.H!==g.H)){ v.x+=(v.W-g.W)*v.z/2; v.y+=(v.H-g.H)*v.z/2; }
+  v.W=g.W; v.H=g.H;
+  applyPlacement();
+}
+function applyPlacement(){
+  const v=viewState, box=$('#previewBox'), w=v.W*v.z, h=v.H*v.z;
+  // never lose the canvas: at least PAN_KEEP px of it stay inside the view
+  v.x=clamp(v.x,PAN_KEEP-w,viewEl.clientWidth-PAN_KEEP); v.y=clamp(v.y,PAN_KEEP-h,viewEl.clientHeight-PAN_KEEP);
+  box.style.left=v.x+'px'; box.style.top=v.y+'px'; box.style.width=w+'px'; box.style.height=h+'px';
+  $('#zoomPct').textContent=Math.round(v.z*100)+'%';
+  $('#zoomIn').disabled=v.z>=ZOOM_MAX; $('#zoomOut').disabled=v.z<=ZOOM_MIN;
+  $('#zoomFit').setAttribute('aria-pressed',String(v.fit));
+}
+function zoomAt(px,py,z){   // px,py: the view point that stays put (under the cursor, or the view's centre)
+  const v=viewState, z0=v.z; z=clamp(z,ZOOM_MIN,ZOOM_MAX);
+  if(z===z0 && !v.fit) return;
+  v.x=px-(px-v.x)*z/z0; v.y=py-(py-v.y)*z/z0; v.z=z; v.fit=false; render();
+}
+const viewCentre = () => { const a=fitArea(); return [a.x+a.w/2, a.y+a.h/2]; };
+const zoomBy = f => zoomAt(...viewCentre(), viewState.z*f);
+function zoomFit(){ viewState.fit=true; render(); }
+$('#zoomIn').addEventListener('click',()=>zoomBy(ZOOM_STEP));
+$('#zoomOut').addEventListener('click',()=>zoomBy(1/ZOOM_STEP));
+$('#zoomFit').addEventListener('click',zoomFit);
+$('#zoom100').addEventListener('click',()=>zoomAt(...viewCentre(),1));
+const inView = e => { const r=viewEl.getBoundingClientRect(); return [e.clientX-r.left, e.clientY-r.top]; };
+function panBy(dx,dy){ viewState.x+=dx; viewState.y+=dy; viewState.fit=false; applyPlacement(); }
+// Ctrl/Cmd+scroll (and a trackpad pinch, which arrives as one) zooms at the cursor; plain scroll pans, Shift+scroll sideways.
+viewEl.addEventListener('wheel',e=>{
+  e.preventDefault();
+  const line=e.deltaMode===1?16:e.deltaMode===2?viewEl.clientHeight:1, dx=e.deltaX*line, dy=e.deltaY*line;
+  if(e.ctrlKey||e.metaKey){ zoomAt(...inView(e), viewState.z*Math.exp(-dy*0.0015)); return; }
+  if(e.shiftKey && !dx) panBy(-dy,0); else panBy(-dx,-dy);
+},{passive:false});
+// Space+drag or middle-drag pans. Space only counts when no field or button has the focus, so typing and pressing a
+// focused button with Space work as always.
+let spaceDown=false, panDrag=null;
+const spaceFree = () => { const a=document.activeElement; return !a || a===document.body || a===$('#cv'); };
+document.addEventListener('keydown',e=>{
+  if(e.code==='Space' && spaceFree() && !document.querySelector('dialog[open]')){ e.preventDefault(); if(!spaceDown){ spaceDown=true; viewEl.classList.add('pan'); } }
+  if((e.ctrlKey||e.metaKey) && !e.altKey && !document.querySelector('dialog[open]')){
+    if(e.key==='='||e.key==='+'){ e.preventDefault(); zoomBy(ZOOM_STEP); }
+    else if(e.key==='-'||e.key==='_'){ e.preventDefault(); zoomBy(1/ZOOM_STEP); }
+    else if(e.key==='0'){ e.preventDefault(); zoomFit(); }
+  }
+});
+const endSpace=()=>{ spaceDown=false; viewEl.classList.remove('pan'); };
+document.addEventListener('keyup',e=>{ if(e.code==='Space') endSpace(); });
+window.addEventListener('blur',endSpace);
+viewEl.addEventListener('mousedown',e=>{ if(e.button===1) e.preventDefault(); });   // no auto-scroll on middle click
+viewEl.addEventListener('pointerdown',e=>{
+  if(!(e.button===1 || (e.button===0 && spaceDown))) return;
+  e.preventDefault(); e.stopPropagation();   // capture phase: the canvas never sees it, so no word is selected or nudged
+  panDrag={x:e.clientX,y:e.clientY,id:e.pointerId}; viewEl.setPointerCapture(e.pointerId); viewEl.classList.add('panning');
+},true);
+viewEl.addEventListener('pointermove',e=>{
+  if(!panDrag || e.pointerId!==panDrag.id) return;
+  panBy(e.clientX-panDrag.x,e.clientY-panDrag.y); panDrag.x=e.clientX; panDrag.y=e.clientY;
+});
+const endPan=e=>{ if(panDrag && e.pointerId===panDrag.id){ panDrag=null; viewEl.classList.remove('panning'); } };
+viewEl.addEventListener('pointerup',endPan); viewEl.addEventListener('pointercancel',endPan);
 
 /* ============ slot info ============ */
 function updateSlotInfo(g){
@@ -1626,11 +1716,11 @@ $('#bGo').addEventListener('click',async()=>{
 /* ============ boot ============ */
 sharedStyle=pickStyle(); stash(); record();   // the first step: the page as it opens
 buildSwatches(); refreshPresets(); syncControls();
-window.addEventListener('resize',render);
+window.addEventListener('resize',render);   // Fit follows the window
 loadBundledInter();
 (document.fonts&&document.fonts.ready?document.fonts.ready:Promise.resolve()).then(render);
 render();
-window.__tt={S,render,renderNow,get L(){return L},exportGeometry,draw,get cards(){return cards},get sharedStyle(){return sharedStyle},get active(){return active},batchNames,zipStem,crc32,buildZip,undo:undoStep,redo:redoStep,get history(){return {length:hist.length,at:histAt}}};
+window.__tt={S,render,renderNow,get L(){return L},exportGeometry,draw,get cards(){return cards},get sharedStyle(){return sharedStyle},get active(){return active},batchNames,zipStem,crc32,buildZip,undo:undoStep,redo:redoStep,get history(){return {length:hist.length,at:histAt}},get view(){return {...viewState}}};
 </script>
 </body>
 </html>
