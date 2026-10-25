@@ -39,6 +39,10 @@ OpenTitlecard fixes each of those. Emoji are handled as an empty, correctly-size
 - **Undo and redo.** **Ctrl+Z** / **Ctrl+Shift+Z** (or **Ctrl+Y**; **⌘Z** / **⌘⇧Z** on a Mac), or the buttons above the preview, step back and forward through text, colors, styles, nudges and card changes, including *New batch* and *Open batch file…*. A burst of typing or one slider drag is a single step. The last 100 steps are kept while the page is open.
 - **Presets.** Save a style (font, colors, sizes) per client and export/import it as JSON. Mark one as the **default** (★) and the app starts with it the first time it opens (before any settings are saved); after that your last-used settings come back, and **Load** returns to any preset.
 
+## Layout
+
+The design controls (text, line nudge, font, background, emoji slot, presets) are on the left. **Cards**, **Canvas** and **Export** float on the right of the preview: click a panel's title to minimize it, or use **Panels** in the toolbar to hide them all and give the preview the whole width. The app remembers how you left them.
+
 ## Quick start
 
 1. Open the live app, or download [`index.html`](index.html) and open it in **Chrome or Edge**.
