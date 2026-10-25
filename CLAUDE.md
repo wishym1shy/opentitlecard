@@ -11,6 +11,15 @@ Read this first. It describes the app, the rules for changing it, and how to wor
 - `LICENSE` is MIT.
 - **Name:** the project was called `opentok-titlecard` until the rename. Storage keys are `opentitlecard.*`; `index.html` copies any old `opentok.*` values over once (see `migrateOldKeys`). Keep that migration. "OpenTok" is an unrelated, established product, so don't reintroduce the name.
 
+## Product context (why it is built this way)
+
+- **Who it is for:** video editors who need TikTok-style titlecards (white rounded box, bold text, per-line boxes) as a transparent PNG without buying plugins. The workflow target is editors staying inside Premiere Pro; the PNG also works in After Effects, DaVinci Resolve, CapCut and anything else that reads PNGs.
+- **Static PNG only.** No animation, pop-ins or video export. Animated templates are a separate, later project (a MOGRT). A MOGRT is a zip of an After Effects project with expression logic and cannot be generated from this HTML app, so don't try to emit one here.
+- **Emoji are empty slots, never drawn.** Adobe's text engine can't render colour emoji fonts (they come out hollow and black-and-white), and Apple's emoji artwork is copyrighted and can't be bundled. The editor pastes the real iOS emoji on top in their editor. The slot reserves exactly the right space, and the **Emoji slot** panel gives its size and Position values. Don't "helpfully" draw emoji.
+- **Default font is Linik Sans Bold**, but it must stay swappable (installed fonts or a loaded file) because clients bring their own. Fonts are never bundled; if the selected family isn't installed the app says so.
+- **Per-word colour and italic are the headline features** that existing templates lack (they colour the whole text block only).
+- **Keep the repo neutral.** This is a public, general-purpose open-source tool. Don't put any employer, studio or client names, internal paths, sample client copy or branding in code, tests, docs, commit messages or PRs.
+
 ## Git and PR rules (important)
 
 Tooling note: in Claude Code web sessions `gh pr create` fails because GraphQL is blocked. Open PRs with the REST API instead: `gh api repos/wishym1shy/opentitlecard/pulls --input pr.json` (JSON with `title`, `head`, `base`, `body`).
@@ -42,6 +51,8 @@ GitHub Actions (`.github/workflows/ci.yml`) runs the Playwright suite in headles
 - **`draw()`** paints from the layout at any scale. Preview and export use the same function, so they match. Geometry is computed in units and multiplied by `u`; shadows and letter-spacing are set in device pixels.
 - **`roundedUnion()`** builds the outline of the overlapping per-line rectangles and rounds every corner (convex and concave) with `arcTo`.
 - **Emoji** are detected with `Intl.Segmenter` plus a regex (`Emoji_Presentation`, VS16, regional indicators, keycaps, ZWJ). `™ © # 1` stay text. Emoji are never drawn, only reserved as slots.
+- **`italicShift()`** fixes a slanted word looking too close to the next word and too far from the previous one: a slanted glyph keeps its baseline but leans right as it rises. It measures how far the ink of a fixed reference glyph (`H`) moves when italic, and `layout()` shifts every italic run left by that amount (run `x` and word boxes, so highlight and click targets match what is drawn). A fixed glyph is deliberate: measuring each word's own ink overshoots on words with tall letters such as `Titlecard`.
+- **Nudge controls:** `S.nudges[i] = {x,y}` is the single source of truth. Each line row has three controls per axis (slider resting at 0, a draggable X/Y scrub label, and a number field) and all read and write it through `setNudge()`. The slider covers +-200, the number field accepts any value, and `syncNudgeRows()` keeps them in step. Number inputs carry `data-i`/`data-a`; sliders and labels use `data-slider`/`data-scrub` plus `data-line`, so the two kinds of selector never collide. Alt-drag in the preview writes the same state.
 - **Text edits** use a diff against the old text, biased by the caret, to keep the color/italic arrays aligned.
 
 ## Calibration (do not change defaults casually)
@@ -54,6 +65,8 @@ Box geometry was measured from real reference cards, in em of font size:
 - each line's box overlaps its neighbours; steps out at the lower line's top, steps in at the upper line's bottom
 
 If you change geometry, re-measure against reference images (alpha channel) and show the numbers in the PR description.
+
+**The reference cards are not in this repo** (they are third-party material). Before changing any calibration number, ask the maintainer for fresh reference images and measure those. Don't tune geometry by eye or from the app's own output, and don't treat "the tests pass" as proof the look is right: the tests check rules, not fidelity to the originals.
 
 ## Rules for contributions
 
@@ -74,6 +87,22 @@ npx playwright test --grep "descender"      # a subset
 ```
 
 Before proposing a change: run the suite, and for geometry changes also render the reference texts and measure box edges from the alpha channel (see Calibration). Report what you verified and anything you couldn't (e.g. a font that isn't installed in the test environment).
+
+## Working in a Claude Code web sandbox (quirks to expect)
+
+- **GitHub access is per session.** If `gh` returns "GitHub access to this repository is not enabled", attach the repo with `add_repo` (use `access: "push"`), and only clone once. GraphQL (`gh pr create`) and org-wide search are blocked; use REST (`gh api repos/wishym1shy/opentitlecard/...`). Some paths, such as the Pages settings API, are blocked too, so ask the maintainer to check those in the web UI.
+- **Don't `sleep`.** Foreground `sleep` is blocked. To wait for CI, poll in a loop, e.g. until `gh api repos/wishym1shy/opentitlecard/commits/$SHA/check-runs` reports every run completed.
+- **Single-branch clones:** the clone may fetch only `main`. After creating a branch, add a matching `remote.origin.fetch` refspec so the session's stop hook can see the remote branch, and push every branch before ending a turn (the hook flags unpushed commits).
+- **Untracked `node_modules`:** a branch that predates `.gitignore` shows it as untracked; put `node_modules/`, `test-results/` and `playwright-report/` in `.git/info/exclude` locally instead of committing anything.
+- **Playwright browsers** are pre-installed (`/opt/pw-browsers`); don't run `playwright install` there. Run the suite with `npm test`.
+- **Check, don't assume, that PRs merge cleanly.** Before saying two branches are independent, run `git merge-tree --write-tree --name-only A B` (or merge them in a throwaway branch and run the suite). Conflicts have happened in `CLAUDE.md` and `tests/app.spec.js` because several PRs touch the same lines.
+- **Prove tests can fail.** For every new test, break the code on purpose (a mutant), watch that test fail, then restore. A test that has never been seen to fail proves little.
+- **Unique element ids.** A duplicate `id` once broke the preview-background buttons silently; there is a regression test, but keep ids unique when adding controls.
+
+## Known gaps and backlog
+
+- Unverified things (Linik Sans, touch, screen readers, Premiere end to end, real italic faces, a real pre-rename browser profile) are tracked in issue #11. Don't claim any of them as verified until its box is ticked.
+- Repo settings and housekeeping that only the maintainer can do (branch protection, About text and topics, Pages check, retiring the older local copy) are tracked in issue #12. Claude never changes repo settings, merges, or approves.
 
 ## Working with the maintainer
 
