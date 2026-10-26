@@ -93,6 +93,18 @@
   .nudge input[type=range]{margin:0;position:relative}
   .nudge input:focus-visible,.nudge .scrub:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
   .fontbox{margin-top:10px;padding-top:2px;border-top:1px dashed var(--line)}
+  /* Missing-font warning: a ⚠ inside the family box, with its message in a pop-out (top layer, so it can spill over
+     the canvas) pointing back at it. */
+  .famwrap{position:relative}
+  .famwrap:has(#fontWarn:not([hidden])) #family{padding-right:32px;border-color:#6b3028}
+  #fontWarn{position:absolute;right:3px;top:50%;transform:translateY(-50%);display:inline-flex;align-items:center;justify-content:center;width:26px;height:24px;padding:0;background:none;border:0;color:var(--warn);cursor:help}
+  #fontWarn[hidden]{display:none}
+  #fontWarn:hover{background:#2a1714}
+  #fontWarn:focus-visible{outline:2px solid var(--warn);outline-offset:-1px}
+  #fontWarn svg{width:16px;height:16px}
+  #fontWarnMsg{inset:auto;margin:0;width:300px;padding:9px 11px;overflow:visible;background:#2a1714;border:1px solid #6b3028;border-radius:8px;color:#ffb3a8;font-size:12px;line-height:1.45;box-shadow:0 10px 30px #000a;transition:opacity .4s}
+  #fontWarnMsg:before{content:"";position:absolute;left:-6px;top:var(--arrow,50%);width:10px;height:10px;margin-top:-5px;background:inherit;border:1px solid #6b3028;border-width:0 0 1px 1px;transform:rotate(45deg)}
+  #fontWarnMsg.fade{opacity:0}
   .slotrow{font-variant-numeric:tabular-nums;font-size:12px;padding:4px 0;border-bottom:1px dashed var(--line);display:flex;gap:8px;align-items:center}
   .slotrow code{color:var(--accent);background:#14161b;padding:1px 6px;border-radius:4px}
   .toolbar{display:flex;gap:8px;align-items:center;padding:8px 14px;border-bottom:1px solid var(--line);background:var(--panel);flex-wrap:wrap}
@@ -166,7 +178,7 @@
 </head>
 <body>
 <header>
-  <h1>OpenTitlecard <a id="appVersion" href="https://github.com/wishym1shy/opentitlecard/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer" title="What's new in this version (changelog on GitHub)">v1.34</a></h1>
+  <h1>OpenTitlecard <a id="appVersion" href="https://github.com/wishym1shy/opentitlecard/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer" title="What's new in this version (changelog on GitHub)">v1.35</a></h1>
   <a class="gh" href="https://github.com/wishym1shy/opentitlecard" target="_blank" rel="noopener noreferrer" title="View the source on GitHub">
     <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
     <span>View on GitHub</span>
@@ -199,7 +211,11 @@
       <!-- The font settings touched on almost every job live here; the rest of the look is under Titlecard Properties. -->
       <div class="fontbox">
         <label for="family">Font family</label>
-        <input type="text" id="family" list="fontlist" autocomplete="off">
+        <div class="famwrap">
+          <input type="text" id="family" list="fontlist" autocomplete="off">
+          <button type="button" id="fontWarn" aria-label="This font isn't loaded" aria-describedby="fontWarnMsg" hidden><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.8 15 14H1z" fill="currentColor"/><path d="M8 6v3.8" stroke="#2a1714" stroke-width="1.6" stroke-linecap="round"/><circle cx="8" cy="11.9" r=".95" fill="#2a1714"/></svg></button>
+        </div>
+        <div id="fontWarnMsg" role="status" popover="manual"></div>
         <datalist id="fontlist"></datalist>
         <div class="row" style="margin-top:6px">
           <button id="loadInstalled" class="sm">Installed fonts…</button>
@@ -662,18 +678,67 @@ const fontStr = (it,px) => `${it?'italic ':''}${S.weight} ${px}px ${fontStack(S.
 const fontReady = () => fontAvailable(S.family, S.weight);
 // Stretch/squish factors. Clamped here too, so a hand-edited preset can't mirror the text (negative) or flatten it to 0.
 const stretch = () => ({sx:clamp(S.stretchX,50,200)/100, sy:clamp(S.stretchY,50,200)/100});
+/* Missing-font warning. While the family in the box isn't usable, a ⚠ sits inside the box. Its message pops out to the
+   right on its own whenever a new family goes missing (on boot too), then fades: WARN_HOVER_MS after the pointer leaves
+   it, or WARN_IDLE_MS after the first click, key or scroll somewhere else. Hovering or focusing the ⚠ shows it again,
+   and both go away as soon as the font is usable. */
+const WARN_HOVER_MS=3000, WARN_IDLE_MS=7000, WARN_FADE_MS=400;
+const warnBtn=$('#fontWarn'), warnMsg=$('#fontWarnMsg');
+let warnKey=null, warnTimer=0, warnTimerKind='', warnHover=false;
+const warnOpen = () => warnMsg.matches(':popover-open');
+function setWarnTimer(kind,ms,fn){ clearTimeout(warnTimer); warnTimerKind=kind; warnTimer=setTimeout(()=>{ warnTimerKind=''; fn(); },ms); }
+function placeFontWarn(){
+  const r=warnBtn.getBoundingClientRect(), h=warnMsg.offsetHeight, mid=r.top+r.height/2;
+  const top=clamp(mid-h/2,4,Math.max(4,innerHeight-h-4));
+  warnMsg.style.left=(r.right+12)+'px'; warnMsg.style.top=top+'px';
+  warnMsg.style.setProperty('--arrow',clamp(mid-top,12,h-12)+'px');   // the arrow keeps pointing at the ⚠ when clamped
+}
+function showFontWarn(){
+  clearTimeout(warnTimer); warnTimerKind='';
+  warnMsg.classList.remove('fade');
+  if(!warnOpen()) warnMsg.showPopover();
+  placeFontWarn();
+}
+function fadeFontWarn(){
+  if(!warnOpen()) return;
+  warnMsg.classList.add('fade');
+  setWarnTimer('hide',WARN_FADE_MS,()=>{ if(warnOpen()) warnMsg.hidePopover(); warnMsg.classList.remove('fade'); });
+}
+function hideFontWarn(){
+  clearTimeout(warnTimer); warnTimerKind=''; warnBtn.hidden=true; warnHover=false;
+  if(warnOpen()) warnMsg.hidePopover();
+  warnMsg.classList.remove('fade');
+}
+for(const el of [warnBtn,warnMsg]){
+  el.addEventListener('mouseenter',()=>{ warnHover=true; showFontWarn(); });
+  el.addEventListener('mouseleave',()=>{ warnHover=false; setWarnTimer('hover',WARN_HOVER_MS,fadeFontWarn); });
+}
+warnBtn.addEventListener('focus',showFontWarn);
+warnBtn.addEventListener('click',showFontWarn);   // touch has no hover
+warnBtn.addEventListener('blur',()=>{ if(!warnHover) setWarnTimer('hover',WARN_HOVER_MS,fadeFontWarn); });
+// The first action elsewhere starts the idle countdown; later ones don't restart it, and a hover countdown wins.
+for(const t of ['pointerdown','keydown','wheel']) document.addEventListener(t,e=>{
+  if(!warnOpen() || warnHover || warnTimerKind || warnBtn.contains(e.target) || warnMsg.contains(e.target)) return;
+  setWarnTimer('idle',WARN_IDLE_MS,fadeFontWarn);
+},{capture:true,passive:true});
+addEventListener('resize',()=>{ if(warnOpen()) placeFontWarn(); });
+$('aside').addEventListener('scroll',()=>{ if(warnOpen()) placeFontWarn(); });
+function updateFontWarn(ok){
+  if(ok){ if(warnKey!==null){ warnKey=null; hideFontWarn(); } return; }
+  const key=S.family+'\u0001'+S.weight; if(key===warnKey) return;
+  warnKey=key;
+  // the family can come from a preset or batch file, so it goes in as text, never as HTML
+  const b=document.createElement('b'); b.textContent=`“${S.family}” isn't installed or loaded`;
+  warnMsg.replaceChildren(b, ', so the preview and export use a fallback font. Install it, load the font file, or pick another family before exporting.');
+  warnBtn.hidden=false;
+  if(!document.querySelector('dialog[open]')) showFontWarn();   // never pop over an open dialog; the ⚠ is enough there
+}
 function updateFontChip(){
   const ok = fontReady();
-  const chip=$('#fontChip'), ban=$('#banner');
+  const chip=$('#fontChip');
   chip.className = ok?'ok':'bad';
   chip.textContent = ok ? `✓ ${S.family} ${S.weight}` : `⚠ “${S.family}” not found`;
-  if(ok){ ban.style.display='none'; }
-  else {
-    ban.style.display='block';
-    // the family can come from a preset or batch file, so it goes in as text, never as HTML
-    const b=document.createElement('b'); b.textContent=`“${S.family}” isn't installed on this computer`;
-    ban.replaceChildren(b, ', so the preview and export use a fallback font. Install it, load the font file, or pick another family before exporting.');
-  }
+  updateFontWarn(ok);
   return ok;
 }
 

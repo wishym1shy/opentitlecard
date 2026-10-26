@@ -42,7 +42,7 @@ test.describe('bundled default font (Inter)', () => {
     expect(await page.evaluate(() => ({ family: __tt.S.family, weight: __tt.S.weight }))).toEqual({ family: 'Inter', weight: 700 });
     await expect(page.locator('#fontChip')).toHaveClass(/ok/);
     await expect(page.locator('#fontChip')).toContainText('Inter 700');
-    await expect(page.locator('#banner')).toBeHidden();
+    await expect(page.locator('#fontWarn')).toBeHidden();
     await expect(page.locator('#export')).toHaveText('Download PNG');
     expect(requests.filter((u) => !/^(file|data|blob):/.test(u)), 'no network requests').toEqual([]);
     expect(errors).toEqual([]);
@@ -55,7 +55,7 @@ test.describe('bundled default font (Inter)', () => {
       const load = FontFace.prototype.load;
       FontFace.prototype.load = function () { return new Promise((r) => setTimeout(r, 600)).then(() => load.call(this)); };
       window.__bannerSeen = false;
-      const t = () => { const b = document.querySelector('#banner'); if (b && getComputedStyle(b).display !== 'none') window.__bannerSeen = true; if (performance.now() < 2500) requestAnimationFrame(t); };
+      const t = () => { const b = document.querySelector('#fontWarn'); if (b && !b.hidden) window.__bannerSeen = true; if (performance.now() < 2500) requestAnimationFrame(t); };
       requestAnimationFrame(t);
     }));
     await bundledLoaded(page);
@@ -138,7 +138,7 @@ test.describe('bundled default font (Inter)', () => {
     await expect(page.locator('#fontChip')).toHaveClass(/ok/);
     await page.fill('#family', 'Definitely Not An Installed Font 12345');
     await expect(page.locator('#fontChip')).toHaveClass(/bad/);
-    await expect(page.locator('#banner')).toContainText("isn't installed");
+    await expect(page.locator('#fontWarnMsg')).toContainText("isn't installed");
     await context.close();
   });
 
@@ -149,8 +149,8 @@ test.describe('bundled default font (Inter)', () => {
       window.FontFace.prototype = Orig.prototype;
     }));
     await expect(page.locator('#fontChip')).toHaveClass(/bad/);
-    await expect(page.locator('#banner')).toBeVisible();
-    await expect(page.locator('#banner')).toContainText('Inter');
+    await expect(page.locator('#fontWarn')).toBeVisible();
+    await expect(page.locator('#fontWarnMsg')).toContainText('Inter');
     await expect(page.locator('#export')).toContainText('fallback font');
     await context.close();
   });
