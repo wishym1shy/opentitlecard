@@ -45,7 +45,7 @@ test.describe('save and open a batch file', () => {
     expect(filename).toBe('titlecard-set.json');
     expect(json).toMatchObject({ app: 'opentitlecard', type: 'batch', v: 1, active: 1 });
     expect(json.cards.map((c) => c.t)).toEqual(['Alpha beta', 'Second card', 'Third']);
-    expect(json.cards[0].c).toEqual({ 0: '#ff2d2d', 1: '#ff2d2d', 2: '#ff2d2d', 3: '#ff2d2d', 4: '#ff2d2d' });
+    expect(json.cards[0].c).toEqual({ 0: '#cf0202', 1: '#cf0202', 2: '#cf0202', 3: '#cf0202', 4: '#cf0202' });
     expect(json.cards[0].n).toEqual([{ x: 12, y: 0 }]);
     expect(json.cards[1].s.size).toBe(60);
     expect(json.cards[2].s).toBeUndefined();

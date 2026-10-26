@@ -128,7 +128,7 @@ test.describe('PNG export', () => {
   test('colour and italic make it into the export (coloured pixels exist)', async ({ app: { page } }) => {
     await setText(page, 'Big NEWS today');
     await page.evaluate(() => { const t = document.querySelector('#text'); t.focus(); t.setSelectionRange(6, 6); });
-    await page.click('#swatches .sw:nth-child(6)'); // Green #0acc09
+    await page.click('#swatches .sw:nth-child(4)'); // Green #02cf02
     const { buffer } = await exportPng(page);
     const hasGreen = await page.evaluate(async (b64) => {
       const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
