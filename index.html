@@ -105,6 +105,11 @@
   #fontWarnMsg{inset:auto;margin:0;width:300px;padding:9px 11px;overflow:visible;background:#2a1714;border:1px solid #6b3028;border-radius:8px;color:#ffb3a8;font-size:12px;line-height:1.45;box-shadow:0 10px 30px #000a;transition:opacity .4s}
   #fontWarnMsg:before{content:"";position:absolute;left:-6px;top:var(--arrow,50%);width:10px;height:10px;margin-top:-5px;background:inherit;border:1px solid #6b3028;border-width:0 0 1px 1px;transform:rotate(45deg)}
   #fontWarnMsg.fade{opacity:0}
+  #fontWarnText{margin:0}
+  #fontReset{margin-top:8px;padding:4px 10px;font-size:12px;background:#3a1d18;border-color:#6b3028;color:#ffd2ca}
+  #fontReset:hover{background:#4a241d;border-color:var(--warn)}
+  button.linkish{padding:0;border:0;background:none;color:var(--accent);font-size:inherit;text-decoration:underline;cursor:pointer}
+  button.linkish:hover{background:none;color:var(--text)}
   .slotrow{font-variant-numeric:tabular-nums;font-size:12px;padding:4px 0;border-bottom:1px dashed var(--line);display:flex;gap:8px;align-items:center}
   .slotrow code{color:var(--accent);background:#14161b;padding:1px 6px;border-radius:4px}
   .toolbar{display:flex;gap:8px;align-items:center;padding:8px 14px;border-bottom:1px solid var(--line);background:var(--panel);flex-wrap:wrap}
@@ -178,7 +183,7 @@
 </head>
 <body>
 <header>
-  <h1>OpenTitlecard <a id="appVersion" href="https://github.com/wishym1shy/opentitlecard/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer" title="What's new in this version (changelog on GitHub)">v1.37</a></h1>
+  <h1>OpenTitlecard <a id="appVersion" href="https://github.com/wishym1shy/opentitlecard/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer" title="What's new in this version (changelog on GitHub)">v1.38</a></h1>
   <a class="gh" href="https://github.com/wishym1shy/opentitlecard" target="_blank" rel="noopener noreferrer" title="View the source on GitHub">
     <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
     <span>View on GitHub</span>
@@ -215,13 +220,14 @@
           <input type="text" id="family" list="fontlist" autocomplete="off">
           <button type="button" id="fontWarn" aria-label="This font isn't loaded" aria-describedby="fontWarnMsg" hidden><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.8 15 14H1z" fill="currentColor"/><path d="M8 6v3.8" stroke="#2a1714" stroke-width="1.6" stroke-linecap="round"/><circle cx="8" cy="11.9" r=".95" fill="#2a1714"/></svg></button>
         </div>
-        <div id="fontWarnMsg" role="status" popover="manual"></div>
+        <div id="fontWarnMsg" role="status" popover="manual"><p id="fontWarnText"></p><button type="button" id="fontReset">Reset to Inter (default)</button></div>
         <datalist id="fontlist"></datalist>
         <div class="row" style="margin-top:6px">
           <button id="loadInstalled" class="sm">Installed fonts…</button>
           <button id="loadFile" class="sm">Load font file…</button>
           <input type="file" id="fontFile" accept=".ttf,.otf,.woff,.woff2" hidden>
         </div>
+        <div class="hint" id="fontMem" hidden><span id="fontMemText"></span> · <button type="button" id="fontForget" class="linkish">Forget them</button></div>
         <label for="weight">Weight</label>
         <select id="weight"><option value="400">Regular 400</option><option value="500">Medium 500</option><option value="600">Semibold 600</option><option value="700">Bold 700</option><option value="800">Extra Bold 800</option><option value="900">Black 900</option></select>
         <label for="size">Size <span class="val" id="v_size"></span></label><input type="range" id="size" min="30" max="260" step="1">
@@ -663,9 +669,11 @@ function fontInstalled(fam, weight){
 const BUNDLED_FAMILY='OpenTitlecard Inter';
 const isInter = f => /^inter$/i.test((f||'').trim());
 let bundledState='pending';   // 'pending' while the embedded font loads, then 'ready' or 'failed'
+let rememberedState='pending';   // 'pending' until the fonts remembered from earlier visits are loaded (see "remembered fonts"), then 'done'
 const fontStack = fam => `${JSON.stringify(fam)}, ${isInter(fam)?JSON.stringify(BUNDLED_FAMILY)+', ':''}"Helvetica Neue", Arial, sans-serif`;
 // "Pending" counts as available so the warning doesn't flash for the few milliseconds the embedded font takes to load.
-const fontAvailable = (fam,weight) => fontInstalled(fam,weight) || loadedFaces.has(fam) || (isInter(fam) && bundledState!=='failed');
+// While the remembered fonts load at startup every family counts as usable, so the ⚠ doesn't flash for one about to arrive.
+const fontAvailable = (fam,weight) => fontInstalled(fam,weight) || loadedFaces.has(fam) || (isInter(fam) && bundledState!=='failed') || rememberedState==='pending';
 async function loadBundledInter(){
   try{
     const bin=atob($('#interFont').textContent.trim()), bytes=new Uint8Array(bin.length);
@@ -683,7 +691,7 @@ const stretch = () => ({sx:clamp(S.stretchX,50,200)/100, sy:clamp(S.stretchY,50,
    right on its own whenever a new family goes missing (on boot too), then fades: WARN_HOVER_MS after the pointer leaves
    it, or WARN_IDLE_MS after the first click, key or scroll somewhere else. Hovering or focusing the ⚠ shows it again,
    and both go away as soon as the font is usable. */
-const WARN_HOVER_MS=3000, WARN_IDLE_MS=7000, WARN_FADE_MS=400;
+const WARN_HOVER_MS=2000, WARN_IDLE_MS=5000, WARN_FADE_MS=400;
 const warnBtn=$('#fontWarn'), warnMsg=$('#fontWarnMsg');
 let warnKey=null, warnTimer=0, warnTimerKind='', warnHover=false;
 const warnOpen = () => warnMsg.matches(':popover-open');
@@ -730,7 +738,7 @@ function updateFontWarn(ok){
   warnKey=key;
   // the family can come from a preset or batch file, so it goes in as text, never as HTML
   const b=document.createElement('b'); b.textContent=`“${S.family}” isn't installed or loaded`;
-  warnMsg.replaceChildren(b, ', so the preview and export use a fallback font. Install it, load the font file, or pick another family before exporting.');
+  $('#fontWarnText').replaceChildren(b, ', so the preview and export use a fallback font. Install it, load the font file, or go back to the default.');
   warnBtn.hidden=false;
   if(!document.querySelector('dialog[open]')) showFontWarn();   // never pop over an open dialog; the ⚠ is enough there
 }
@@ -1554,7 +1562,7 @@ $('#loadInstalled').addEventListener('click',async()=>{
   if(!window.queryLocalFonts){ alert('This browser cannot list installed fonts. Use Chrome or Edge, or just type the family name.'); return; }
   try{
     const faces=await window.queryLocalFonts(); const fams=[...new Set(faces.map(f=>f.family))].sort((a,b)=>a.localeCompare(b));
-    $('#fontlist').innerHTML=fams.map(f=>`<option value="${f.replace(/"/g,'&quot;')}">`).join('');
+    installedFams=fams; fillFontList();
     $('#banner').style.display='block'; $('#banner').style.background='#14231c'; $('#banner').style.borderColor='#24553f'; $('#banner').style.color='#9ee8c4';
     $('#banner').textContent=`${fams.length} installed font families loaded into the family box — start typing to search.`;
     setTimeout(()=>{ $('#banner').removeAttribute('style'); render(); },4500);
@@ -1565,11 +1573,80 @@ $('#fontFile').addEventListener('change',async e=>{
   const f=e.target.files[0]; if(!f) return;
   const name=f.name.replace(/\.[^.]+$/,'').replace(/[^\w\- ]/g,'');
   try{
-    const face=new FontFace(name,await f.arrayBuffer(),{weight:'1 1000'}); await face.load(); document.fonts.add(face);
+    const data=await f.arrayBuffer();
+    const face=new FontFace(name,data,{weight:'1 1000'}); await face.load(); document.fonts.add(face);
     loadedFaces.add(name); S.family=name; syncControls(); persistStyle(); record(); nudgeSig=''; render();
+    rememberFont(name,data,f.name);
   }catch(err){ alert('Could not load that font file: '+err.message); }
   e.target.value='';
 });
+// Back to the default font, so the family box and the preview agree again (offered in the missing-font warning).
+$('#fontReset').addEventListener('click',()=>{
+  S.family=DEFAULTS.family; syncControls(); persistStyle(); record(); nudgeSig=''; render();
+});
+
+/* ============ remembered fonts ============ */
+/* A font loaded from a file is kept in this browser's IndexedDB: a copy of the file, on this computer only (nothing is
+   uploaded), so it is back on the next visit and the original file can be moved or deleted. localStorage is too small
+   for font files. At startup loadRememberedFonts() registers them all; until it finishes rememberedState is 'pending'
+   (see fontAvailable). Without IndexedDB (a private window, blocked or cleared storage) nothing is remembered and the
+   app works as before; the ⚠ then offers the way back to the default. */
+const FONT_DB='opentitlecard', FONT_STORE='fonts', MAX_REMEMBERED=30, MAX_FONT_BYTES=30e6;
+let remembered=[];   // family names kept in the browser
+function fontStore(mode,fn){
+  return new Promise((res,rej)=>{
+    const open=indexedDB.open(FONT_DB,1);
+    open.onupgradeneeded=()=>open.result.createObjectStore(FONT_STORE,{keyPath:'family'});
+    open.onerror=()=>rej(open.error); open.onblocked=()=>rej(new Error('blocked'));
+    open.onsuccess=()=>{
+      const db=open.result, tx=db.transaction(FONT_STORE,mode), req=fn(tx.objectStore(FONT_STORE));
+      tx.oncomplete=()=>{ db.close(); res(req&&req.result); };
+      tx.onerror=tx.onabort=()=>{ db.close(); rej(tx.error); };
+    };
+  });
+}
+async function rememberFont(family,data,file){
+  if(data.byteLength>MAX_FONT_BYTES) return;
+  try{
+    await fontStore('readwrite',st=>{
+      st.put({family,data,file,added:Date.now()});
+      // keep the newest MAX_REMEMBERED: drop the oldest beyond that
+      const all=st.getAll(); all.onsuccess=()=>all.result.sort((a,b)=>b.added-a.added).slice(MAX_REMEMBERED).forEach(r=>st.delete(r.family));
+    });
+    if(!remembered.includes(family)) remembered.push(family);
+  }catch(e){}
+  showRemembered();
+}
+async function loadRememberedFonts(){
+  try{
+    const recs=await fontStore('readonly',st=>st.getAll())||[];
+    await Promise.all(recs.map(async r=>{
+      try{ const face=new FontFace(r.family,r.data,{weight:'1 1000'}); await face.load(); document.fonts.add(face); loadedFaces.add(r.family); remembered.push(r.family); }
+      catch(e){}   // a damaged entry is skipped, never fatal
+    }));
+  }catch(e){}
+  rememberedState='done'; showRemembered(); render();
+}
+function showRemembered(){
+  const n=remembered.length;
+  $('#fontMem').hidden=!n;
+  $('#fontMemText').textContent=`${n} loaded font${n===1?'':'s'} remembered on this computer`;
+  fillFontList();
+}
+$('#fontForget').addEventListener('click',async()=>{
+  const ok=await confirmAction({title:'Forget the remembered fonts?',message:'The fonts you loaded from files are removed from this browser. They stay usable until you close this page; after that, load the files again to use them.',ok:'Forget fonts'});
+  if(!ok) return;
+  try{ await fontStore('readwrite',st=>st.clear()); remembered=[]; }catch(e){}
+  showRemembered();
+});
+// The family box suggests the remembered fonts, plus the installed ones once "Installed fonts…" has listed them.
+let installedFams=[];
+function fillFontList(){
+  const fams=[...new Set([...remembered,...installedFams])];
+  $('#fontlist').replaceChildren(...fams.map(f=>{ const o=document.createElement('option'); o.value=f; return o; }));
+}
+if(window.indexedDB) loadRememberedFonts(); else rememberedState='done';
+setTimeout(()=>{ if(rememberedState==='pending'){ rememberedState='done'; render(); } },3000);   // never wait on a stuck store
 
 /* ============ presets ============ */
 function presets(){ return store.get('opentitlecard.presets',{}); }

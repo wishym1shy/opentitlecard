@@ -4,6 +4,15 @@ What changed in OpenTitlecard, newest first. The version is shown next to the ap
 
 Versions are `vMAJOR.MINOR`. Each merged pull request that changes the app adds one to the minor number (v1.31 → v1.32 → …). The changelog started at v1.31: v1.27 stands for everything merged before the UI review that led to v1.28–v1.31 (pull requests up to #31), so the numbers line up with the work done.
 
+## v1.38
+
+### Added
+- **Loaded fonts are remembered.** A font you load with **Load font file…** is kept in your browser on this computer, so it's there the next time you open the app, even if you move or delete the original file. Nothing is uploaded. **Forget them**, under the font buttons, removes them.
+- **Reset to Inter (default)** in the missing-font warning, for when a font isn't here (another computer, cleared browser data, or a preset from someone else). The family box and the preview then show the same font again.
+
+### Changed
+- The missing-font message fades sooner: 2 seconds after you hover it and move away (was 3), or 5 seconds after you start working elsewhere (was 7).
+
 ## v1.37
 
 ### Added
