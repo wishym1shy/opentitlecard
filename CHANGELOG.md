@@ -4,6 +4,13 @@ What changed in OpenTitlecard, newest first. The version is shown next to the ap
 
 Versions are `vMAJOR.MINOR`. Each merged pull request that changes the app adds one to the minor number (v1.31 → v1.32 → …). The changelog started at v1.31: v1.27 stands for everything merged before the UI review that led to v1.28–v1.31 (pull requests up to #31), so the numbers line up with the work done.
 
+## v1.34
+
+### Fixed
+- After clicking a card in the Cards list, holding **Space** and dragging pans the preview again.
+- The **⋮** menu stays next to its button when the window is resized or the panels scroll, opens above the button when there's no room below, and closes when **Tab** moves out of it.
+- The card-position fields in **Export all as ZIP…** are described the same way as in **Position** (px at 1080p).
+
 ## v1.33
 
 ### Changed

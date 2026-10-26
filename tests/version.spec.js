@@ -8,6 +8,7 @@ const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'))
 const changelog = fs.readFileSync(path.join(root, 'CHANGELOG.md'), 'utf8');
 
 test.describe('version', () => {
+  test.use({ expandUi: false }); // only the header is read
   test('package.json, the header and the changelog agree', async ({ app: { page } }) => {
     const m = /^(\d+)\.(\d+)\.0$/.exec(pkg.version);
     expect(m, 'package.json version is MAJOR.MINOR.0').not.toBeNull();

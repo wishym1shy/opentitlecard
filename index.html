@@ -166,7 +166,7 @@
 </head>
 <body>
 <header>
-  <h1>OpenTitlecard <a id="appVersion" href="https://github.com/wishym1shy/opentitlecard/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer" title="What's new in this version (changelog on GitHub)">v1.33</a></h1>
+  <h1>OpenTitlecard <a id="appVersion" href="https://github.com/wishym1shy/opentitlecard/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer" title="What's new in this version (changelog on GitHub)">v1.34</a></h1>
   <a class="gh" href="https://github.com/wishym1shy/opentitlecard" target="_blank" rel="noopener noreferrer" title="View the source on GitHub">
     <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
     <span>View on GitHub</span>
@@ -224,7 +224,7 @@
             <div class="row"><div><label for="offX">X offset</label><input type="number" id="offX"></div><div><label for="offY">Y offset</label><input type="number" id="offY"></div></div>
             <div class="hint">Moves the card inside the canvas, in px at 1080p (+Y is down). The same for every card.</div>
           </div>
-          <div class="hint" id="posTight" style="margin:0">Tight crop is on (Canvas panel), so the PNG is just the card and its position doesn't apply.</div>
+          <div class="hint" id="posTight" style="margin:0" hidden>Tight crop is on (Canvas panel), so the PNG is just the card and its position doesn't apply.</div>
         </div>
       </details>
 
@@ -441,7 +441,7 @@
         <div style="flex:none;align-self:end"><label style="margin:0 0 6px"><input type="checkbox" id="x_tight"> Tight crop</label></div>
       </div>
       <div id="x_tightOpts" style="display:none"><label for="x_exportScale">Export scale <span class="val" id="xv_exportScale"></span></label><input type="range" id="x_exportScale" min="1" max="4" step="0.5"></div>
-      <div id="x_frameOpts"><label>Card position in canvas (X / Y offset, units)</label><div class="row"><input type="number" id="x_offX" aria-label="Card X offset"><input type="number" id="x_offY" aria-label="Card Y offset"></div></div>
+      <div id="x_frameOpts"><label>Card position: X / Y offset (px at 1080p, same as Titlecard Properties › Position)</label><div class="row"><input type="number" id="x_offX" aria-label="Card X offset"><input type="number" id="x_offY" aria-label="Card Y offset"></div></div>
     </div>
     <div class="bsec">
       <label for="dPreset">Style preset for the whole batch</label>
@@ -1001,7 +1001,8 @@ viewEl.addEventListener('wheel',e=>{
 // Space+drag or middle-drag pans. Space only counts when no field or button has the focus, so typing and pressing a
 // focused button with Space work as always.
 let spaceDown=false, panDrag=null;
-const spaceFree = () => { const a=document.activeElement; return !a || a===document.body || a===$('#cv'); };
+// A selected card row counts as free too: Space has nothing to do there, and a click on a card leaves the focus on it.
+const spaceFree = () => { const a=document.activeElement; return !a || a===document.body || a===$('#cv') || !!a.closest('#cardList'); };
 document.addEventListener('keydown',e=>{
   if(e.code==='Space' && spaceFree() && !document.querySelector('dialog[open]')){ e.preventDefault(); if(!spaceDown){ spaceDown=true; viewEl.classList.add('pan'); } }
   if((e.ctrlKey||e.metaKey) && !e.altKey && !document.querySelector('dialog[open]')){
@@ -1397,7 +1398,7 @@ for(const id of ['fw','fh','x_fw','x_fh']) $('#'+id).addEventListener('change',(
   const k=id.replace('x_',''), v=clamp(Math.round(+S[k])||(k==='fw'?1920:1080),64,MAX_SIDE);
   if(v!==S[k]){ S[k]=v; persistStyle(); syncControls(); record(); render(); if(id.startsWith('x_')) fillBatchGrid(); }
 });
-/* Reset buttons: every Font & type and Background slider gets a ↺ that puts it back to the app's default (DEFAULTS, not a
+/* Reset buttons: Size and every Text Settings and Background slider gets a ↺ that puts it back to the app's default (DEFAULTS, not a
    preset: the default preset only applies on a first load). It goes through the slider's own input event, so saving,
    a card's own style and redrawing behave exactly as for a drag. Double-clicking the slider does the same, like the
    nudge sliders. syncControls() greys a button out while its slider is already at the default. */
@@ -1630,8 +1631,10 @@ function renderCards(){
   $('#scope').classList.toggle('own',own[active]);
 }
 // Selecting a card rebuilds the list, which would drop the focus; it moves to the new row so Up/Down keep working.
+// The card already in front (a click on it, or Up/Down at either end) is left alone, so the caret in the text stays put.
 function selectCardInList(i){
-  selectCard(i); renderCards();
+  i=clamp(i,0,cards.length-1);
+  if(i!==active){ selectCard(i); renderCards(); }
   const b=$(`#cardList [data-card="${active}"]`); if(b){ b.focus(); b.scrollIntoView({block:'nearest'}); }
 }
 $('#cardList').addEventListener('click',e=>{ const b=e.target.closest('[data-card]'); if(b) selectCardInList(+b.dataset.card); });
@@ -1715,27 +1718,38 @@ function decodeBatch(raw){
 /* The ⋮ menu (a popover: the browser closes it on Esc or a click elsewhere) holds the batch file actions. It opens under
    its button, lined up on the right, and puts focus on the first item so the keyboard can go straight on. */
 const batchMenu=$('#batchMenu');
-batchMenu.addEventListener('beforetoggle',e=>{
-  if(e.newState!=='open') return;
-  const r=$('#batchMenuBtn').getBoundingClientRect();
-  batchMenu.style.top=(r.bottom+4)+'px'; batchMenu.style.right=(innerWidth-r.right)+'px';
-});
+// Under its button, right edges lined up; above it when there is no room below (a short window). Placed again whenever
+// the button moves (the window resizes or the panels scroll).
+function placeBatchMenu(){
+  const r=$('#batchMenuBtn').getBoundingClientRect(), h=batchMenu.offsetHeight;
+  batchMenu.style.right=(innerWidth-r.right)+'px';
+  batchMenu.style.top=(r.bottom+4+h<=innerHeight ? r.bottom+4 : Math.max(4,r.top-4-h))+'px';
+}
+const batchMenuOpen=()=>batchMenu.matches(':popover-open');
+batchMenu.addEventListener('beforetoggle',e=>{ if(e.newState==='open') placeBatchMenu(); });   // offsetHeight is 0 here: lands below
 batchMenu.addEventListener('toggle',e=>{
   $('#batchMenuBtn').setAttribute('aria-expanded',String(e.newState==='open'));
-  if(e.newState==='open') batchMenu.querySelector('[role=menuitem]').focus();
+  if(e.newState!=='open') return;
+  placeBatchMenu();   // now it has a height, so it can tell whether it fits below
+  batchMenu.querySelector('[role=menuitem]').focus();
 });
+addEventListener('resize',()=>{ if(batchMenuOpen()) placeBatchMenu(); });
+$('#panels').addEventListener('scroll',()=>{ if(batchMenuOpen()) placeBatchMenu(); });
+const closeBatchMenu=()=>{ if(batchMenuOpen()) batchMenu.hidePopover(); };
+// Tab moving the focus out of the menu closes it.
+batchMenu.addEventListener('focusout',e=>{ if(!batchMenu.contains(e.relatedTarget) && e.relatedTarget!==$('#batchMenuBtn')) closeBatchMenu(); });   // the button toggles it itself
 batchMenu.addEventListener('keydown',e=>{
   const d={ArrowUp:-1,ArrowDown:1}[e.key]; if(!d) return;
   e.preventDefault();
   const items=[...batchMenu.querySelectorAll('[role=menuitem]')], i=items.indexOf(document.activeElement);
-  items[(i+d+items.length)%items.length].focus();
+  items[(i+d+items.length)%items.length].focus();   // only an item can have the focus here
 });
-batchMenu.addEventListener('click',e=>{ if(e.target.closest('[role=menuitem]')) batchMenu.hidePopover(); });
+batchMenu.addEventListener('click',e=>{ if(e.target.closest('[role=menuitem]')) closeBatchMenu(); });
 function fileMsg(text,bad){ const m=$('#fileMsg'); m.textContent=text; m.classList.toggle('bad',!!bad); }
 $('#batchSave').addEventListener('click',()=>{
   const json=JSON.stringify(encodeBatch(),null,1);
   download(new Blob([json],{type:'application/json'}),zipStem(store.get('opentitlecard.batch',{}).pattern||'titlecard-{n}')+'-set.json');
-  fileMsg(`Saved ${cards.length} card${cards.length===1?'':'s'} to a file.`);
+  fileMsg(`Saved ${cardsWord(cards.length)} to a file.`);
 });
 $('#batchOpenFile').addEventListener('click',()=>$('#batchFile').click());
 $('#batchFile').addEventListener('change',async e=>{
