@@ -4,6 +4,16 @@ What changed in OpenTitlecard, newest first. The version is shown next to the ap
 
 Versions are `vMAJOR.MINOR`. Each merged pull request that changes the app adds one to the minor number (v1.31 → v1.32 → …). The changelog started at v1.31: v1.27 stands for everything merged before the UI review that led to v1.28–v1.31 (pull requests up to #31), so the numbers line up with the work done.
 
+## v1.39
+
+### Added
+- **Card names.** Every card has a name, like a layer: Titlecard 1, Titlecard 2 and so on, starting with the first card on a fresh page. Double-click a card (or press F2) to rename it. The list shows each name with the card's text under it.
+- **Import with names.** **Add from list** also takes two columns pasted from a spreadsheet, a name and then the text, separated by a tab. Each card is named from the first column. Plain lists (one title per line) work as before, and those cards are named Titlecard N.
+- **PNGs named after the cards.** Use `{name}` in the export file name pattern, or click **Name files after the cards** in the export dialog.
+
+### Changed
+- Batch files now include each card's name. Files saved before names existed open with their cards numbered Titlecard 1, 2…
+
 ## v1.38
 
 ### Added

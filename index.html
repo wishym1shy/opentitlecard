@@ -154,15 +154,20 @@
   .menu button{display:block;width:100%;text-align:left;border:0;background:none;padding:6px 10px;font-size:12px}
   .menu button:hover,.menu button:focus-visible{background:var(--panel2);outline:0}
   .cardlist{display:flex;flex-direction:column;max-height:220px;overflow-y:auto}
-  .cardlist button{display:flex;gap:8px;align-items:baseline;width:100%;text-align:left;padding:6px 8px;font-size:12px;border:0;border-radius:0;border-bottom:1px solid #22252d;background:none}
+  .cardlist button{display:flex;gap:8px;align-items:center;width:100%;text-align:left;padding:5px 8px;font-size:12px;border:0;border-radius:0;border-bottom:1px solid #22252d;background:none}
   .cardlist button:last-child{border-bottom:0}
   .cardlist button:hover{background:#1c1f26}
   .cardlist button.on{background:#22304f;box-shadow:inset 2px 0 var(--accent)}
   .cardlist button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
   .cardlist button b{min-width:14px;color:var(--mute);font-weight:600;font-variant-numeric:tabular-nums}
   .cardlist button.on b{color:var(--text)}
-  .cardlist button .nm{flex:1;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
-  .cardlist button.empty .nm{color:var(--mute);font-style:italic}
+  /* each row: the card's name, and its text (first line) underneath, muted */
+  .cardlist .lbl{flex:1;min-width:0;display:flex;flex-direction:column}
+  .cardlist .cn,.cardlist .nm{overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+  .cardlist .cn{font-weight:600}
+  .cardlist .nm{color:var(--mute);font-size:11px}
+  .cardlist button.empty .nm{font-style:italic}
+  .cardlist input.rename{width:100%;padding:4px 7px;font-size:12px;border-radius:0;border-color:var(--accent)}
   dialog{background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:12px;padding:0;width:min(920px,94vw);max-height:90vh;box-shadow:0 20px 80px #000a}
   dialog::backdrop{background:#000a}
   dialog .dh{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line)}
@@ -183,7 +188,7 @@
 </head>
 <body>
 <header>
-  <h1>OpenTitlecard <a id="appVersion" href="https://github.com/wishym1shy/opentitlecard/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer" title="What's new in this version (changelog on GitHub)">v1.38</a></h1>
+  <h1>OpenTitlecard <a id="appVersion" href="https://github.com/wishym1shy/opentitlecard/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer" title="What's new in this version (changelog on GitHub)">v1.39</a></h1>
   <a class="gh" href="https://github.com/wishym1shy/opentitlecard" target="_blank" rel="noopener noreferrer" title="View the source on GitHub">
     <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
     <span>View on GitHub</span>
@@ -354,6 +359,7 @@
           <div id="listBox" hidden>
             <label for="listText" style="margin-top:0">Paste your titles</label>
             <textarea id="listText" spellcheck="false" placeholder="One card per line"></textarea>
+            <div class="hint" style="margin:2px 0 0">To name the cards too, paste two columns from a spreadsheet: the name, then the text.</div>
             <div class="row" style="margin:6px 0 8px">
               <select id="listMode" aria-label="How the pasted text is split"><option value="line">Each line is a card</option><option value="block">Blank line between cards</option></select>
               <button id="listAdd" class="sm" style="flex:none">Add cards</button>
@@ -445,7 +451,7 @@
       <div><label for="bStart">First number</label><input type="number" id="bStart" min="0" max="99999" step="1"></div>
       <div><label for="bDigits">Digits</label><input type="number" id="bDigits" min="1" max="6" step="1"></div>
     </div>
-    <div class="hint"><code>{n}</code> becomes the card number: <code>ClientA-Vid{n}-TC</code> gives <code>ClientA-Vid1-TC.png</code>, <code>ClientA-Vid2-TC.png</code>… Without <code>{n}</code> the number is added after a dash. Empty cards are skipped and not numbered.</div>
+    <div class="hint"><code>{n}</code> becomes the card number: <code>ClientA-Vid{n}-TC</code> gives <code>ClientA-Vid1-TC.png</code>, <code>ClientA-Vid2-TC.png</code>… <code>{name}</code> becomes the card's name, as in the Cards list. With neither, the number is added after a dash. Empty cards are skipped and not numbered. <button type="button" id="bUseNames" class="linkish">Name files after the cards</button></div>
     <div class="hint" id="bInfo"></div>
     <div class="bsec">
       <div class="row">
@@ -1083,7 +1089,7 @@ viewEl.addEventListener('wheel',e=>{
 // focused button with Space work as always.
 let spaceDown=false, panDrag=null;
 // A selected card row counts as free too: Space has nothing to do there, and a click on a card leaves the focus on it.
-const spaceFree = () => { const a=document.activeElement; return !a || a===document.body || a===$('#cv') || !!a.closest('#cardList'); };
+const spaceFree = () => { const a=document.activeElement; return !a || a===document.body || a===$('#cv') || (!!a.closest('#cardList') && a.tagName!=='INPUT'); };   // not the rename box
 document.addEventListener('keydown',e=>{
   if(e.code==='Space' && spaceFree() && !document.querySelector('dialog[open]')){ e.preventDefault(); if(!spaceDown){ spaceDown=true; viewEl.classList.add('pan'); } }
   if((e.ctrlKey||e.metaKey) && !e.altKey && !document.querySelector('dialog[open]')){
@@ -1754,11 +1760,23 @@ $('#cCancel').addEventListener('click',()=>answerConfirm(false));
    Style settings (font, colors, box, canvas) are shared by all cards: that is what makes a batch consistent. */
 /* A card's `style` is null (it follows `sharedStyle`) or its own copy of the card-level style keys. Whichever applies to
    the active card is what S holds, so the style controls always edit "the card in front of you". */
-const copyCard = c => ({text:c.text, colors:c.colors.slice(), ital:c.ital.slice(), nudges:Array.from(c.nudges,n=>n?{...n}:null), style:c.style?{...c.style}:null});
-const newCard = (text='') => ({text, colors:Array(text.length).fill(null), ital:Array(text.length).fill(0), nudges:[], style:null});
+const copyCard = c => ({name:c.name, text:c.text, colors:c.colors.slice(), ital:c.ital.slice(), nudges:Array.from(c.nudges,n=>n?{...n}:null), style:c.style?{...c.style}:null});
+const newCard = (text='',name=nextCardName()) => ({name, text, colors:Array(text.length).fill(null), ital:Array(text.length).fill(0), nudges:[], style:null});
+/* Card names, like layer names: every new card is "Titlecard N", where N is one more than both the highest such number
+   in the batch and the number of cards already there (so the first card of a fresh page is "Titlecard 1", a card added
+   after five named ones is "Titlecard 6", and no number is reused). A card can be renamed, or named by the first column of a pasted
+   list, and {name} in the export pattern names its PNG. Names travel with the card (undo, batch files). */
+const CARD_NAME_RE=/^Titlecard (\d+)$/, MAX_NAME=120;
+const nextCardName = (list=cards) => `Titlecard ${highestCardNumber(list,list.length)+1}`;
+function highestCardNumber(list,n=0){
+  for(const c of list){ const m=CARD_NAME_RE.exec(c&&c.name||''); if(m) n=Math.max(n,+m[1]); }
+  return n;
+}
+// A name from a list, a file or the rename box: one line, no control characters, not too long; '' when nothing is left.
+const cleanName = v => typeof v==='string' ? v.replace(/[\u0000-\u001f\u007f]+/g,' ').replace(/\s+/g,' ').trim().slice(0,MAX_NAME) : '';
 function stash(){
   const own=!!(cards[active]&&cards[active].style);
-  cards[active]=copyCard({...S,style:own?pickStyle():null});
+  cards[active]=copyCard({...S,name:cards[active]?cards[active].name:nextCardName(),style:own?pickStyle():null});
   if(!own) sharedStyle=pickStyle();
 }
 function adopt(c){
@@ -1783,7 +1801,7 @@ let cardSig='';
 function renderCards(){
   const labels=cards.map((c,i)=>cardLabel(i===active?S.text:c.text));
   const own=cards.map((c,i)=>!!c.style);
-  const sig=active+'\u0001'+labels.join('\u0001')+'\u0001'+own.join(',');
+  const sig=active+'\u0001'+labels.join('\u0001')+'\u0001'+own.join(',')+'\u0001'+cards.map(c=>c.name).join('\u0001');
   if(sig===cardSig) return;
   cardSig=sig;
   const host=$('#cardList'); host.innerHTML='';
@@ -1791,9 +1809,10 @@ function renderCards(){
     const b=document.createElement('button'); b.type='button';
     b.className=(i===active?'on':'')+(t?'':' empty'); b.dataset.card=i;
     if(i===active) b.setAttribute('aria-current','true');
-    const n=document.createElement('b'); n.textContent=i+1;
+    const lbl=document.createElement('span'); lbl.className='lbl';
+    const cn=document.createElement('span'); cn.className='cn'; cn.textContent=cards[i].name;
     const nm=document.createElement('span'); nm.className='nm'; nm.textContent=t||'(empty)';
-    b.append(n,nm);
+    lbl.append(cn,nm); b.append(lbl); b.title='Double-click (or F2) to rename';
     if(own[i]){ const m=document.createElement('span'); m.className='own'; m.textContent='◆'; m.title='Has its own style'; m.setAttribute('aria-label','has its own style'); b.append(m); b.dataset.own='1'; }
     host.appendChild(b);
   });
@@ -1815,14 +1834,39 @@ function selectCardInList(i){
 $('#cardList').addEventListener('click',e=>{ const b=e.target.closest('[data-card]'); if(b) selectCardInList(+b.dataset.card); });
 // Up/Down walk the list like a layers panel.
 $('#cardList').addEventListener('keydown',e=>{
+  if(e.target.matches('input')) return;   // the rename box handles its own keys
+  if(e.key==='F2'){ e.preventDefault(); renameCard(active); return; }
   const d={ArrowUp:-1,ArrowDown:1}[e.key]; if(!d||e.altKey||e.ctrlKey||e.metaKey) return;
   e.preventDefault(); selectCardInList(active+d);
 });
+$('#cardList').addEventListener('dblclick',e=>{ const b=e.target.closest('[data-card]'); if(b) renameCard(+b.dataset.card); });
+/* Rename in place, like a layer: the row becomes a text box. Enter or leaving it keeps the new name (an empty one keeps
+   the old), Esc cancels. */
+function renameCard(i){
+  const row=$(`#cardList [data-card="${i}"]`); if(!row) return;
+  const box=document.createElement('input'); box.type='text'; box.id='cardRename'; box.className='rename';
+  box.value=cards[i].name; box.maxLength=MAX_NAME; box.setAttribute('aria-label','Card name');
+  row.replaceWith(box); box.focus(); box.select();
+  let done=false;
+  const finish=keep=>{
+    if(done) return; done=true;
+    const v=cleanName(box.value);
+    if(keep && v && v!==cards[i].name){ cards[i].name=v; record(); }
+    cardSig=''; renderCards();
+    const r=$(`#cardList [data-card="${i}"]`); if(r) r.focus();
+  };
+  box.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); finish(true); } else if(e.key==='Escape'){ e.preventDefault(); finish(false); } });
+  box.addEventListener('blur',()=>finish(true));
+}
 function insertCard(i,c){ stash(); cards.splice(i,0,c); active=i; adopt(c); record(); cardSig=''; render(); }
 $('#cardAdd').addEventListener('click',()=>{ insertCard(active+1,newCard()); ta.focus(); });
-$('#cardDup').addEventListener('click',()=>{ stash(); insertCard(active+1,copyCard(cards[active])); });
+$('#cardDup').addEventListener('click',()=>{
+  stash(); const c=copyCard(cards[active]);
+  c.name=CARD_NAME_RE.test(c.name)?nextCardName():cleanName(c.name+' copy');   // "Titlecard 4", or "Intro copy"
+  insertCard(active+1,c);
+});
 $('#cardDel').addEventListener('click',()=>{
-  if(cards.length===1){ stash(); const c=newCard(); c.style=cards[0].style; cards[0]=c; adopt(c); record(); cardSig=''; render(); return; }   // clearing keeps the card's style
+  if(cards.length===1){ stash(); const c=newCard('',cards[0].name); c.style=cards[0].style; cards[0]=c; adopt(c); record(); cardSig=''; render(); return; }   // clearing keeps the card's name and style
   stash();   // keeps shared-style edits made on this card: sharedStyle only catches up with S when stashed
   cards.splice(active,1); active=Math.min(active,cards.length-1); adopt(cards[active]); record(); cardSig=''; render();
 });
@@ -1843,13 +1887,23 @@ $('#listToggle').addEventListener('click',()=>{
   const box=$('#listBox'); box.hidden=!box.hidden; $('#listToggle').setAttribute('aria-expanded',String(!box.hidden));
   if(!box.hidden) $('#listText').focus();
 });
+/* One pasted card. Two columns, as pasted from a spreadsheet ("name<Tab>text" on its first line), name the card;
+   without a tab the whole thing is the text and the card gets the next "Titlecard N". */
+function listRow(part){
+  const nl=part.indexOf('\n'), first=nl<0?part:part.slice(0,nl), tab=first.indexOf('\t');
+  if(tab<0) return {name:'',text:part};
+  return {name:cleanName(first.slice(0,tab)), text:(first.slice(tab+1)+(nl<0?'':part.slice(nl))).replace(/\t/g,' ').trim()};
+}
 $('#listAdd').addEventListener('click',()=>{
   const raw=$('#listText').value.replace(/\r\n?/g,'\n').trim(); if(!raw) return;
   const parts=($('#listMode').value==='block'?raw.split(/\n\s*\n/):raw.split('\n')).map(x=>x.trim()).filter(Boolean);
   stash();
   // a lone empty card (a fresh page, or one the user cleared) is replaced by the first pasted title instead of being kept
   if(cards.length===1 && !cards[0].text.trim()) cards.length=0;
-  const at=cards.length; parts.forEach(t=>cards.push(newCard(t)));
+  const at=cards.length, rows=parts.map(listRow);
+  rows.forEach(r=>cards.push(newCard(r.text,r.name||nextCardName())));
+  const named=rows.filter(r=>r.name).length;
+  fileMsg(named?`Added ${cardsWord(rows.length)}, ${named===rows.length?'all':named} named from the first column. Put {name} in the export file name pattern (Export all as ZIP…) to name the PNGs after them.`:`Added ${cardsWord(rows.length)}.`);
   active=at; adopt(cards[active]); $('#listText').value=''; $('#listBox').hidden=true; $('#listToggle').setAttribute('aria-expanded','false'); record(); cardSig=''; render();
 });
 
@@ -1862,7 +1916,7 @@ const BATCH_APP='opentitlecard', MAX_CARDS=500, MAX_TEXT=2000, MAX_FILE=5e6;
 function encodeBatch(){
   stash();
   return {app:BATCH_APP, type:'batch', v:1, active, style:sharedStyle, cards:cards.map(c=>{
-    const o={t:c.text};
+    const o={m:c.name, t:c.text};
     const col={}; c.colors.forEach((h,i)=>{ if(h) col[i]=h; }); if(Object.keys(col).length) o.c=col;
     const it=[]; c.ital.forEach((v,i)=>{ if(v) it.push(i); }); if(it.length) o.i=it;
     let last=c.nudges.length; while(last>0 && !(c.nudges[last-1]&&(c.nudges[last-1].x||c.nudges[last-1].y))) last--;
@@ -1881,13 +1935,15 @@ function decodeBatch(raw){
   const out=raw.cards.slice(0,MAX_CARDS).map(r=>{
     r=r&&typeof r==='object'?r:{};
     const text=typeof r.t==='string'?r.t.slice(0,MAX_TEXT):'';
-    const c=newCard(text);
+    const c=newCard(text,cleanName(r.m));   // files saved before names existed have none: numbered below
     if(r.c&&typeof r.c==='object') for(const k of Object.keys(r.c)){ const i=+k; if(Number.isInteger(i)&&i>=0&&i<text.length&&typeof r.c[k]==='string'&&HEX_RE.test(r.c[k])) c.colors[i]=r.c[k]; }
     if(Array.isArray(r.i)) for(const i of r.i) if(Number.isInteger(i)&&i>=0&&i<text.length) c.ital[i]=1;
     if(Array.isArray(r.n)) c.nudges=r.n.slice(0,200).map(n=>n&&num(n.x)&&num(n.y)?{x:clamp(n.x,-5000,5000),y:clamp(n.y,-5000,5000)}:null);
     if(r.s&&typeof r.s==='object') c.style=cleanStyle(r.s,style);   // keys missing from (or invalid in) the card's style fall back to the batch's shared style
     return c;
   });
+  let n=highestCardNumber(out);   // same rule as nextCardName(), by place in the file and past any number it already uses
+  out.forEach((c,i)=>{ if(!c.name){ n=Math.max(n,i)+1; c.name=`Titlecard ${n}`; } });
   return {cards:out, style, active:clamp(Number.isInteger(raw.active)?raw.active:0,0,out.length-1)};
 }
 /* The ⋮ menu (a popover: the browser closes it on Esc or a click elsewhere) holds the batch file actions. It opens under
@@ -1952,7 +2008,8 @@ function batchHasWork(){
 }
 $('#cardsNew').addEventListener('click',async()=>{
   if(batchHasWork() && !await confirmAction({title:'Start a new batch?',message:`This removes ${cards.length===1?'your card':`all ${cards.length} cards`} from the page. Cards aren't saved anywhere, so use “Save batch to file” first if you want to keep ${cards.length===1?'it':'them'}.`,ok:'Remove cards'})) return;
-  cards=[newCard()]; active=0; adopt(cards[0]); record(); cardSig=''; render(); fileMsg('');
+  // emptied first, so the numbering starts again at Titlecard 1
+  cards=[]; cards=[newCard()]; active=0; adopt(cards[0]); record(); cardSig=''; render(); fileMsg('');
 });
 
 /* ============ undo / redo ============ */
@@ -1996,7 +2053,7 @@ function syncHistoryButtons(){ $('#undo').disabled=histAt<=0; $('#redo').disable
 $('#undo').addEventListener('click',undoStep);
 $('#redo').addEventListener('click',redoStep);
 // Fields whose text isn't part of the design keep the browser's own undo while you type in them.
-const OWN_UNDO=new Set(['presetName','listText','bPattern','bStart','bDigits']);
+const OWN_UNDO=new Set(['presetName','listText','bPattern','bStart','bDigits','cardRename']);
 document.addEventListener('keydown',e=>{
   if(!(e.ctrlKey||e.metaKey)||e.altKey) return;
   const k=e.key.toLowerCase(), redo=(k==='z'&&e.shiftKey)||(k==='y'&&e.ctrlKey&&!e.shiftKey), undo=k==='z'&&!e.shiftKey;
@@ -2012,20 +2069,23 @@ document.addEventListener('keydown',e=>{
    Windows/macOS reject in file names are replaced, and a name used twice gets a "-2", "-3"… suffix. Empty cards are
    skipped and don't use up a number. */
 const safeName = s => s.replace(/[\\/:*?"<>|\u0000-\u001f]/g,'-').replace(/^[\s.]+|[\s.]+$/g,'').slice(0,120);
-function batchNames(pattern,start,digits,count){
-  const tok=/\{n\}/gi, pat=(pattern||'').trim()||'titlecard';
+// {n} is the card's number, {name} its name (cardNames, one per exported card). Both are filled in one pass, so a name
+// that itself contains "{n}" stays as typed. A pattern with neither gets the number after a dash.
+function batchNames(pattern,start,digits,count,cardNames=[]){
+  const tok=/\{(n|name)\}/gi, pat=(pattern||'').trim()||'titlecard';
   const has=tok.test(pat); tok.lastIndex=0;
   const used=new Set(), out=[];
   for(let i=0;i<count;i++){
     const num=String(Math.max(0,Math.floor(+start)||0)+i).padStart(clamp(Math.floor(+digits)||1,1,6),'0');
-    let base=safeName(has?pat.replace(tok,num):`${pat}-${num}`)||`titlecard-${num}`, name=base, k=2;
+    const fill=(m,k)=>k.toLowerCase()==='n'?num:(cardNames[i]||`titlecard-${num}`);
+    let base=safeName(has?pat.replace(tok,fill):`${pat}-${num}`)||`titlecard-${num}`, name=base, k=2;
     while(used.has(name.toLowerCase())) name=`${base}-${k++}`;
     used.add(name.toLowerCase()); out.push(name+'.png');
   }
   return out;
 }
 function zipStem(pattern){
-  const stem=safeName((pattern||'').replace(/\{n\}/gi,'').replace(/([-_ .])[-_ .]+/g,'$1').replace(/^[-_ .]+|[-_ .]+$/g,''));
+  const stem=safeName((pattern||'').replace(/\{(n|name)\}/gi,'').replace(/([-_ .])[-_ .]+/g,'$1').replace(/^[-_ .]+|[-_ .]+$/g,''));
   return stem||'titlecards';
 }
 
@@ -2061,7 +2121,7 @@ const dlg=$('#batchDlg');
 let batchItems=[];   // {idx, empty, fn:Element} per card, in list order
 function batchSettings(){ return {pattern:$('#bPattern').value, start:$('#bStart').value, digits:$('#bDigits').value}; }
 function refreshBatchNames(){
-  const live=batchItems.filter(b=>!b.empty), names=batchNames($('#bPattern').value,$('#bStart').value,$('#bDigits').value,live.length);
+  const live=batchItems.filter(b=>!b.empty), names=batchNames($('#bPattern').value,$('#bStart').value,$('#bDigits').value,live.length,live.map(b=>cards[b.idx].name));
   live.forEach((b,i)=>{ b.fn.textContent=names[i]; });
   batchItems.filter(b=>b.empty).forEach(b=>{ b.fn.textContent='Empty, skipped'; });
   $('#bGo').textContent=live.length?`Download ZIP (${live.length} PNG${live.length===1?'':'s'})`:'Nothing to export';
@@ -2110,10 +2170,11 @@ function openBatch(){
 }
 $('#batchOpen').addEventListener('click',openBatch);
 ['#bPattern','#bStart','#bDigits'].forEach(id=>$(id).addEventListener('input',refreshBatchNames));
+$('#bUseNames').addEventListener('click',()=>{ $('#bPattern').value='{name}'; refreshBatchNames(); });
 $('#bCancel').addEventListener('click',()=>dlg.close());
 $('#bClose').addEventListener('click',()=>dlg.close());
 $('#bGo').addEventListener('click',async()=>{
-  const live=batchItems.filter(b=>!b.empty), names=batchNames($('#bPattern').value,$('#bStart').value,$('#bDigits').value,live.length);
+  const live=batchItems.filter(b=>!b.empty), names=batchNames($('#bPattern').value,$('#bStart').value,$('#bDigits').value,live.length,live.map(b=>cards[b.idx].name));
   const go=$('#bGo'), status=$('#bStatus'); go.disabled=true;
   try{
     const files=[];
