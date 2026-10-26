@@ -1001,7 +1001,8 @@ viewEl.addEventListener('wheel',e=>{
 // Space+drag or middle-drag pans. Space only counts when no field or button has the focus, so typing and pressing a
 // focused button with Space work as always.
 let spaceDown=false, panDrag=null;
-const spaceFree = () => { const a=document.activeElement; return !a || a===document.body || a===$('#cv'); };
+// A selected card row counts as free too: Space has nothing to do there, and a click on a card leaves the focus on it.
+const spaceFree = () => { const a=document.activeElement; return !a || a===document.body || a===$('#cv') || !!a.closest('#cardList'); };
 document.addEventListener('keydown',e=>{
   if(e.code==='Space' && spaceFree() && !document.querySelector('dialog[open]')){ e.preventDefault(); if(!spaceDown){ spaceDown=true; viewEl.classList.add('pan'); } }
   if((e.ctrlKey||e.metaKey) && !e.altKey && !document.querySelector('dialog[open]')){
@@ -1630,8 +1631,10 @@ function renderCards(){
   $('#scope').classList.toggle('own',own[active]);
 }
 // Selecting a card rebuilds the list, which would drop the focus; it moves to the new row so Up/Down keep working.
+// The card already in front (a click on it, or Up/Down at either end) is left alone, so the caret in the text stays put.
 function selectCardInList(i){
-  selectCard(i); renderCards();
+  i=clamp(i,0,cards.length-1);
+  if(i!==active){ selectCard(i); renderCards(); }
   const b=$(`#cardList [data-card="${active}"]`); if(b){ b.focus(); b.scrollIntoView({block:'nearest'}); }
 }
 $('#cardList').addEventListener('click',e=>{ const b=e.target.closest('[data-card]'); if(b) selectCardInList(+b.dataset.card); });
@@ -1715,27 +1718,38 @@ function decodeBatch(raw){
 /* The ⋮ menu (a popover: the browser closes it on Esc or a click elsewhere) holds the batch file actions. It opens under
    its button, lined up on the right, and puts focus on the first item so the keyboard can go straight on. */
 const batchMenu=$('#batchMenu');
-batchMenu.addEventListener('beforetoggle',e=>{
-  if(e.newState!=='open') return;
-  const r=$('#batchMenuBtn').getBoundingClientRect();
-  batchMenu.style.top=(r.bottom+4)+'px'; batchMenu.style.right=(innerWidth-r.right)+'px';
-});
+// Under its button, right edges lined up; above it when there is no room below (a short window). Placed again whenever
+// the button moves (the window resizes or the panels scroll).
+function placeBatchMenu(){
+  const r=$('#batchMenuBtn').getBoundingClientRect(), h=batchMenu.offsetHeight;
+  batchMenu.style.right=(innerWidth-r.right)+'px';
+  batchMenu.style.top=(r.bottom+4+h<=innerHeight ? r.bottom+4 : Math.max(4,r.top-4-h))+'px';
+}
+const batchMenuOpen=()=>batchMenu.matches(':popover-open');
+batchMenu.addEventListener('beforetoggle',e=>{ if(e.newState==='open') placeBatchMenu(); });   // offsetHeight is 0 here: lands below
 batchMenu.addEventListener('toggle',e=>{
   $('#batchMenuBtn').setAttribute('aria-expanded',String(e.newState==='open'));
-  if(e.newState==='open') batchMenu.querySelector('[role=menuitem]').focus();
+  if(e.newState!=='open') return;
+  placeBatchMenu();   // now it has a height, so it can tell whether it fits below
+  batchMenu.querySelector('[role=menuitem]').focus();
 });
+addEventListener('resize',()=>{ if(batchMenuOpen()) placeBatchMenu(); });
+$('#panels').addEventListener('scroll',()=>{ if(batchMenuOpen()) placeBatchMenu(); });
+const closeBatchMenu=()=>{ if(batchMenuOpen()) batchMenu.hidePopover(); };
+// Tab moving the focus out of the menu closes it.
+batchMenu.addEventListener('focusout',e=>{ if(!batchMenu.contains(e.relatedTarget) && e.relatedTarget!==$('#batchMenuBtn')) closeBatchMenu(); });   // the button toggles it itself
 batchMenu.addEventListener('keydown',e=>{
   const d={ArrowUp:-1,ArrowDown:1}[e.key]; if(!d) return;
   e.preventDefault();
   const items=[...batchMenu.querySelectorAll('[role=menuitem]')], i=items.indexOf(document.activeElement);
-  items[(i+d+items.length)%items.length].focus();
+  items[(i+d+items.length)%items.length].focus();   // only an item can have the focus here
 });
-batchMenu.addEventListener('click',e=>{ if(e.target.closest('[role=menuitem]')) batchMenu.hidePopover(); });
+batchMenu.addEventListener('click',e=>{ if(e.target.closest('[role=menuitem]')) closeBatchMenu(); });
 function fileMsg(text,bad){ const m=$('#fileMsg'); m.textContent=text; m.classList.toggle('bad',!!bad); }
 $('#batchSave').addEventListener('click',()=>{
   const json=JSON.stringify(encodeBatch(),null,1);
   download(new Blob([json],{type:'application/json'}),zipStem(store.get('opentitlecard.batch',{}).pattern||'titlecard-{n}')+'-set.json');
-  fileMsg(`Saved ${cards.length} card${cards.length===1?'':'s'} to a file.`);
+  fileMsg(`Saved ${cardsWord(cards.length)} to a file.`);
 });
 $('#batchOpenFile').addEventListener('click',()=>$('#batchFile').click());
 $('#batchFile').addEventListener('change',async e=>{
