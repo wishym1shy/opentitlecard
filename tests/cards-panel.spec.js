@@ -67,6 +67,7 @@ test.describe('Cards panel (layers)', () => {
   test('the menu closes when Tab leaves it, its button toggles it, and it follows the button when the panels move', async ({ app: { page } }) => {
     const menu = page.locator('#batchMenu'), btn = page.locator('#batchMenuBtn');
     await btn.click();
+    await expect(page.locator('#batchSave')).toBeFocused(); // focus moves in on the popover's toggle event, a moment after the click
     await page.keyboard.press('Tab'); await page.keyboard.press('Tab'); // past the last item and out
     await expect(menu).toBeHidden();
     await expect(btn).toHaveAttribute('aria-expanded', 'false');

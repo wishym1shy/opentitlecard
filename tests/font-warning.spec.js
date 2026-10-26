@@ -34,9 +34,9 @@ test.describe('missing-font warning', () => {
     await page.waitForTimeout(3600);
     await expect(page.locator('#fontWarnMsg')).toBeVisible();                         // not while the pointer is on it
     await page.mouse.move(5, 5);
-    await page.waitForTimeout(1500);
+    await page.waitForTimeout(1000);
     await expect(page.locator('#fontWarnMsg')).toBeVisible();                         // not straight away either
-    await expect(page.locator('#fontWarnMsg')).toBeHidden({ timeout: 3500 });         // gone 3 s (+ fade) after leaving
+    await expect(page.locator('#fontWarnMsg')).toBeHidden({ timeout: 2500 });         // gone 2 s (+ fade) after leaving
     await expect(page.locator('#fontWarn')).toBeVisible();                            // the ⚠ stays
     await page.hover('#fontWarn');
     await expect(page.locator('#fontWarnMsg')).toBeVisible();
@@ -47,11 +47,11 @@ test.describe('missing-font warning', () => {
     await page.waitForTimeout(1500);
     await expect(page.locator('#fontWarnMsg')).toBeVisible();                         // nothing happening: it stays
     await page.click('#text');
-    await page.waitForTimeout(3000);
+    await page.waitForTimeout(2000);
     await page.keyboard.type('Hi');                                                  // more activity doesn't restart the countdown
-    await page.waitForTimeout(2500);
-    await expect(page.locator('#fontWarnMsg')).toBeVisible();                         // 5.5 s in
-    await expect(page.locator('#fontWarnMsg')).toBeHidden({ timeout: 2500 });         // 7 s (+ fade)
+    await page.waitForTimeout(1500);
+    await expect(page.locator('#fontWarnMsg')).toBeVisible();                         // 3.5 s in
+    await expect(page.locator('#fontWarnMsg')).toBeHidden({ timeout: 2500 });         // 5 s (+ fade)
   });
 
   test('a new missing family pops it out again, and keyboard focus on the ⚠ shows it', async ({ app: { page } }) => {
