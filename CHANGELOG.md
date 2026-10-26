@@ -4,6 +4,12 @@ What changed in OpenTitlecard, newest first. The version is shown next to the ap
 
 Versions are `vMAJOR.MINOR`. Each merged pull request that changes the app adds one to the minor number (v1.31 → v1.32 → …). The changelog started at v1.31: v1.27 stands for everything merged before the UI review that led to v1.28–v1.31 (pull requests up to #31), so the numbers line up with the work done.
 
+## v1.44
+
+### Added
+- **iPhone 16 Pro** canvas size: 1206 × 2622, in the Canvas panel and the export dialog.
+- **Instagram Reels UI | iPhone 16 Pro** overlay in the Mock-up & safe zone panel: the Reels screen (tabs, like/comment/share buttons, creator, caption and navigation bar) drawn over the preview, so footage + titlecard + interface make a complete mock-up. It fits the iPhone 16 Pro canvas exactly, works with Position, Scale and Opacity like the other overlays, tells you when the card sits under the interface, and is never exported.
+
 ## v1.43
 
 ### Added

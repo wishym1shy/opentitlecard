@@ -139,6 +139,45 @@ test.describe('safe zone overlay', () => {
   });
 });
 
+test.describe('Instagram Reels UI | iPhone 16 Pro', () => {
+  const iphone = async (page) => {
+    await page.selectOption('#frame', '1206x2622');
+    await page.check('#szOn');
+    await page.selectOption('#szKind', 'igReels16');
+  };
+
+  test('is offered as an overlay and drawn at exactly its size on the iPhone 16 Pro canvas', async ({ app: { page } }) => {
+    await expect(page.locator('#szKind option[value="igReels16"]')).toHaveText('Instagram Reels UI | iPhone 16 Pro');
+    await iphone(page);
+    expect((await sz(page)).box).toMatchObject({ x: 0, y: 0, w: 1206, h: 2622, f: 1 });
+    const pill = await previewPx(page, 290, 2466), dot = await previewPx(page, 637, 2490);
+    expect(pill[3]).toBe(255); expect(Math.max(...pill.slice(0, 3))).toBeLessThan(70);  // the dark Reels button in the nav bar
+    expect(dot[0]).toBeGreaterThan(200); expect(dot[1]).toBeLessThan(120);               // the red new-message dot
+    expect(await previewPx(page, 600, 1000)).toEqual([0, 0, 0, 0]);                      // nothing over the middle of the video
+  });
+
+  test('says whether the card is clear of the interface', async ({ app: { page } }) => {
+    await iphone(page);
+    await setText(page, 'Hi');
+    expect((await sz(page)).status).toContain('inside the safe zone');
+    await page.fill('#offY', '820'); // down into the bottom of the screen
+    expect((await sz(page)).status).toContain('navigation bar');
+    await page.fill('#offY', '-850'); // up into the tabs
+    expect((await sz(page)).status).toContain('top bar');
+  });
+
+  test('is never exported, and the choice is remembered', async ({ app: { page } }) => {
+    await page.selectOption('#frame', '1206x2622');
+    await setText(page, 'Hi');
+    const off = (await exportPng(page)).buffer;
+    await iphone(page);
+    expect((await exportPng(page)).buffer.equals(off)).toBe(true);
+    await page.reload();
+    await page.waitForFunction(() => window.__tt && window.__tt.L);
+    expect((await sz(page)).kind).toBe('igReels16');
+  });
+});
+
 test('broken saved safe zone settings are ignored or clamped', async ({ browser }) => {
   const context = await browser.newContext();
   await context.addInitScript(() => localStorage.setItem('opentitlecard.safezone', JSON.stringify({ on: 'yes', kind: '<b>x</b>', x: 1e9, scale: -5, opacity: 'a' })));
