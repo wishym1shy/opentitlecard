@@ -1398,7 +1398,7 @@ for(const id of ['fw','fh','x_fw','x_fh']) $('#'+id).addEventListener('change',(
   const k=id.replace('x_',''), v=clamp(Math.round(+S[k])||(k==='fw'?1920:1080),64,MAX_SIDE);
   if(v!==S[k]){ S[k]=v; persistStyle(); syncControls(); record(); render(); if(id.startsWith('x_')) fillBatchGrid(); }
 });
-/* Reset buttons: every Text Settings and Background slider gets a ↺ that puts it back to the app's default (DEFAULTS, not a
+/* Reset buttons: Size and every Text Settings and Background slider gets a ↺ that puts it back to the app's default (DEFAULTS, not a
    preset: the default preset only applies on a first load). It goes through the slider's own input event, so saving,
    a card's own style and redrawing behave exactly as for a drag. Double-clicking the slider does the same, like the
    nudge sliders. syncControls() greys a button out while its slider is already at the default. */
