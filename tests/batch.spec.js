@@ -15,7 +15,7 @@ test.describe('cards', () => {
     await page.click('#cardList [data-card="0"]');
     await settle(page);
     const first = await page.evaluate(() => ({ text: __tt.S.text, color: __tt.S.colors[0], ital: __tt.S.ital[0], nudge: __tt.S.nudges[0].x, active: __tt.active }));
-    expect(first).toEqual({ text: 'Alpha beta', color: '#ff2d2d', ital: 1, nudge: 12, active: 0 });
+    expect(first).toEqual({ text: 'Alpha beta', color: '#cf0202', ital: 1, nudge: 12, active: 0 });
     await expect(page.locator('#text')).toHaveValue('Alpha beta');
     await expect(page.locator('[data-i="0"][data-a="x"]')).toHaveValue('12');
 
@@ -25,7 +25,7 @@ test.describe('cards', () => {
     await expect(page.locator('#text')).toHaveValue('Second');
     await page.click('#cardList [data-card="0"]');
     await expect(page.locator('#text')).toHaveValue('Alpha beta edited');
-    expect(await page.evaluate(() => __tt.S.colors[0])).toBe('#ff2d2d');
+    expect(await page.evaluate(() => __tt.S.colors[0])).toBe('#cf0202');
   });
 
   test('the list shows each card and follows what you type', async ({ app: { page } }) => {
@@ -48,7 +48,7 @@ test.describe('cards', () => {
     await page.click('#cardDup');
     await settle(page);
     let st = await page.evaluate(() => ({ n: __tt.cards.length, active: __tt.active, text: __tt.S.text, color: __tt.S.colors[0] }));
-    expect(st).toEqual({ n: 2, active: 1, text: 'Alpha beta', color: '#ff2d2d' });
+    expect(st).toEqual({ n: 2, active: 1, text: 'Alpha beta', color: '#cf0202' });
 
     await page.fill('#text', 'Copy');
     await page.click('#cardUp');

@@ -114,7 +114,7 @@ test.describe('per-word colour and italic', () => {
     await setSelection(page, 6); // inside NEWS
     await page.click('#swatches .sw:nth-child(3)'); // Red
     expect(await coloured(page)).toBe('NEWS');
-    expect(await page.evaluate(() => __tt.S.colors[4])).toBe('#ff2d2d');
+    expect(await page.evaluate(() => __tt.S.colors[4])).toBe('#cf0202');
   });
 
   test('Reset colour puts the word back to the default', async ({ app: { page } }) => {
@@ -169,10 +169,22 @@ test.describe('per-word colour and italic', () => {
     expect(word.x0).toBeCloseTo(run.x, 3);
   });
 
+  test('the palette starts White, Black, then the default Red #CF0202 and Green #02CF02', async ({ app: { page } }) => {
+    const first = await page.locator('#swatches .sw').evaluateAll((els) => els.slice(0, 4).map((e) => e.title));
+    expect(first.map((t) => t.toLowerCase())).toEqual([expect.stringMatching(/white/), expect.stringMatching(/black/), expect.stringMatching(/red/), expect.stringMatching(/green/)]);
+    await setText(page, 'Big NEWS today');
+    await setSelection(page, 1);
+    await page.keyboard.press('Alt+3');
+    expect(await page.evaluate(() => __tt.S.colors[0])).toBe('#cf0202');
+    await setSelection(page, 6);
+    await page.keyboard.press('Alt+4');
+    expect(await page.evaluate(() => __tt.S.colors[4])).toBe('#02cf02');
+  });
+
   test('Alt+number applies a palette colour and Ctrl+I toggles italic', async ({ app: { page } }) => {
     await setText(page, 'Big NEWS today');
     await setSelection(page, 1); // inside Big
-    await page.keyboard.press('Alt+4'); // Orange
+    await page.keyboard.press('Alt+5'); // Orange
     expect(await page.evaluate(() => __tt.S.colors[0])).toBe('#ff8a00');
     await page.keyboard.press('Control+I');
     expect(await italic(page)).toBe('Big');
@@ -190,7 +202,7 @@ test.describe('per-word colour and italic', () => {
       return e.defaultPrevented; // so "¢" is not typed into the text as well
     });
     expect(prevented).toBe(true);
-    expect(await page.evaluate(() => __tt.S.colors[0])).toBe('#ff8a00');
+    expect(await page.evaluate(() => __tt.S.colors[0])).toBe('#02cf02'); // slot 4 is Green
     await page.keyboard.press('Meta+I');
     expect(await italic(page)).toBe('Big');
   });
@@ -247,7 +259,7 @@ test.describe('per-word colour and italic', () => {
     await page.click('#swatches .sw:nth-child(3)');
     await settle(page);
     const runs = await page.evaluate(() => __tt.L.lines[0].items.filter((i) => i.k === 't').map((i) => [i.text, i.c]));
-    expect(runs).toContainEqual(['NEWS', '#ff2d2d']);
+    expect(runs).toContainEqual(['NEWS', '#cf0202']);
   });
 
   test('custom colours can be pinned to the palette', async ({ app: { page } }) => {

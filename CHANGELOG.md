@@ -4,6 +4,11 @@ What changed in OpenTitlecard, newest first. The version is shown next to the ap
 
 Versions are `vMAJOR.MINOR`. Each merged pull request that changes the app adds one to the minor number (v1.31 → v1.32 → …). The changelog started at v1.31: v1.27 stands for everything merged before the UI review that led to v1.28–v1.31 (pull requests up to #31), so the numbers line up with the work done.
 
+## v1.36
+
+### Changed
+- New default **Red** (#CF0202) and **Green** (#02CF02) in the palette, right after White and Black, so **Alt+3** is Red and **Alt+4** is Green. They replace the previous red (#FF2D2D) and green (#0ACC09); the other colors move along by one.
+
 ## v1.35
 
 ### Changed
