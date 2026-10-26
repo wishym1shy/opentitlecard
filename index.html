@@ -191,7 +191,7 @@
 </head>
 <body>
 <header>
-  <h1>OpenTitlecard <a id="appVersion" href="https://github.com/wishym1shy/opentitlecard/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer" title="What's new in this version (changelog on GitHub)">v1.41</a></h1>
+  <h1>OpenTitlecard <a id="appVersion" href="https://github.com/wishym1shy/opentitlecard/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer" title="What's new in this version (changelog on GitHub)">v1.42</a></h1>
   <a class="gh" href="https://github.com/wishym1shy/opentitlecard" target="_blank" rel="noopener noreferrer" title="View the source on GitHub">
     <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
     <span>View on GitHub</span>
@@ -2043,6 +2043,7 @@ function fileMsg(text,bad){ const m=$('#fileMsg'); m.textContent=text; m.classLi
 $('#batchSave').addEventListener('click',()=>{
   const json=JSON.stringify(encodeBatch(),null,1);
   download(new Blob([json],{type:'application/json'}),zipStem(store.get('opentitlecard.batch',{}).pattern||'titlecard-{n}')+'-set.json');
+  markSaved();
   fileMsg(`Saved ${cardsWord(cards.length)} to a file.`);
 });
 $('#batchOpenFile').addEventListener('click',()=>$('#batchFile').click());
@@ -2057,6 +2058,7 @@ $('#batchFile').addEventListener('change',async e=>{
     if(batchHasWork() && !await confirmAction({title:'Open this batch?',message:`“${f.name}” replaces ${cards.length===1?'your current card':`your ${cards.length} current cards`}. Cards aren't saved anywhere, so use “Save batch to file” first if you want to keep ${cards.length===1?'it':'them'}.`,ok:'Replace cards'})) { fileMsg('Cancelled. Nothing was changed.'); return; }
     // the file's look comes with it: cards without their own style use the batch's shared style
     sharedStyle=b.style; cards=b.cards; active=b.active; adopt(cards[active]); persistStyle(); record(); cardSig=''; render();
+    markSaved();   // what's on the page is what's in the file
     fileMsg(`Opened ${cardsWord(cards.length)} from “${f.name}”.`);
   }catch(err){ fileMsg('That file isn\'t an OpenTitlecard batch, so nothing was changed.',true); }
 });
@@ -2069,6 +2071,15 @@ function batchHasWork(){
   if(c.colors.some(Boolean)||c.ital.some(Boolean)||c.nudges.some(n=>n&&(n.x||n.y))) return true;
   return !!c.text.trim() && c.text!==PLACEHOLDER_TEXT;
 }
+/* Cards live only in memory, so closing or reloading the tab loses them. The browser asks first (its own prompt: the
+   wording can't be changed, and it can't be the in-app dialog) whenever the page holds work that differs from the last
+   batch file saved or opened. The comparison is on what the file would hold (encodeBatch(), less the selected card), so
+   canvas settings (kept in storage anyway) and bookkeeping a render fills in don't count as changes. */
+let savedWork='';
+const workKey=()=>{ const b=encodeBatch(); delete b.active; return JSON.stringify(b); };
+const markSaved=()=>{ savedWork=workKey(); };
+const unsavedWork=()=>batchHasWork() && workKey()!==savedWork;
+addEventListener('beforeunload',e=>{ if(unsavedWork()){ e.preventDefault(); e.returnValue=''; } });
 $('#cardsNew').addEventListener('click',async()=>{
   if(batchHasWork() && !await confirmAction({title:'Start a new batch?',message:`This removes ${cards.length===1?'your card':`all ${cards.length} cards`} from the page. Cards aren't saved anywhere, so use “Save batch to file” first if you want to keep ${cards.length===1?'it':'them'}.`,ok:'Remove cards'})) return;
   // emptied first, so the numbering starts again at Titlecard 1
@@ -2263,7 +2274,7 @@ window.addEventListener('resize',render);   // Fit follows the window
 loadBundledInter();
 (document.fonts&&document.fonts.ready?document.fonts.ready:Promise.resolve()).then(render);
 render();
-window.__tt={S,render,renderNow,get L(){return L},exportGeometry,draw,get cards(){return cards},get sharedStyle(){return sharedStyle},get active(){return active},batchNames,zipStem,crc32,buildZip,undo:undoStep,redo:redoStep,get history(){return {length:hist.length,at:histAt}},get view(){return {...viewState}},get safezone(){return {...SZ,box:szBox&&{...szBox},status:$('#szStatus').textContent}}};
+window.__tt={S,render,renderNow,get L(){return L},exportGeometry,draw,get cards(){return cards},get sharedStyle(){return sharedStyle},get active(){return active},batchNames,zipStem,crc32,buildZip,undo:undoStep,redo:redoStep,unsavedWork,get history(){return {length:hist.length,at:histAt}},get view(){return {...viewState}},get safezone(){return {...SZ,box:szBox&&{...szBox},status:$('#szStatus').textContent}}};
 </script>
 </body>
 </html>

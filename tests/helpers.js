@@ -40,7 +40,11 @@ const test = base.extend({
     const errors = [];
     page.on('pageerror', (e) => errors.push('pageerror: ' + e.message));
     page.on('console', (m) => { if (m.type() === 'error') errors.push('console: ' + m.text()); });
-    page.on('dialog', (d) => { errors.push('dialog: ' + d.message()); d.dismiss(); });
+    page.on('dialog', (d) => {
+      // The leave-page prompt is expected when a test reloads with cards on the page: answer "Leave", as a user who means it would.
+      if (d.type() === 'beforeunload') return d.accept();
+      errors.push('dialog: ' + d.message()); d.dismiss();
+    });
     await page.goto(APP_URL);
     await page.waitForFunction(() => window.__tt && window.__tt.L);
     await loadTestFont(page);
