@@ -1,4 +1,4 @@
-const { test, expect, setText, settle, setRange, exportPng, pngSize, inspectPng } = require('./helpers');
+const { test, expect, setText, settle, setRange, exportPng, pngSize, inspectPng, expandUi } = require('./helpers');
 
 const dims = (page) => page.evaluate(() => { const g = __tt.exportGeometry(); return [g.W, g.H]; });
 const pressed = (page, o) => page.locator(`#orient [data-orient="${o}"]`);
@@ -89,5 +89,28 @@ test.describe('4K limit', () => {
     await setRange(page, 'exportScale', 1);
     await expect(page.locator('#export')).toBeEnabled();
     await expect(page.locator('#export')).toHaveText('Download PNG');
+  });
+});
+
+test.describe('iPhone 16 Pro canvas', () => {
+  test('the preset is 1206 × 2622 and exports at that size', async ({ app: { page } }) => {
+    await page.selectOption('#frame', '1206x2622');
+    await setText(page, 'Hi');
+    await expect(page.locator('#dims')).toHaveText('1206 × 2622 px');
+    await expect(pressed(page, 'v')).toHaveAttribute('aria-pressed', 'true');
+    const { buffer } = await exportPng(page);
+    expect(pngSize(buffer)).toEqual([1206, 2622]);
+    await expect(page.locator('#x_frame option[value="1206x2622"]')).toHaveText('1206 × 2622 (iPhone 16 Pro)'); // the export dialog offers it too
+  });
+
+  test('Landscape turns it into a custom 2622 × 1206, and it survives a reload', async ({ app: { page } }) => {
+    await page.selectOption('#frame', '1206x2622');
+    await page.reload();
+    await page.waitForFunction(() => window.__tt && window.__tt.L);
+    expect(await page.evaluate(() => __tt.S.frame)).toBe('1206x2622');   // a valid saved choice, not reset to the default
+    await expandUi(page);
+    await page.click('#orient [data-orient="h"]');
+    await settle(page);
+    expect(await page.evaluate(() => [__tt.S.frame, __tt.S.fw, __tt.S.fh])).toEqual(['custom', 2622, 1206]);
   });
 });

@@ -193,7 +193,7 @@
 </head>
 <body>
 <header>
-  <h1>OpenTitlecard <a id="appVersion" href="https://github.com/wishym1shy/opentitlecard/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer" title="What's new in this version (changelog on GitHub)">v1.43</a></h1>
+  <h1>OpenTitlecard <a id="appVersion" href="https://github.com/wishym1shy/opentitlecard/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer" title="What's new in this version (changelog on GitHub)">v1.44</a></h1>
   <a class="gh" href="https://github.com/wishym1shy/opentitlecard" target="_blank" rel="noopener noreferrer" title="View the source on GitHub">
     <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
     <span>View on GitHub</span>
@@ -394,6 +394,7 @@
             <option value="1080x1920">1080 × 1920 (vertical)</option>
             <option value="3840x2160">3840 × 2160 (4K)</option>
             <option value="2160x3840">2160 × 3840 (4K vertical)</option>
+            <option value="1206x2622">1206 × 2622 (iPhone 16 Pro)</option>
             <option value="1080x1080">1080 × 1080 (square)</option>
             <option value="1080x1350">1080 × 1350 (4:5)</option>
             <option value="custom">Custom…</option>
@@ -428,6 +429,7 @@
           <select id="szKind">
             <option value="stories">Stories (9:16)</option>
             <option value="reels">Reels (9:16)</option>
+            <option value="igReels16">Instagram Reels UI | iPhone 16 Pro</option>
             <option value="image">My own image…</option>
           </select>
           <div class="row tight" id="szImageRow" style="margin-top:6px" hidden>
@@ -478,6 +480,7 @@
             <option value="1080x1920">1080 × 1920 (vertical)</option>
             <option value="3840x2160">3840 × 2160 (4K)</option>
             <option value="2160x3840">2160 × 3840 (4K vertical)</option>
+            <option value="1206x2622">1206 × 2622 (iPhone 16 Pro)</option>
             <option value="1080x1080">1080 × 1080 (square)</option>
             <option value="1080x1350">1080 × 1350 (4:5)</option>
             <option value="custom">Custom…</option>
@@ -650,7 +653,7 @@ const pickStyle = () => { const o={}; CARD_STYLE_KEYS.forEach(k=>o[k]=S[k]); ret
    would do so on every reload too. So a value is only taken when it has the type of its default, numbers are finite,
    colors are hex and choices are one of the options; anything else is dropped and the caller's value stays. */
 const COLOR_KEYS=['textColor','outlineColor','bgColor'];
-const CHOICES={align:['center','left','right'], frame:['1920x1080','1080x1920','3840x2160','2160x3840','1080x1080','1080x1350','custom']};
+const CHOICES={align:['center','left','right'], frame:['1920x1080','1080x1920','3840x2160','2160x3840','1206x2622','1080x1080','1080x1350','custom']};
 function validStyle(raw,keys=STYLE_KEYS){
   const o={};
   if(raw&&typeof raw==='object') for(const k of keys){
@@ -1236,14 +1239,77 @@ syncMKControls();
    Its settings are a viewing preference: saved, but not in undo or presets. The image itself is kept for the session
    only, like a font file. */
 // ui: [name, x, y, w, h] in the 1080 x 1920 frame; safe: the outline of the safe zone (one shape, so Reels has no seam)
+/* A mock-up of the Reels screen on an iPhone 16 Pro (1206 x 2622), drawn as plain shapes rather than shipped as
+   artwork: generic icons, placeholder avatars and text, at the positions measured from the maintainer's reference
+   screenshot (taken at 914 px wide and scaled by 1206/914). x, y are in that 1206 x 2622 frame; s turns frame px into
+   bitmap px. White on the video like the real app, with a soft shadow so it reads on light footage too. */
+function drawReelsUI(ctx,T,s){
+  const font=(px,w)=>`${w} ${px*s}px system-ui,-apple-system,"Segoe UI",sans-serif`;
+  const dot=(x,y,r)=>{ ctx.beginPath(); ctx.arc(...T(x,y),r*s,0,Math.PI*2); };
+  const line=pts=>{ ctx.beginPath(); pts.forEach(([x,y],i)=>ctx[i?'lineTo':'moveTo'](...T(x,y))); };
+  const text=(t,x,y,px,w,align='left',alpha=1)=>{ ctx.globalAlpha=alpha*SZ.opacity/100; ctx.font=font(px,w); ctx.textAlign=align; ctx.fillStyle='#fff'; ctx.fillText(t,...T(x,y)); ctx.globalAlpha=SZ.opacity/100; return ctx.measureText(t).width/s; };
+  const stroke=w=>{ ctx.lineWidth=w*s; ctx.strokeStyle='#fff'; ctx.stroke(); };
+  // a placeholder person: grey head and shoulders on dark grey, clipped to a circle
+  const avatar=(x,y,r,ring)=>{
+    ctx.save(); ctx.shadowColor='transparent';
+    dot(x,y,r); ctx.fillStyle='#444'; ctx.fill();
+    if(ring){ ctx.lineWidth=ring*s; ctx.strokeStyle='#1c1c1c'; ctx.stroke(); }
+    dot(x,y,r); ctx.clip(); ctx.fillStyle='#9a9a9a';
+    dot(x,y-r*.22,r*.3); ctx.fill(); dot(x,y+r*.78,r*.62); ctx.fill();
+    ctx.restore();
+  };
+  const plane=(x,y)=>{ line([[x-28,y-24],[x+28,y-24],[x+2,y+28],[x-6,y+2]]); ctx.closePath(); stroke(5); line([[x-6,y+2],[x+28,y-24]]); stroke(5); };
+  const heart=(x,y)=>{ const [a,b]=T(x,y), r=s; ctx.beginPath(); ctx.moveTo(a,b+24*r);
+    ctx.bezierCurveTo(a-44*r,b-4*r,a-26*r,b-38*r,a,b-16*r); ctx.bezierCurveTo(a+26*r,b-38*r,a+44*r,b-4*r,a,b+24*r); stroke(5); };
+  ctx.save();
+  ctx.shadowColor='rgba(0,0,0,.35)'; ctx.shadowBlur=8*s; ctx.lineJoin=ctx.lineCap='round'; ctx.textBaseline='middle';
+  // top: "+" on the left, the Reels / Friends tabs with three friends, a camera on the right
+  line([[80,231],[80,279]]); stroke(5); line([[56,255],[104,255]]); stroke(5);
+  text('Reels',396,255,46,700,'center');
+  text('Friends',686,255,46,600,'center',.7);
+  [840,885,930].forEach(x=>avatar(x,255,29,4));
+  { const [a,b]=T(1094,258); ctx.beginPath(); ctx.roundRect?ctx.roundRect(a-30*s,b-22*s,60*s,46*s,10*s):ctx.rect(a-30*s,b-22*s,60*s,46*s); stroke(5); dot(1094,259,11); stroke(4); }
+  // right: like, comment, repost, share with counts, more, and the audio square
+  heart(1130,1610); text('12.3K',1130,1668,30,600,'center');
+  dot(1130,1760,26); stroke(5); line([[1112,1779],[1104,1792],[1120,1785]]); stroke(5); text('214',1130,1818,30,600,'center');
+  line([[1106,1900],[1106,1888],[1152,1888]]); stroke(5); line([[1142,1878],[1152,1888],[1142,1898]]); stroke(5);
+  line([[1154,1916],[1154,1928],[1108,1928]]); stroke(5); line([[1118,1918],[1108,1928],[1118,1938]]); stroke(5); text('89',1130,1968,30,600,'center');
+  plane(1130,2060); text('1,024',1130,2118,30,600,'center');
+  [1110,1130,1150].forEach(x=>{ dot(x,2190,5); ctx.fillStyle='#fff'; ctx.fill(); });
+  { const [a,b]=T(1100,2262); ctx.beginPath(); ctx.roundRect?ctx.roundRect(a,b,60*s,60*s,12*s):ctx.rect(a,b,60*s,60*s); ctx.fillStyle='#444'; ctx.fill(); stroke(4); }
+  // bottom left: the creator with a story ring, Follow, the caption and who follows them
+  { const [a,b]=T(115,2082), gr=ctx.createLinearGradient(a-66*s,b+66*s,a+66*s,b-66*s);
+    gr.addColorStop(0,'#ffd600'); gr.addColorStop(.5,'#ff2e7a'); gr.addColorStop(1,'#d300c5');
+    dot(115,2082,63); ctx.lineWidth=7*s; ctx.strokeStyle=gr; ctx.stroke(); }
+  avatar(115,2082,54,0);
+  text('username',200,2082,40,700);
+  { const [a,b]=T(410,2050); ctx.beginPath(); ctx.roundRect?ctx.roundRect(a,b,140*s,64*s,14*s):ctx.rect(a,b,140*s,64*s); stroke(3); }
+  text('Follow',480,2082,34,600,'center');
+  const cw=text('Your caption goes here ',66,2206,40,400);
+  text('#hashtag ...',66+cw,2206,40,400,'left',.75);
+  avatar(111,2283,23,4); avatar(75,2283,23,4);
+  text('Followed by username and 1 other',156,2283,32,400,'left',.85);
+  // navigation bar: home, Reels (selected), messages with a new-message dot, search, profile
+  ctx.save(); ctx.shadowColor='transparent'; ctx.globalAlpha*=.3; line([[0,2386],[1206,2386]]); stroke(2); ctx.restore();
+  line([[95,2496],[95,2462],[123,2438],[151,2462],[151,2496]]); ctx.closePath(); stroke(5);
+  { const [a,b]=T(264,2404); ctx.beginPath(); ctx.roundRect?ctx.roundRect(a,b,200*s,124*s,62*s):ctx.rect(a,b,200*s,124*s); ctx.fillStyle='#24262e'; ctx.fill();
+    const [c,d]=T(332,2434); ctx.beginPath(); ctx.roundRect?ctx.roundRect(c,d,64*s,64*s,16*s):ctx.rect(c,d,64*s,64*s); ctx.fillStyle='#fff'; ctx.fill();
+    line([[354,2452],[354,2480],[378,2466]]); ctx.closePath(); ctx.fillStyle='#24262e'; ctx.fill(); }
+  plane(600,2466); dot(637,2490,10); ctx.fillStyle='#ff3040'; ctx.fill();
+  dot(842,2460,22); stroke(5); line([[858,2476],[876,2494]]); stroke(5);
+  avatar(1093,2466,45,0);
+  ctx.restore();
+}
 const SAFE_ZONES={
   stories:{w:1080,h:1920,ui:[['top bar',0,0,1080,250],['bottom bar',0,1670,1080,250]],safe:[[0,250],[1080,250],[1080,1670],[0,1670]]},
   reels:{w:1080,h:1920,ui:[['top bar',0,0,1080,250],['bottom bar',0,1670,1080,250],['side buttons',880,1230,200,440]],safe:[[0,250],[1080,250],[1080,1230],[880,1230],[880,1670],[0,1670]]},
+  // ui: what the card shouldn't sit under, for the status line; draw: paints the mock-up instead of the red/green zones
+  igReels16:{w:1206,h:2622,ui:[['top bar',0,0,1206,330],['side buttons',1050,1570,156,770],['caption',0,2010,1050,310],['navigation bar',0,2386,1206,236]],draw:drawReelsUI},
 };
 const SZ_DEFAULTS={on:false,kind:'stories',x:0,y:0,scale:100,opacity:100};
 const SZ_RANGES={x:[-1920,1920],y:[-1920,1920],scale:[10,300],opacity:[10,100]};
 const SZ=(()=>{ const o=loadView('opentitlecard.safezone',SZ_DEFAULTS,SZ_RANGES), raw=store.get('opentitlecard.safezone',{});
-  if(raw&&['stories','reels','image'].includes(raw.kind)) o.kind=raw.kind;
+  if(raw&&(raw.kind==='image'||Object.hasOwn(SAFE_ZONES,raw.kind))) o.kind=raw.kind;
   return o; })();
 let szImage=null;   // {img, name, w, h} for "My own image", this session only
 let szBox=null;     // where the overlay was last drawn, in canvas px (for the status line and the tests)
@@ -1263,6 +1329,7 @@ function drawSafeZone(ctx,g,k){
   ctx.save(); ctx.globalAlpha=SZ.opacity/100;
   if(SZ.kind==='image'){ ctx.drawImage(szImage.img,b.x*k,b.y*k,b.w*k,b.h*k); ctx.restore(); return; }
   const z=SAFE_ZONES[SZ.kind];
+  if(z.draw){ z.draw(ctx,T,b.f*k); ctx.restore(); return; }
   const rect=(r,fill,stroke,dash)=>{
     const [x,y]=T(r[0],r[1]), w=r[2]*b.f*k, h=r[3]*b.f*k;
     ctx.fillStyle=fill; ctx.fillRect(x,y,w,h);
