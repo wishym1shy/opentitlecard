@@ -4,6 +4,14 @@ What changed in OpenTitlecard, newest first. The version is shown next to the ap
 
 Versions are `vMAJOR.MINOR`. Each merged pull request that changes the app adds one to the minor number (v1.31 → v1.32 → …). The changelog started at v1.31: v1.27 stands for everything merged before the UI review that led to v1.28–v1.31 (pull requests up to #31), so the numbers line up with the work done.
 
+## v1.43
+
+### Added
+- **Mock-up background:** load a frame of your footage (or any image) and see the card on top of it. It fills the canvas like the video would, with Position X / Y, Scale and Opacity sliders (each with ↺). It is only shown in the preview: the exported PNG stays transparent. The image isn't saved; load it again after a reload.
+
+### Changed
+- The **Safe zone** panel is now **Mock-up & safe zone**, with the mock-up at the top. The safe zone works as before and is drawn over the mock-up when both are on.
+
 ## v1.42
 
 ### Added

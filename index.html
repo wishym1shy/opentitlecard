@@ -127,6 +127,8 @@
   .zoombar button{padding:3px 9px;font-size:12px}
   .zoombar #zoomPct{min-width:46px;text-align:center;font-variant-numeric:tabular-nums;font-size:12px;color:var(--text)}
   .zoombar button[aria-pressed="true"]{background:var(--accent2);border-color:var(--accent)}
+  .fpsub{margin:2px 0 4px;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--mute)}
+  .fpsub.sep{margin-top:14px;padding-top:10px;border-top:1px solid var(--line)}
   #previewBox.checker{background:conic-gradient(#2b2d34 25%,#383b44 0 50%,#2b2d34 0 75%,#383b44 0) 0 0/24px 24px}
   #previewBox.white{background:#fff} #previewBox.black{background:#000} #previewBox.gray{background:#7a7d86}
   canvas{display:block;max-width:100%;max-height:calc(100vh - 150px);cursor:pointer}
@@ -191,7 +193,7 @@
 </head>
 <body>
 <header>
-  <h1>OpenTitlecard <a id="appVersion" href="https://github.com/wishym1shy/opentitlecard/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer" title="What's new in this version (changelog on GitHub)">v1.42</a></h1>
+  <h1>OpenTitlecard <a id="appVersion" href="https://github.com/wishym1shy/opentitlecard/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer" title="What's new in this version (changelog on GitHub)">v1.43</a></h1>
   <a class="gh" href="https://github.com/wishym1shy/opentitlecard" target="_blank" rel="noopener noreferrer" title="View the source on GitHub">
     <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
     <span>View on GitHub</span>
@@ -406,10 +408,22 @@
         </div>
       </section>
       <section class="fp min" id="fp_safezone" data-panel="safezone" aria-labelledby="fph_safezone">
-        <h2 class="fph"><button type="button" id="fph_safezone" aria-expanded="false" aria-controls="fpb_safezone" title="Minimize or expand this panel">Safe zone<span class="chev" aria-hidden="true"></span></button></h2>
+        <h2 class="fph"><button type="button" id="fph_safezone" aria-expanded="false" aria-controls="fpb_safezone" title="Minimize or expand this panel">Mock-up &amp; safe zone<span class="chev" aria-hidden="true"></span></button></h2>
         <div class="fpb" id="fpb_safezone">
+          <div class="hint" style="margin-top:0">Preview only: never exported.</div>
+          <h3 class="fpsub" id="mkHead">Mock-up background</h3>
+          <div class="row tight"><label style="margin:0"><input type="checkbox" id="mkOn"> Show behind the card</label></div>
+          <div class="row tight" style="margin-top:6px">
+            <button id="mkLoad" class="sm">Load image…</button><span class="hint" id="mkImgName" style="margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
+            <input type="file" id="mkFile" accept="image/png,image/jpeg,image/webp,image/svg+xml" hidden>
+          </div>
+          <label for="mkX">Position X <span class="val" id="v_mkX"></span></label><input type="range" id="mkX" min="-3840" max="3840" step="1">
+          <label for="mkY">Position Y <span class="val" id="v_mkY"></span></label><input type="range" id="mkY" min="-3840" max="3840" step="1">
+          <label for="mkScale">Scale <span class="val" id="v_mkScale"></span></label><input type="range" id="mkScale" min="10" max="400" step="1">
+          <label for="mkOpacity">Opacity <span class="val" id="v_mkOpacity"></span></label><input type="range" id="mkOpacity" min="0" max="100" step="1">
+          <div class="hint" id="mkStatus" role="status"></div>
+          <h3 class="fpsub sep" id="szHead">Safe zone</h3>
           <div class="row tight"><label style="margin:0"><input type="checkbox" id="szOn"> Show safe zone</label></div>
-          <div class="hint" style="margin-top:2px">Preview only: never exported.</div>
           <label for="szKind">Overlay</label>
           <select id="szKind">
             <option value="stories">Stories (9:16)</option>
@@ -1033,8 +1047,9 @@ function renderNow(){
   const ta=$('#text');
   const sel = ta.selectionStart!==ta.selectionEnd ? [ta.selectionStart,ta.selectionEnd] : wordAt(ta.selectionStart);
   draw(cv.getContext('2d'),cv.width,cv.height,{u:g.u*k,cx:g.cx*k,cy:g.cy*k,guides:true,sel});
+  drawMockup(cv.getContext('2d'),g,k);     // behind the card; preview only, like the safe zone
   drawSafeZone(cv.getContext('2d'),g,k);   // preview only: export paints with draw() alone
-  safeZoneStatus(g);
+  mockupStatus(); safeZoneStatus(g);
   $('#dims').textContent = `${g.W} × ${g.H} px${S.tight?' (tight crop)':''}`;
   updateSlotInfo(g);
   $('#info').innerHTML = `<span>${L.lines.length} line${L.lines.length===1?'':'s'}</span><span>card ${Math.round(L.cardW*g.u)} × ${Math.round(L.cardH*g.u)} px</span>`;
@@ -1125,6 +1140,93 @@ viewEl.addEventListener('pointermove',e=>{
 const endPan=e=>{ if(panDrag && e.pointerId===panDrag.id){ panDrag=null; viewEl.classList.remove('panning'); } };
 viewEl.addEventListener('pointerup',endPan); viewEl.addEventListener('pointercancel',endPan);
 
+/* ============ preview overlays: shared helpers ============ */
+/* The mock-up and the safe zone are viewing aids with the same controls: an on switch, Position X/Y, Scale and Opacity
+   sliders with ↺, and a picture the user loads. Their settings are viewing preferences (saved, validated and clamped on
+   load, never in undo or presets); a loaded picture is kept for this session only. */
+const VIEW_FMT={x:v=>v+' px',y:v=>v+' px',scale:v=>v+'%',opacity:v=>v+'%'};
+function loadView(key,D,R){
+  const raw=store.get(key,{}), o={...D};
+  if(raw&&typeof raw==='object'){
+    if(typeof raw.on==='boolean') o.on=raw.on;
+    for(const k in R) if(typeof raw[k]==='number'&&isFinite(raw[k])) o[k]=clamp(Math.round(raw[k]),...R[k]);
+  }
+  return o;
+}
+const sliderId=(p,k)=>p+k[0].toUpperCase()+k.slice(1);   // ('sz','scale') -> 'szScale'
+function syncViewSliders(p,st,D,R){
+  for(const k in R){
+    const id=sliderId(p,k); $('#'+id).value=st[k]; $('#v_'+id).textContent=VIEW_FMT[k](st[k]);
+    const r=$(`[data-${p}-reset="${k}"]`); if(r) r.disabled=st[k]===D[k];
+  }
+}
+// Wires each slider and gives it the same ↺ as the style sliders (double-clicking the slider does the same).
+function bindViewSliders(p,st,D,R,changed){
+  for(const k in R){
+    const el=$('#'+sliderId(p,k)), v=$('#v_'+sliderId(p,k));
+    el.addEventListener('input',()=>{ st[k]=+el.value; changed(); });
+    const b=document.createElement('button');
+    b.type='button'; b.className='sm rs'; b.dataset[p+'Reset']=k; b.textContent='↺';
+    b.setAttribute('aria-label',`Reset ${v.parentElement.firstChild.textContent.trim()}`); b.title=`Reset to default (${VIEW_FMT[k](D[k])})`;
+    b.addEventListener('click',()=>{ st[k]=D[k]; changed(); });
+    el.addEventListener('dblclick',()=>b.click());
+    v.before(b);
+  }
+}
+// Reads a user's image file. Rejects when it isn't one. An SVG without a size of its own counts as the canvas size.
+async function readImageFile(f){
+  const url=URL.createObjectURL(f), img=new Image();
+  try{ img.src=url; await img.decode(); }
+  catch(err){ URL.revokeObjectURL(url); throw err; }
+  const [W,H]=frameDims();
+  return {img,name:f.name,w:img.naturalWidth||W,h:img.naturalHeight||H};
+}
+
+/* ============ mock-up background ============ */
+/* A picture (a frame of the footage, a screenshot of the feed) behind the card, to see how the titlecard will look on
+   the real video. At 100% it covers the canvas the way a video fills the frame, centred; X/Y (canvas px from the
+   centre) and Scale move it from there. It is painted after the card with destination-over, so it lands behind the card
+   and its guides, and before the safe zone, which stays on top. Preview only: export uses draw() alone. The image may
+   be client footage, so it is never stored: it lasts for this session, like a font file. */
+const MK_DEFAULTS={on:false,x:0,y:0,scale:100,opacity:100};
+const MK_RANGES={x:[-3840,3840],y:[-3840,3840],scale:[10,400],opacity:[0,100]};
+const MK=loadView('opentitlecard.mockup',MK_DEFAULTS,MK_RANGES);
+let mkImage=null;   // {img, name, w, h}, this session only
+let mkBox=null;     // where the mock-up was last drawn, in canvas px (for the tests)
+function mockupBox(g){
+  if(!mkImage) return null;
+  const f=Math.max(g.W/mkImage.w,g.H/mkImage.h)*MK.scale/100, w=mkImage.w*f, h=mkImage.h*f;
+  return {x:g.W/2+MK.x-w/2, y:g.H/2+MK.y-h/2, w, h, f};
+}
+function drawMockup(ctx,g,k){
+  mkBox=null;
+  if(!MK.on || S.tight || !mkImage) return;
+  const b=mkBox=mockupBox(g);
+  ctx.save(); ctx.globalCompositeOperation='destination-over'; ctx.globalAlpha=MK.opacity/100;
+  ctx.drawImage(mkImage.img,b.x*k,b.y*k,b.w*k,b.h*k);
+  ctx.restore();
+}
+function mockupStatus(){
+  const el=$('#mkStatus'); el.className='hint';
+  el.textContent = !MK.on ? '' : S.tight ? 'A mock-up needs the full canvas: turn off Tight crop to see it.'
+    : mkImage ? '' : 'Load an image to see it. Images aren\'t saved, so load it again after a reload.';
+}
+function saveMK(){ store.set('opentitlecard.mockup',MK); }
+function syncMKControls(){
+  $('#mkOn').checked=MK.on; $('#mkImgName').textContent=mkImage?mkImage.name:'';
+  syncViewSliders('mk',MK,MK_DEFAULTS,MK_RANGES);
+}
+$('#mkOn').addEventListener('change',e=>{ MK.on=e.target.checked; saveMK(); render(); if(MK.on&&!mkImage) $('#mkLoad').focus(); });
+bindViewSliders('mk',MK,MK_DEFAULTS,MK_RANGES,()=>{ saveMK(); syncMKControls(); render(); });
+$('#mkLoad').addEventListener('click',()=>$('#mkFile').click());
+$('#mkFile').addEventListener('change',async e=>{
+  const f=e.target.files[0]; e.target.value=''; if(!f) return;
+  try{ mkImage=await readImageFile(f); MK.on=true; saveMK(); }
+  catch(err){ $('#mkStatus').textContent='That file couldn\'t be read as an image.'; $('#mkStatus').className='hint bad'; return; }
+  syncMKControls(); render();
+});
+syncMKControls();
+
 /* ============ safe zone overlay ============ */
 /* Shows where a platform's interface covers the video, so a card can be kept clear of it. Built-in zones are rectangles
    in a 1080 x 1920 frame: interface bars 250 px at the top and bottom, the 1420 px safe zone between them, and (Reels)
@@ -1140,16 +1242,11 @@ const SAFE_ZONES={
 };
 const SZ_DEFAULTS={on:false,kind:'stories',x:0,y:0,scale:100,opacity:100};
 const SZ_RANGES={x:[-1920,1920],y:[-1920,1920],scale:[10,300],opacity:[10,100]};
-const SZ=(()=>{ const raw=store.get('opentitlecard.safezone',{}), o={...SZ_DEFAULTS};
-  if(raw&&typeof raw==='object'){
-    if(typeof raw.on==='boolean') o.on=raw.on;
-    if(['stories','reels','image'].includes(raw.kind)) o.kind=raw.kind;
-    for(const k in SZ_RANGES) if(typeof raw[k]==='number'&&isFinite(raw[k])) o[k]=clamp(Math.round(raw[k]),...SZ_RANGES[k]);
-  }
+const SZ=(()=>{ const o=loadView('opentitlecard.safezone',SZ_DEFAULTS,SZ_RANGES), raw=store.get('opentitlecard.safezone',{});
+  if(raw&&['stories','reels','image'].includes(raw.kind)) o.kind=raw.kind;
   return o; })();
 let szImage=null;   // {img, name, w, h} for "My own image", this session only
 let szBox=null;     // where the overlay was last drawn, in canvas px (for the status line and the tests)
-const SZ_FMT={x:v=>v+' px',y:v=>v+' px',scale:v=>v+'%',opacity:v=>v+'%'};
 /* The overlay's frame in canvas px: its natural size fitted inside the canvas, scaled, centred, then moved. */
 function safeZoneBox(g){
   const src=SZ.kind==='image'?(szImage&&{w:szImage.w,h:szImage.h}):SAFE_ZONES[SZ.kind];
@@ -1213,34 +1310,16 @@ function saveSZ(){ store.set('opentitlecard.safezone',SZ); }
 function syncSZControls(){
   $('#szOn').checked=SZ.on; $('#szKind').value=SZ.kind; $('#szImageRow').hidden=SZ.kind!=='image';
   $('#szImgName').textContent=szImage?szImage.name:'';
-  for(const k in SZ_RANGES){
-    const id='sz'+k[0].toUpperCase()+k.slice(1); $('#'+id).value=SZ[k]; $('#v_'+id).textContent=SZ_FMT[k](SZ[k]);
-    const r=$(`[data-sz-reset="${k}"]`); if(r) r.disabled=SZ[k]===SZ_DEFAULTS[k];
-  }
+  syncViewSliders('sz',SZ,SZ_DEFAULTS,SZ_RANGES);
 }
 $('#szOn').addEventListener('change',e=>{ SZ.on=e.target.checked; saveSZ(); render(); });
 $('#szKind').addEventListener('change',e=>{ SZ.kind=e.target.value; saveSZ(); syncSZControls(); render(); if(SZ.kind==='image'&&!szImage) $('#szLoad').focus(); });
-for(const k in SZ_RANGES){
-  const id='sz'+k[0].toUpperCase()+k.slice(1), el=$('#'+id), v=$('#v_'+id);
-  el.addEventListener('input',()=>{ SZ[k]=+el.value; saveSZ(); syncSZControls(); render(); });
-  const b=document.createElement('button');   // same ↺ as the style sliders
-  b.type='button'; b.className='sm rs'; b.dataset.szReset=k; b.textContent='↺';
-  b.setAttribute('aria-label',`Reset ${v.parentElement.firstChild.textContent.trim()}`); b.title=`Reset to default (${SZ_FMT[k](SZ_DEFAULTS[k])})`;
-  b.addEventListener('click',()=>{ SZ[k]=SZ_DEFAULTS[k]; saveSZ(); syncSZControls(); render(); });
-  el.addEventListener('dblclick',()=>b.click());
-  v.before(b);
-}
+bindViewSliders('sz',SZ,SZ_DEFAULTS,SZ_RANGES,()=>{ saveSZ(); syncSZControls(); render(); });
 $('#szLoad').addEventListener('click',()=>$('#szFile').click());
 $('#szFile').addEventListener('change',async e=>{
   const f=e.target.files[0]; e.target.value=''; if(!f) return;
-  const url=URL.createObjectURL(f), img=new Image();
-  try{
-    img.src=url; await img.decode();
-    // an SVG without a size of its own is drawn at the canvas size
-    const [W,H]=frameDims();
-    szImage={img,name:f.name,w:img.naturalWidth||W,h:img.naturalHeight||H};
-    SZ.kind='image'; SZ.on=true; saveSZ();
-  }catch(err){ URL.revokeObjectURL(url); $('#szStatus').textContent='That file couldn\'t be read as an image.'; $('#szStatus').className='hint bad'; return; }
+  try{ szImage=await readImageFile(f); SZ.kind='image'; SZ.on=true; saveSZ(); }
+  catch(err){ $('#szStatus').textContent='That file couldn\'t be read as an image.'; $('#szStatus').className='hint bad'; return; }
   syncSZControls(); render();
 });
 syncSZControls();
@@ -2274,7 +2353,7 @@ window.addEventListener('resize',render);   // Fit follows the window
 loadBundledInter();
 (document.fonts&&document.fonts.ready?document.fonts.ready:Promise.resolve()).then(render);
 render();
-window.__tt={S,render,renderNow,get L(){return L},exportGeometry,draw,get cards(){return cards},get sharedStyle(){return sharedStyle},get active(){return active},batchNames,zipStem,crc32,buildZip,undo:undoStep,redo:redoStep,unsavedWork,get history(){return {length:hist.length,at:histAt}},get view(){return {...viewState}},get safezone(){return {...SZ,box:szBox&&{...szBox},status:$('#szStatus').textContent}}};
+window.__tt={S,render,renderNow,get L(){return L},exportGeometry,draw,get cards(){return cards},get sharedStyle(){return sharedStyle},get active(){return active},batchNames,zipStem,crc32,buildZip,undo:undoStep,redo:redoStep,unsavedWork,get history(){return {length:hist.length,at:histAt}},get view(){return {...viewState}},get safezone(){return {...SZ,box:szBox&&{...szBox},status:$('#szStatus').textContent}},get mockup(){return {...MK,box:mkBox&&{...mkBox},image:mkImage&&mkImage.name,status:$('#mkStatus').textContent}}};
 </script>
 </body>
 </html>
