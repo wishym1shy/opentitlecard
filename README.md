@@ -24,7 +24,7 @@ OpenTitlecard fixes each of those. Emoji are handled as an empty, correctly-size
 
 ## Features
 
-- **Per-word color and italic.** Put the caret in a word (or select a range) and click a swatch. Click any word in the preview to select it. Includes a palette, custom colors, and an eyedropper.
+- **Per-word color and italic.** Put the caret in a word (or select a range) and click a swatch. Click any word in the preview to select it; click it again on its punctuation to select just that (say, a black "!" after a red word). Includes a palette, custom colors, and an eyedropper.
 - **Emoji slots.** Type or paste an emoji and it becomes a blank slot in the layout. The background box wraps around it exactly as it would around the real thing. The slot is outlined in the preview only, never in the export.
 - **Smart background box.** Each line gets its own rounded box, with inverse corners where line widths differ, like TikTok's own captions. The box grows downward automatically when descenders (`g`, `y`, `p`, `q`, `j`) or an emoji would crowd the bottom edge.
 - **Optional auto-wrap.** Set a **Max card width** and long lines wrap at spaces to fit, with the padding included. Your own line breaks always win, and color, italic and emoji slots carry through the wrap.

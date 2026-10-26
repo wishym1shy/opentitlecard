@@ -178,7 +178,7 @@
 </head>
 <body>
 <header>
-  <h1>OpenTitlecard <a id="appVersion" href="https://github.com/wishym1shy/opentitlecard/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer" title="What's new in this version (changelog on GitHub)">v1.36</a></h1>
+  <h1>OpenTitlecard <a id="appVersion" href="https://github.com/wishym1shy/opentitlecard/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer" title="What's new in this version (changelog on GitHub)">v1.37</a></h1>
   <a class="gh" href="https://github.com/wishym1shy/opentitlecard" target="_blank" rel="noopener noreferrer" title="View the source on GitHub">
     <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
     <span>View on GitHub</span>
@@ -832,8 +832,10 @@ function layout(){
       it.x=x+dx; const mm=mctx.measureText(it.text); it.w=mm.width*sx; below=Math.max(below,(mm.actualBoundingBoxDescent||0)*sy);
       const re=/\S+/g; let m;
       while((m=re.exec(it.text))){
-        const a=mctx.measureText(it.text.slice(0,m.index)).width*sx, b=mctx.measureText(it.text.slice(0,m.index+m[0].length)).width*sx;
-        words.push({x0:x+dx+a,x1:x+dx+b,s:it.s+m.index,e:it.s+m.index+m[0].length});
+        // xs[j] = where the word's j-th character starts (the last entry is its end), so the highlight and a click can
+        // work on part of a word, such as the "!" of "here!"
+        const xs=[]; for(let j=0;j<=m[0].length;j++) xs.push(x+dx+mctx.measureText(it.text.slice(0,m.index+j)).width*sx);
+        words.push({x0:xs[0],x1:xs[xs.length-1],s:it.s+m.index,e:it.s+m.index+m[0].length,xs});
       }
       x+=it.w;
     }
@@ -924,8 +926,13 @@ function draw(ctx, W, H, o){
   // selection highlight (preview only)
   if(o.sel && o.guides){
     ctx.save(); ctx.fillStyle='rgba(91,140,255,0.38)';
+    // only the characters a color would change: selecting the "!" of "here!" highlights just the "!". The 4-unit margin
+    // goes only on sides that end at a space, so a highlighted part of a word doesn't spill onto the rest of it.
+    const t=S.text, open=k=>k<=0||/\s/.test(t[k-1]), shut=k=>k>=t.length||/\s/.test(t[k]);
     for(const l of lines) for(const w of l.words){
-      if(w.e>o.sel[0] && w.s<o.sel[1]) ctx.fillRect(o.cx+(l.tx+l.nx+w.x0-4)*u, o.cy+(l.base-L.capH-L.size*0.08+l.ny)*u, (w.x1-w.x0+8)*u, (L.capH+L.size*0.34)*u);
+      const a=Math.max(w.s,o.sel[0]), b=Math.min(w.e,o.sel[1]); if(a>=b) continue;
+      const x0=w.xs[a-w.s]-(open(a)?4:0), x1=w.xs[b-w.s]+(shut(b)?4:0);
+      ctx.fillRect(o.cx+(l.tx+l.nx+x0)*u, o.cy+(l.base-L.capH-L.size*0.08+l.ny)*u, (x1-x0)*u, (L.capH+L.size*0.34)*u);
     }
     ctx.restore();
   }
@@ -1397,11 +1404,36 @@ cv.addEventListener('pointermove',e=>{
 cv.addEventListener('pointerup',e=>{
   if(!drag) return; const d=drag; drag=null;
   if(d.moved){ record(); return; }   // the whole Alt-drag is one step
-  const p=evToUnits(e), l=L.lines[d.i];
-  const lx=p.x-(l.tx+l.nx);
-  const w=l.words.find(w=>lx>=w.x0-6&&lx<=w.x1+6);
-  if(w){ ta.focus(); ta.setSelectionRange(w.s,w.e); render(); }
+  const p=evToUnits(e), l=L.lines[d.i], k=charAtX(l,p.x-(l.tx+l.nx));
+  if(k<0) return;
+  const r=clickSelection(k); ta.focus(); ta.setSelectionRange(r[0],r[1]); render();
 });
+// The character under a preview x (line units), or -1 when the click is between words.
+function charAtX(l,lx){
+  const w=l.words.find(w=>lx>=w.x0-6&&lx<=w.x1+6); if(!w) return -1;
+  for(let j=1;j<w.xs.length-1;j++) if(lx<w.xs[j]) return w.s+j-1;
+  return w.e-1;
+}
+/* A word's parts: runs of letters/digits (an apostrophe or hyphen between letters stays with them, so "don't" is one
+   part) and the punctuation around them, e.g. "here!" = here + !, and “Wow!” = “ + Wow + !”. */
+const LETTERS=/[\p{L}\p{N}\p{M}]+(?:['’\-][\p{L}\p{N}\p{M}]+)*/gu;
+function wordParts(a,b){
+  const out=[]; let at=a;
+  for(const m of S.text.slice(a,b).matchAll(LETTERS)){
+    const s=a+m.index; if(s>at) out.push([at,s]);
+    out.push([s,s+m[0].length]); at=s+m[0].length;
+  }
+  if(at<b) out.push([at,b]);
+  return out;
+}
+/* What a click on character k selects. The first click takes the whole word, as always. Clicking that word again while
+   it is selected narrows to the part clicked (just the "!", or just "here"), and a click on that part goes back to the
+   whole word. Only a real selection counts: a caret in the word (say, right after typing) still gets the whole word. */
+function clickSelection(k){
+  const w=wordAt(k), part=wordParts(w[0],w[1]).find(([a,b])=>k>=a&&k<b)||w;
+  const s=ta.selectionStart, e=ta.selectionEnd;
+  return s===w[0] && e===w[1] && (part[0]!==w[0]||part[1]!==w[1]) ? part : w;
+}
 
 /* ============ controls binding ============ */
 const bindings=[
