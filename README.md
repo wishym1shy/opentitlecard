@@ -46,13 +46,17 @@ OpenTitlecard fixes each of those. Emoji are handled as an empty, correctly-size
 The version is shown next to the name at the top left; see [CHANGELOG.md](CHANGELOG.md) for what changed in each one.
 
 
-The design controls are on the left: **Text** at the top (with the font family, weight and size), **Presets** at the bottom, and everything about the card's look in between under **Titlecard Properties** (Position, Text Position, Text Settings, Background, Emoji Slot), folded when the page opens. **Cards**, **Canvas** and **Safe zone** float at the top right of the preview, and **Export** sits by itself at the bottom right: click a panel's title to minimize or expand it (every visit starts with only Cards open), or use **Panels** in the toolbar to hide them all and give the preview the whole width. The app remembers whether the panels are hidden.
+The design controls are on the left: **Text** at the top (with the font family, weight and size), **Presets** at the bottom, and everything about the card's look in between under **Titlecard Properties** (Position, Text Position, Text Settings, Background, Emoji Slot), folded when the page opens. **Cards**, **Canvas** and **Mock-up & safe zone** float at the top right of the preview, and **Export** sits by itself at the bottom right: click a panel's title to minimize or expand it (every visit starts with only Cards open), or use **Panels** in the toolbar to hide them all and give the preview the whole width. The app remembers whether the panels are hidden.
 
 **Zoom and pan:** **Ctrl+scroll** (⌘+scroll on a Mac, or pinch on a trackpad) zooms around the cursor; scroll to move around, **Shift+scroll** sideways, or drag with **Space** held or the middle mouse button. The zoom bar at the bottom-left of the preview has −/+, **Fit** and **100%** (actual size); **Ctrl+=**, **Ctrl+−** and **Ctrl+0** do the same. 100% shows one canvas pixel per screen pixel, so past that you see the real export pixels.
 
+## Mock-up background
+
+To see how a card will look on the real video, load a frame of the footage (or a screenshot of the feed) with **Load image…** under **Mock-up background**, at the top of the **Mock-up & safe zone** panel. It is drawn behind the card and fills the canvas the way the video would; **Position X / Y**, **Scale** and **Opacity** adjust it, and **↺** resets each one. Like the safe zone, it is only drawn on the preview: the PNG stays transparent. The settings are remembered; the image is kept until you reload the page. The safe zone can be shown on top of the mock-up, or either one on its own.
+
 ## Safe zones
 
-Turn on **Show safe zone** in the **Safe zone** panel to see where a platform's interface covers your video. **Stories** and **Reels** (9:16) shade the interface bars red (250 px at the top and bottom of a 1080 × 1920 frame, plus the side buttons in Reels) and the safe zone green, and the panel tells you whether the card in front is inside it or which part it runs into. You can also load **your own image** (PNG, JPG, WebP or SVG) as the overlay. **Position X / Y** and **Scale** move and resize it, **Opacity** fades it, and **↺** resets each one. The overlay is fitted to the canvas, so it matches exactly on 1080 × 1920 and 2160 × 3840. It is only drawn on the preview: it is **never exported**. The settings are remembered; a loaded image is kept until you reload the page.
+Turn on **Show safe zone** in the **Mock-up & safe zone** panel to see where a platform's interface covers your video. **Stories** and **Reels** (9:16) shade the interface bars red (250 px at the top and bottom of a 1080 × 1920 frame, plus the side buttons in Reels) and the safe zone green, and the panel tells you whether the card in front is inside it or which part it runs into. You can also load **your own image** (PNG, JPG, WebP or SVG) as the overlay. **Position X / Y** and **Scale** move and resize it, **Opacity** fades it, and **↺** resets each one. The overlay is fitted to the canvas, so it matches exactly on 1080 × 1920 and 2160 × 3840. It is only drawn on the preview: it is **never exported**. The settings are remembered; a loaded image is kept until you reload the page.
 
 ## Quick start
 
@@ -88,7 +92,7 @@ Use a Chromium browser (Chrome, Edge, Brave, Arc) for the full experience. The a
 
 ## Privacy
 
-Everything happens in your browser. No text, fonts, or images leave your computer. Your last style settings, custom palette colors, saved presets, your batch file-name pattern are stored in your browser's `localStorage` and nowhere else. Font files you load are kept in your browser's IndexedDB on this computer, so they come back next time; **Forget them** under the font buttons removes them. Your cards and their text are **not** stored: they exist only on the page until you save them to a file you choose. The undo history is kept in memory too, and is gone when you close or reload the page. A safe zone image you load stays in memory for the session only.
+Everything happens in your browser. No text, fonts, or images leave your computer. Your last style settings, custom palette colors, saved presets, your batch file-name pattern are stored in your browser's `localStorage` and nowhere else. Font files you load are kept in your browser's IndexedDB on this computer, so they come back next time; **Forget them** under the font buttons removes them. Your cards and their text are **not** stored: they exist only on the page until you save them to a file you choose. The undo history is kept in memory too, and is gone when you close or reload the page. Mock-up and safe zone images you load stay in memory for the session only.
 
 ## Limitations
 

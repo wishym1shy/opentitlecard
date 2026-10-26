@@ -51,7 +51,7 @@ test.describe('floating panels', () => {
   });
 
   test('clicks pass through the empty space around the panels', async ({ app: { page } }) => {
-    await page.click('#fph_cards'); await page.click('#fph_canvas'); await page.click('#fph_export');
+    await page.click('#fph_cards'); await page.click('#fph_canvas'); await page.click('#fph_safezone'); await page.click('#fph_export');
     const stack = await box(page, '#panels'), above = await box(page, '#fp_safezone'), last = await box(page, '#fp_export');
     const x = stack.x + stack.width / 2, y = (above.y + above.height + last.y) / 2; // the gap above Export, inside the stack
     const hit = await page.evaluate(([x, y]) => document.elementFromPoint(x, y).closest('#panels') === null, [x, y]);
