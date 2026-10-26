@@ -61,7 +61,7 @@ test.describe('line nudge sliders', () => {
     const s = slider(page, 0, 'x');
     const c = await centerOf(s);
     await page.mouse.move(c.x, c.y); await page.mouse.down();
-    await page.mouse.move(c.x + 1, c.y); await page.mouse.up(); // 1px is ~1.6 units on this track
+    await page.mouse.move(c.x + 1, c.y); await page.mouse.up(); // 1px is a few units on this short track, still inside the 2 px detent
     expect((await nudge(page, 0)).x).toBe(0);
     await expect(s).toHaveValue('0');
   });

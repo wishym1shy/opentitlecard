@@ -4,6 +4,15 @@ What changed in OpenTitlecard, newest first. The version is shown next to the ap
 
 Versions are `vMAJOR.MINOR`. Each merged pull request that changes the app adds one to the minor number (v1.31 → v1.32 → …). The changelog started at v1.31: v1.27 stands for everything merged before the UI review that led to v1.28–v1.31 (pull requests up to #31), so the numbers line up with the work done.
 
+## v1.45
+
+### Changed
+- **A cleaner, more compact sidebar**, laid out like a design tool's properties panel: flat sections split by thin lines instead of boxes, and settings two to a row. The settings themselves are the same.
+- Every slider setting (Size, Line height, Letter spacing, Stretch, Max card width, Outline width, Opacity, padding and margins, Corner radius, Clearance, Slot size) is now a **compact field**: type a value (Enter applies it; arrow keys step, Shift = 10 steps), **drag its icon sideways** to scrub (Shift = faster, double-click resets), or drag the slim slider along the bottom of the field. The ↺ reset button shows up only once a value differs from the default.
+- **Alignment** is a row of three buttons (left, center, right) instead of a dropdown.
+- **Colors** (text, outline, background) show their hex code next to the swatch, and you can type a new one (`#ffe066`, `ffe066` or `fe6`).
+- The card **Position** and each line's **Text Position** use the same fields: drag the X or Y to move, or type a value.
+
 ## v1.44
 
 ### Added

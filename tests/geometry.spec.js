@@ -78,10 +78,10 @@ test.describe('background box geometry', () => {
 
   test('alignment: left aligns box left edges, right aligns right edges', async ({ app: { page } }) => {
     await setText(page, 'Short\nA much longer line here');
-    await page.selectOption('#align', 'left');
+    await page.check('#align input[value="left"]');
     let L = await settle(page);
     expect(L.lines[0].x0).toBeCloseTo(L.lines[1].x0, 6);
-    await page.selectOption('#align', 'right');
+    await page.check('#align input[value="right"]');
     L = await settle(page);
     expect(L.lines[0].x1).toBeCloseTo(L.lines[1].x1, 6);
   });

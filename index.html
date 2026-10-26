@@ -29,7 +29,7 @@
   #fontChip.ok{color:var(--ok);border-color:#24553f}
   #fontChip.bad{color:var(--warn);border-color:#6b3028;background:#2a1714}
   .app{display:grid;grid-template-columns:360px 1fr;height:calc(100% - 45px)}
-  aside{overflow-y:auto;padding:12px 14px 40px;border-right:1px solid var(--line);background:var(--panel)}
+  aside{overflow-y:auto;padding:0 0 40px;border-right:1px solid var(--line);background:var(--panel)}
   section.stage{display:flex;flex-direction:column;min-width:0}
   /* Floating panels: a stack on the right of the preview. The stack itself lets clicks through (pointer-events), so
      only the panels block the canvas; while it is shown the view keeps the canvas clear of it. */
@@ -52,16 +52,6 @@
   #szStatus.ok{color:var(--ok)} #szStatus.bad{color:#ffb3a8}
   .stagebody.with-panels .view{padding-right:330px}
   #panelsToggle[aria-pressed="true"]{background:var(--accent2);border-color:var(--accent)}
-  details{border:1px solid var(--line);border-radius:8px;margin-bottom:10px;background:var(--panel2)}
-  summary{cursor:pointer;padding:8px 12px;font-weight:600;font-size:12px;letter-spacing:.4px;text-transform:uppercase;color:var(--mute);list-style:none}
-  summary::-webkit-details-marker{display:none}
-  summary:before{content:"▸";display:inline-block;width:14px;transition:transform .15s}
-  details[open]>summary:before{transform:rotate(90deg)}
-  .body{padding:4px 12px 12px}
-  /* Titlecard Properties holds the other sections, so they sit one shade darker inside it and it reads as their parent. */
-  details.master>summary{color:var(--text)}
-  details.master>.body{padding:2px 8px 2px}
-  details details{background:var(--panel);margin-bottom:8px}
   label{display:block;color:var(--mute);font-size:11.5px;margin:8px 0 3px}
   .row{display:flex;gap:8px;align-items:center}
   .row>*{flex:1;min-width:0}
@@ -85,17 +75,14 @@
   button.rs{float:right;margin:-3px 0 0 8px;padding:0 6px;font-size:12px;line-height:17px}
   button.rs:disabled{opacity:.3;cursor:default;border-color:var(--line);background:var(--panel2)}
   button.rs:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
-  .nudge{display:grid;grid-template-columns:1fr auto;gap:4px 6px;align-items:center;margin:8px 0 10px;padding-bottom:9px;border-bottom:1px dashed var(--line)}
-  .nudge:last-child{border-bottom:0;padding-bottom:0}
+  .nudge{display:grid;grid-template-columns:1fr auto;gap:6px;align-items:center;margin:4px 0 12px}
   .nudge .nm{overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:12px}
-  .nudge .ax{grid-column:1 / -1;display:grid;grid-template-columns:16px 1fr 62px;gap:8px;align-items:center}
-  .nudge input[type=number]{padding:4px 6px}
-  .nudge .scrub{cursor:ew-resize;color:var(--accent);font-weight:600;font-size:12px;text-align:center;user-select:none;touch-action:none}
-  .nudge .slw{position:relative;display:flex;align-items:center}
-  .nudge .slw:before{content:"";position:absolute;left:50%;top:50%;width:1px;height:12px;margin-top:-6px;background:var(--mute);opacity:.55;pointer-events:none} /* centre (0) tick */
-  .nudge input[type=range]{margin:0;position:relative}
-  .nudge input:focus-visible,.nudge .scrub:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-  .fontbox{margin-top:10px;padding-top:2px;border-top:1px dashed var(--line)}
+  .nudge .nm b{color:var(--mute);font-weight:600;margin-right:4px}
+  .nudge button[data-reset]{width:22px;height:22px;padding:0;line-height:20px}
+  .nudge .g2{grid-column:1 / -1}
+  /* nudges go both ways, so their slider line has a centre tick (0) instead of a fill */
+  .nudge .fld input[type=range]::-webkit-slider-runnable-track{background:linear-gradient(to right,var(--line) calc(50% - .5px),var(--mute) 0 calc(50% + .5px),var(--line) 0)}
+  .nudge .scrub:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
   /* Missing-font warning: a ⚠ inside the family box, with its message in a pop-out (top layer, so it can spill over
      the canvas) pointing back at it. */
   .famwrap{position:relative}
@@ -189,11 +176,82 @@
   .bitem.skip .fn{color:var(--warn)}
   .bsec{margin-top:10px;padding-top:2px;border-top:1px dashed var(--line)}
   #bFont{display:none;margin-top:10px;padding:8px 10px;border-radius:8px;background:#2a1714;border:1px solid #6b3028;color:#ffb3a8;font-size:12px}
+  /* ---- Sidebar: flat sections split by hairlines, like a design tool's properties panel. Settings are compact fields
+     (an icon you can drag to scrub, a typed value, a slim slider along the bottom) laid out two to a row. ---- */
+  aside details{border-bottom:1px solid var(--line)}
+  aside summary{display:flex;align-items:center;gap:8px;cursor:pointer;padding:12px 14px;font-weight:600;font-size:12px;color:var(--text);list-style:none;user-select:none}
+  aside summary::-webkit-details-marker{display:none}
+  aside summary:after{content:"";margin-left:auto;width:5px;height:5px;border:solid var(--mute);border-width:0 1.5px 1.5px 0;transform:rotate(-45deg);transition:transform .15s}
+  aside details[open]>summary:after{transform:rotate(45deg)}
+  aside summary:hover:after{border-color:var(--text)}
+  aside summary:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+  .body{padding:0 14px 14px}
+  /* Titlecard Properties is a group bar; its sections sit flat inside it, each starting at a hairline. */
+  details.master>summary{background:var(--panel2);font-size:11px;letter-spacing:.5px;text-transform:uppercase;color:var(--mute)}
+  details.master>summary:hover{color:var(--text)}
+  details.master>.body{padding:0}
+  details.master details{border-bottom:0;border-top:1px solid var(--line)}
+  details.master details:first-child{border-top:0}
+  aside label{font-size:11px;margin:10px 0 4px}
+  aside .hint{font-size:11px;line-height:1.45;margin-top:8px}
+  aside textarea,aside input[type=text],aside input[type=number],aside select{background:var(--panel2);border-color:transparent;height:28px;padding:4px 8px}
+  aside textarea{height:96px;background:#14161b;border-color:var(--line)}
+  aside textarea:hover,aside input[type=text]:hover,aside input[type=number]:hover,aside select:hover{border-color:var(--line)}
+  aside textarea:focus,aside input[type=text]:focus,aside input[type=number]:focus,aside select:focus{outline:0;border-color:var(--accent)}
+  aside button.sm{background:var(--panel2);border-color:transparent;padding:4px 9px}
+  aside button.sm:hover{border-color:var(--line)}
+  aside button.sm.on{background:var(--accent2);border-color:var(--accent)}
+  .g2{display:grid;grid-template-columns:1fr 1fr;gap:0 8px}
+  .g2>*{min-width:0}
+  .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  .fld{position:relative;display:flex;align-items:center;height:28px;background:var(--panel2);border:1px solid transparent;border-radius:6px}
+  .fld:hover{border-color:var(--line)}
+  .fld:focus-within{border-color:var(--accent)}
+  .fld .scrub{flex:none;display:flex;align-items:center;justify-content:center;width:26px;height:100%;color:var(--mute);cursor:ew-resize;user-select:none;touch-action:none;font-size:11px;font-weight:600}
+  .fld .scrub:hover{color:var(--text)}
+  .fld .scrub svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.3;stroke-linecap:round;stroke-linejoin:round}
+  aside .fld input[type=number],aside .fld input[type=text]{flex:1;min-width:0;height:100%;padding:0 2px;border:0;background:none;font-variant-numeric:tabular-nums;-moz-appearance:textfield}
+  .fld input[type=number]::-webkit-inner-spin-button,.fld input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+  .fld .unit{flex:none;padding-right:7px;color:var(--mute);font-size:11px}
+  .fld button.rs{float:none;flex:none;margin:0 3px 0 -3px;width:18px;height:18px;padding:0;border:0;background:none;color:var(--mute);font-size:12px;line-height:18px}
+  .fld button.rs:hover{color:var(--text);background:none}
+  .fld button.rs:disabled{opacity:0;pointer-events:none}
+  /* The slider is a thin line along the bottom of the field, filled up to the value (--p, set by syncControls). */
+  .fld input[type=range]{position:absolute;left:26px;right:7px;bottom:-1px;width:auto;height:7px;margin:0;-webkit-appearance:none;appearance:none;background:none;cursor:ew-resize}
+  .fld input[type=range]::-webkit-slider-runnable-track{height:2px;border-radius:1px;background:linear-gradient(to right,var(--accent) var(--p,0%),var(--line) 0)}
+  .fld input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:9px;height:9px;margin-top:-3.5px;border-radius:50%;background:var(--text);border:0;opacity:0;transition:opacity .1s}
+  .fld:hover input[type=range]::-webkit-slider-thumb,.fld input[type=range]:focus-visible::-webkit-slider-thumb{opacity:1}
+  .fld input[type=range]::-moz-range-track{height:2px;background:var(--line)}
+  .fld input[type=range]::-moz-range-progress{height:2px;background:var(--accent)}
+  .fld input[type=range]::-moz-range-thumb{width:9px;height:9px;border:0;border-radius:50%;background:var(--text)}
+  .fld input[type=range]:focus-visible{outline:0}
+  .fld:has(input[type=range]:focus-visible){border-color:var(--accent)}
+  /* Colour fields: a swatch, then the hex code you can type. */
+  .fld input[type=color]{flex:none;width:16px;height:16px;margin:0 6px 0 7px;border:0;border-radius:3px;padding:0;background:none}
+  .fld input[type=color]::-webkit-color-swatch-wrapper{padding:0}
+  .fld input[type=color]::-webkit-color-swatch{border:1px solid #0006;border-radius:3px}
+  .fld input[type=color]::-moz-color-swatch{border:1px solid #0006;border-radius:3px}
+  aside .fld input.hex{text-transform:uppercase}
+  /* Icon segmented control (alignment). The radios fill their buttons, invisible, so the whole button is the target. */
+  .segi{display:inline-flex;gap:2px;padding:2px;background:var(--panel2);border-radius:6px}
+  .segi label{position:relative;display:flex;align-items:center;justify-content:center;width:32px;height:24px;margin:0;border-radius:4px;color:var(--mute);cursor:pointer}
+  .segi label:hover{color:var(--text)}
+  .segi input{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:pointer}
+  .segi label:has(input:checked){background:var(--line);color:var(--text)}
+  .segi label:has(input:focus-visible){outline:2px solid var(--accent);outline-offset:-1px}
+  .segi svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.4;stroke-linecap:round}
+  /* Checkboxes drawn small and square, with the label to their right. */
+  label.chk{display:flex;align-items:center;gap:8px;margin:12px 0 0;color:var(--text);font-size:12px;cursor:pointer}
+  aside input[type=checkbox]{-webkit-appearance:none;appearance:none;flex:none;width:14px;height:14px;margin:0;border:1px solid var(--mute);border-radius:3px;background:none;cursor:pointer;display:grid;place-content:center}
+  aside input[type=checkbox]:checked{background:var(--accent2);border-color:var(--accent)}
+  aside input[type=checkbox]:checked:before{content:"";width:7px;height:4px;margin-top:-2px;border:solid #fff;border-width:0 0 1.5px 1.5px;transform:rotate(-45deg)}
+  aside input[type=checkbox]:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .fontbox{margin:14px -14px 0;padding:2px 14px 0;border-top:1px solid var(--line)}
 </style>
 </head>
 <body>
 <header>
-  <h1>OpenTitlecard <a id="appVersion" href="https://github.com/wishym1shy/opentitlecard/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer" title="What's new in this version (changelog on GitHub)">v1.44</a></h1>
+  <h1>OpenTitlecard <a id="appVersion" href="https://github.com/wishym1shy/opentitlecard/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer" title="What's new in this version (changelog on GitHub)">v1.45</a></h1>
   <a class="gh" href="https://github.com/wishym1shy/opentitlecard" target="_blank" rel="noopener noreferrer" title="View the source on GitHub">
     <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
     <span>View on GitHub</span>
@@ -238,9 +296,9 @@
           <input type="file" id="fontFile" accept=".ttf,.otf,.woff,.woff2" hidden>
         </div>
         <div class="hint" id="fontMem" hidden><span id="fontMemText"></span> · <button type="button" id="fontForget" class="linkish">Forget them</button></div>
-        <label for="weight">Weight</label>
-        <select id="weight"><option value="400">Regular 400</option><option value="500">Medium 500</option><option value="600">Semibold 600</option><option value="700">Bold 700</option><option value="800">Extra Bold 800</option><option value="900">Black 900</option></select>
-        <label for="size">Size <span class="val" id="v_size"></span></label><input type="range" id="size" min="30" max="260" step="1">
+        <div class="g2"><div><label for="weight">Weight</label>
+        <select id="weight"><option value="400">Regular 400</option><option value="500">Medium 500</option><option value="600">Semibold 600</option><option value="700">Bold 700</option><option value="800">Extra Bold 800</option><option value="900">Black 900</option></select></div>
+        <div><label for="n_size">Size</label><div class="fld" data-name="Size"><span class="scrub" data-scrub-for="size" title="Drag to change size (Shift = 10×). Double-click to reset."><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 4V3h7v1M5.5 3v10M4 13h3M10 8V7.5h4.5V8M12.2 7.5V13M11.2 13h2"/></svg></span><input type="number" id="n_size" step="1" aria-label="Size"><span class="unit">px</span><span class="sr" id="v_size" aria-hidden="true"></span><input type="range" id="size" min="30" max="260" step="1" aria-label="Size slider"></div></div></div>
       </div>
     </div>
   </details>
@@ -253,7 +311,7 @@
         <summary>Position</summary>
         <div class="body">
           <div id="frameOpts">
-            <div class="row"><div><label for="offX">X offset</label><input type="number" id="offX"></div><div><label for="offY">Y offset</label><input type="number" id="offY"></div></div>
+            <div class="g2"><div><label for="offX">X offset</label><div class="fld"><span class="scrub" data-scrub-for="offX" title="Drag to move (Shift = 10×). Double-click for 0.">X</span><input type="number" id="offX"><span class="unit">px</span></div></div><div><label for="offY">Y offset</label><div class="fld"><span class="scrub" data-scrub-for="offY" title="Drag to move (Shift = 10×). Double-click for 0.">Y</span><input type="number" id="offY"><span class="unit">px</span></div></div></div>
             <div class="hint">Moves the card inside the canvas, in px at 1080p (+Y is down). The same for every card.</div>
           </div>
           <div class="hint" id="posTight" style="margin:0" hidden>Tight crop is on (Canvas panel), so the PNG is just the card and its position doesn't apply.</div>
@@ -271,44 +329,37 @@
       <details open>
         <summary>Text Settings</summary>
         <div class="body">
-          <label for="align">Align</label>
-          <select id="align"><option value="center">Center</option><option value="left">Left</option><option value="right">Right</option></select>
-          <label>Line height <span class="val" id="v_lh"></span></label><input type="range" id="lh" min="0.9" max="1.8" step="0.01">
-          <label>Tracking <span class="val" id="v_track"></span></label><input type="range" id="track" min="-6" max="20" step="0.5">
-          <label for="stretchX">Stretch width <span class="val" id="v_stretchX"></span></label><input type="range" id="stretchX" min="50" max="200" step="1">
-          <label for="stretchY">Stretch height <span class="val" id="v_stretchY"></span></label><input type="range" id="stretchY" min="50" max="200" step="1">
+          <label id="alignLbl">Alignment</label>
+          <div id="align" class="segi" role="radiogroup" aria-labelledby="alignLbl"><label title="Left"><input type="radio" name="align" value="left" aria-label="Align left"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 3.5h12M2 6.5h8M2 9.5h12M2 12.5h7"/></svg></label><label title="Center"><input type="radio" name="align" value="center" aria-label="Align center"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 3.5h12M4 6.5h8M2 9.5h12M4.5 12.5h7"/></svg></label><label title="Right"><input type="radio" name="align" value="right" aria-label="Align right"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 3.5h12M6 6.5h8M2 9.5h12M7 12.5h7"/></svg></label></div>
+          <div class="g2"><div><label for="n_lh">Line height</label><div class="fld" data-name="Line height"><span class="scrub" data-scrub-for="lh" title="Drag to change line height (Shift = 10×). Double-click to reset."><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 2.5h12M2 13.5h12M5.5 11 8 5l2.5 6M6.4 9h3.2"/></svg></span><input type="number" id="n_lh" step="0.01" aria-label="Line height"><span class="unit">×</span><span class="sr" id="v_lh" aria-hidden="true"></span><input type="range" id="lh" min="0.9" max="1.8" step="0.01" aria-label="Line height slider"></div></div><div><label for="n_track">Letter spacing</label><div class="fld" data-name="Tracking"><span class="scrub" data-scrub-for="track" title="Drag to change letter spacing (Shift = 10×). Double-click to reset."><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 3v10M14 3v10M5.5 11 8 5l2.5 6M6.4 9h3.2"/></svg></span><input type="number" id="n_track" step="0.5" aria-label="Tracking"><span class="unit">px</span><span class="sr" id="v_track" aria-hidden="true"></span><input type="range" id="track" min="-6" max="20" step="0.5" aria-label="Tracking slider"></div></div></div>
+          <div class="g2"><div><label for="n_stretchX">Stretch width</label><div class="fld" data-name="Stretch width"><span class="scrub" data-scrub-for="stretchX" title="Drag to change stretch width (Shift = 10×). Double-click to reset."><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 8h12M4.5 5.5 2 8l2.5 2.5M11.5 5.5 14 8l-2.5 2.5"/></svg></span><input type="number" id="n_stretchX" step="1" aria-label="Stretch width"><span class="unit">%</span><span class="sr" id="v_stretchX" aria-hidden="true"></span><input type="range" id="stretchX" min="50" max="200" step="1" aria-label="Stretch width slider"></div></div><div><label for="n_stretchY">Stretch height</label><div class="fld" data-name="Stretch height"><span class="scrub" data-scrub-for="stretchY" title="Drag to change stretch height (Shift = 10×). Double-click to reset."><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2v12M5.5 4.5 8 2l2.5 2.5M5.5 11.5 8 14l2.5-2.5"/></svg></span><input type="number" id="n_stretchY" step="1" aria-label="Stretch height"><span class="unit">%</span><span class="sr" id="v_stretchY" aria-hidden="true"></span><input type="range" id="stretchY" min="50" max="200" step="1" aria-label="Stretch height slider"></div></div></div>
           <div class="hint">Below 100% squishes the letters, above stretches them. The box grows or shrinks around them; padding stays the same and emoji slots stay square.</div>
-          <label for="wrap">Max card width <span class="val" id="v_wrap"></span></label><input type="range" id="wrap" min="0" max="1900" step="10">
+          <div><label for="n_wrap">Max card width</label><div class="fld" data-name="Max card width"><span class="scrub" data-scrub-for="wrap" title="Drag to change max card width (Shift = 10×). Double-click to reset."><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M14 2.5v11M2 4.5h7.5a2.5 2.5 0 0 1 0 5H6M7.5 7.5 5.5 9.5l2 2M2 12h2"/></svg></span><input type="number" id="n_wrap" step="10" aria-label="Max card width" placeholder="Off"><span class="unit">px</span><span class="sr" id="v_wrap" aria-hidden="true"></span><input type="range" id="wrap" min="0" max="1900" step="10" aria-label="Max card width slider"></div></div>
           <div class="hint">Off = only your own line breaks. Otherwise long lines wrap at spaces to fit. Line nudges stay with line numbers.</div>
-          <div class="row tight" style="margin-top:8px">
-            <span style="color:var(--mute)">Default text color</span><input type="color" id="textColor">
-            <span style="color:var(--mute);margin-left:10px">Outline</span><input type="color" id="outlineColor">
-          </div>
-          <label>Outline width <span class="val" id="v_outlineW"></span></label><input type="range" id="outlineW" min="0" max="16" step="0.5">
-          <div class="row tight" style="margin-top:6px"><label style="margin:0"><input type="checkbox" id="textShadow"> Soft text shadow</label></div>
+          <div class="g2"><div><label for="hx_textColor">Default text color</label><div class="fld"><input type="color" id="textColor" aria-label="Default text color picker"><input type="text" class="hex" id="hx_textColor" maxlength="7" spellcheck="false" autocomplete="off" aria-label="Default text color hex code"></div></div><div><label for="hx_outlineColor">Outline</label><div class="fld"><input type="color" id="outlineColor" aria-label="Outline picker"><input type="text" class="hex" id="hx_outlineColor" maxlength="7" spellcheck="false" autocomplete="off" aria-label="Outline hex code"></div></div></div>
+          <div class="g2"><div><label for="n_outlineW">Outline width</label><div class="fld" data-name="Outline width"><span class="scrub" data-scrub-for="outlineW" title="Drag to change outline width (Shift = 10×). Double-click to reset."><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 4h12" stroke-width="1"/><path d="M2 8h12" stroke-width="2"/><path d="M2 12.5h12" stroke-width="3"/></svg></span><input type="number" id="n_outlineW" step="0.5" aria-label="Outline width"><span class="unit">px</span><span class="sr" id="v_outlineW" aria-hidden="true"></span><input type="range" id="outlineW" min="0" max="16" step="0.5" aria-label="Outline width slider"></div></div></div>
+          <label class="chk"><input type="checkbox" id="textShadow"> Soft text shadow</label>
         </div>
       </details>
 
       <details open>
         <summary>Background</summary>
         <div class="body">
-          <div class="row tight"><label style="margin:0"><input type="checkbox" id="bgOn"> Fill box behind lines</label></div>
-          <div class="row tight" style="margin-top:8px"><span style="color:var(--mute)">Color</span><input type="color" id="bgColor"></div>
-          <label>Opacity <span class="val" id="v_bgOpacity"></span></label><input type="range" id="bgOpacity" min="0" max="100" step="1">
-          <label>Side padding <span class="val" id="v_padX"></span></label><input type="range" id="padX" min="0.1" max="1" step="0.01">
-          <label>Corner radius <span class="val" id="v_radius"></span></label><input type="range" id="radius" min="0" max="0.5" step="0.01">
-          <label>Top margin (above caps) <span class="val" id="v_topPad"></span></label><input type="range" id="topPad" min="0.1" max="1" step="0.01">
-          <label>Bottom margin (below baseline) <span class="val" id="v_botPad"></span></label><input type="range" id="botPad" min="0.1" max="1" step="0.01">
-          <label>Clearance below g, y, p, emoji… <span class="val" id="v_clear"></span></label><input type="range" id="clear" min="0" max="0.6" step="0.01">
-          <div class="row tight" style="margin-top:6px"><label style="margin:0"><input type="checkbox" id="boxShadow"> Soft box shadow</label></div>
+          <label class="chk" style="margin-top:0"><input type="checkbox" id="bgOn"> Fill box behind lines</label>
+          <div class="g2"><div><label for="hx_bgColor">Color</label><div class="fld"><input type="color" id="bgColor" aria-label="Color picker"><input type="text" class="hex" id="hx_bgColor" maxlength="7" spellcheck="false" autocomplete="off" aria-label="Color hex code"></div></div><div><label for="n_bgOpacity">Opacity</label><div class="fld" data-name="Opacity"><span class="scrub" data-scrub-for="bgOpacity" title="Drag to change opacity (Shift = 10×). Double-click to reset."><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2.5" y="2.5" width="11" height="11" rx="2"/><path d="M8 2.5v11M8 5.5l5.5 0M8 8.5h5.5M8 11h5" stroke-width="1"/></svg></span><input type="number" id="n_bgOpacity" step="1" aria-label="Opacity"><span class="unit">%</span><span class="sr" id="v_bgOpacity" aria-hidden="true"></span><input type="range" id="bgOpacity" min="0" max="100" step="1" aria-label="Opacity slider"></div></div></div>
+          <div class="g2"><div><label for="n_padX">Side padding</label><div class="fld" data-name="Side padding"><span class="scrub" data-scrub-for="padX" title="Drag to change side padding (Shift = 10×). Double-click to reset."><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 2.5v11M14 2.5v11"/><rect x="5" y="5.5" width="6" height="5" rx="1"/></svg></span><input type="number" id="n_padX" step="0.01" aria-label="Side padding"><span class="unit">em</span><span class="sr" id="v_padX" aria-hidden="true"></span><input type="range" id="padX" min="0.1" max="1" step="0.01" aria-label="Side padding slider"></div></div><div><label for="n_radius">Corner radius</label><div class="fld" data-name="Corner radius"><span class="scrub" data-scrub-for="radius" title="Drag to change corner radius (Shift = 10×). Double-click to reset."><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 13V7.5A4.5 4.5 0 0 1 7.5 3H13"/></svg></span><input type="number" id="n_radius" step="0.01" aria-label="Corner radius"><span class="unit">em</span><span class="sr" id="v_radius" aria-hidden="true"></span><input type="range" id="radius" min="0" max="0.5" step="0.01" aria-label="Corner radius slider"></div></div></div>
+          <div class="g2"><div><label for="n_topPad">Top margin</label><div class="fld" data-name="Top margin (above caps)"><span class="scrub" data-scrub-for="topPad" title="Drag to change top margin (Shift = 10×). Double-click to reset."><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 2.5h12"/><rect x="4" y="6.5" width="8" height="6.5" rx="1"/><path d="M8 3.5v2" stroke-width="1"/></svg></span><input type="number" id="n_topPad" step="0.01" aria-label="Top margin (above caps)"><span class="unit">em</span><span class="sr" id="v_topPad" aria-hidden="true"></span><input type="range" id="topPad" min="0.1" max="1" step="0.01" aria-label="Top margin (above caps) slider"></div></div><div><label for="n_botPad">Bottom margin</label><div class="fld" data-name="Bottom margin (below baseline)"><span class="scrub" data-scrub-for="botPad" title="Drag to change bottom margin (Shift = 10×). Double-click to reset."><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 13.5h12"/><rect x="4" y="3" width="8" height="6.5" rx="1"/><path d="M8 10.5v2" stroke-width="1"/></svg></span><input type="number" id="n_botPad" step="0.01" aria-label="Bottom margin (below baseline)"><span class="unit">em</span><span class="sr" id="v_botPad" aria-hidden="true"></span><input type="range" id="botPad" min="0.1" max="1" step="0.01" aria-label="Bottom margin (below baseline) slider"></div></div></div>
+          <div class="g2"><div><label for="n_clear">Descender clearance</label><div class="fld" data-name="Clearance below g, y, p, emoji…"><span class="scrub" data-scrub-for="clear" title="Drag to change descender clearance (Shift = 10×). Double-click to reset."><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M9.5 4.5v6a2.5 2.5 0 0 1-4.6 1.3M9.5 7a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0M2 14.5h12"/></svg></span><input type="number" id="n_clear" step="0.01" aria-label="Clearance below g, y, p, emoji…"><span class="unit">em</span><span class="sr" id="v_clear" aria-hidden="true"></span><input type="range" id="clear" min="0" max="0.6" step="0.01" aria-label="Clearance below g, y, p, emoji… slider"></div></div></div>
+          <div class="hint">Top is measured above the capitals, bottom below the baseline. Clearance keeps the box clear of g, y, p and emoji slots.</div>
+          <label class="chk"><input type="checkbox" id="boxShadow"> Soft box shadow</label>
         </div>
       </details>
 
       <details open>
         <summary>Emoji Slot</summary>
         <div class="body">
-          <label>Slot size <span class="val" id="v_slot"></span></label><input type="range" id="slot" min="0.6" max="2" step="0.01">
-          <div class="row tight" style="margin-top:6px"><label style="margin:0"><input type="checkbox" id="showGuides"> Show slot outline in preview (never exported)</label></div>
+          <div class="g2"><div><label for="n_slot">Slot size</label><div class="fld" data-name="Slot size"><span class="scrub" data-scrub-for="slot" title="Drag to change slot size (Shift = 10×). Double-click to reset."><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2.5" y="2.5" width="11" height="11" rx="2" stroke-dasharray="2.2 1.8"/></svg></span><input type="number" id="n_slot" step="0.01" aria-label="Slot size"><span class="unit">em</span><span class="sr" id="v_slot" aria-hidden="true"></span><input type="range" id="slot" min="0.6" max="2" step="0.01" aria-label="Slot size slider"></div></div></div>
+          <label class="chk"><input type="checkbox" id="showGuides"> Show slot outline in preview (never exported)</label>
           <div id="slotInfo" style="margin-top:8px"></div>
         </div>
       </details>
@@ -1408,15 +1459,15 @@ function updateSlotInfo(g){
 /* Each line gets an X and a Y control: a slider that rests in the middle (0), a scrub label (drag it) and a number
    field. The slider track covers +-NUDGE_RANGE; the number field accepts any value, and the slider simply pins
    to its end beyond that. S.nudges[i] = {x,y} is the single source of truth; every control reads and writes it. */
-const NUDGE_RANGE=200, NUDGE_DETENT=2;   // drags within +-2 of centre snap to exactly 0
+const NUDGE_RANGE=200, NUDGE_DETENT=2;   // drags within +-2 px of centre snap to exactly 0 (px, so it holds on any track width)
 let nudgeSig='', sliderDrag=false;
 const nudgeVal=(i,a)=>(S.nudges[i]||{})[a]||0;
 function setNudge(i,a,v){ const n=S.nudges[i]||(S.nudges[i]={x:0,y:0}); n[a]=v; record('nudge'+i+a); render(); }
 function axisHTML(i,a,v){
   const A=a.toUpperCase();
-  return `<div class="ax"><span class="scrub" data-scrub="${a}" data-line="${i}" title="Drag to scrub ${A}. Shift = 10x. Double-click to reset.">${A}</span>
-    <div class="slw"><input type="range" min="${-NUDGE_RANGE}" max="${NUDGE_RANGE}" step="1" value="${clamp(v,-NUDGE_RANGE,NUDGE_RANGE)}" data-slider="${a}" data-line="${i}" aria-label="Line ${i+1} ${A} offset" title="${A}: centre = 0. Double-click to reset."></div>
-    <input type="number" step="1" data-i="${i}" data-a="${a}" value="${v}" title="${A}" aria-label="Line ${i+1} ${A} offset value"></div>`;
+  return `<div class="fld ax"><span class="scrub" data-scrub="${a}" data-line="${i}" title="Drag to scrub ${A}. Shift = 10x. Double-click to reset.">${A}</span>
+    <input type="number" step="1" data-i="${i}" data-a="${a}" value="${v}" title="${A}" aria-label="Line ${i+1} ${A} offset value"><span class="unit">px</span>
+    <input type="range" min="${-NUDGE_RANGE}" max="${NUDGE_RANGE}" step="1" value="${clamp(v,-NUDGE_RANGE,NUDGE_RANGE)}" data-slider="${a}" data-line="${i}" aria-label="Line ${i+1} ${A} offset" title="${A}: centre = 0. Double-click to reset."></div>`;
 }
 function syncNudgeRows(){
   const sig=L.lines.map(l=>l.items.map(i=>i.k==='t'?i.text:'·').join('')).join('|');
@@ -1428,7 +1479,7 @@ function syncNudgeRows(){
       const row=document.createElement('div'); row.className='nudge';
       const name=l.items.map(it=>it.k==='t'?it.text:'😀').join('');
       row.innerHTML=`<div class="nm" title="${name.replace(/"/g,'&quot;')}"><b>${i+1}</b> ${name.replace(/</g,'&lt;')}</div><button class="sm" data-reset="${i}" title="Reset both axes" aria-label="Reset line ${i+1} nudge">↺</button>`
-        +axisHTML(i,'x',n.x||0)+axisHTML(i,'y',n.y||0);
+        +'<div class="g2">'+axisHTML(i,'x',n.x||0)+axisHTML(i,'y',n.y||0)+'</div>';
       host.appendChild(row);
     });
   } else {
@@ -1441,7 +1492,7 @@ nudgeHost.addEventListener('input',e=>{
   const t=e.target;
   if(t.dataset.slider){
     let v=+t.value;
-    if(sliderDrag && Math.abs(v)<=NUDGE_DETENT) v=0;    // detent while dragging only, so keyboard steps still reach +-1
+    if(sliderDrag && Math.abs(v)<=Math.max(NUDGE_DETENT,NUDGE_DETENT*2*NUDGE_RANGE/(t.clientWidth||1))) v=0;    // detent while dragging only, so keyboard steps still reach +-1
     setNudge(+t.dataset.line,t.dataset.slider,v); return;
   }
   if(t.dataset.i) setNudge(+t.dataset.i,t.dataset.a,+t.value||0);
@@ -1609,7 +1660,7 @@ function clickSelection(k){
 
 /* ============ controls binding ============ */
 const bindings=[
-  ['family','text'],['weight','num'],['align','sel'],['size','num'],['lh','num'],['track','num'],['stretchX','num'],['stretchY','num'],['wrap','num'],
+  ['family','text'],['weight','num'],['align','rad'],['size','num'],['lh','num'],['track','num'],['stretchX','num'],['stretchY','num'],['wrap','num'],
   ['textColor','col'],['outlineColor','col'],['outlineW','num'],['textShadow','chk'],
   ['bgOn','chk'],['bgColor','col'],['bgOpacity','num'],['padX','num'],['radius','num'],['topPad','num'],['botPad','num'],['clear','num'],['boxShadow','chk'],
   ['slot','num'],['showGuides','chk'],['frame','sel'],['fw','num'],['fh','num'],['offX','num'],['offY','num'],
@@ -1623,9 +1674,14 @@ function syncControls(){
   for(const [k,t] of bindings){
     for(const id of DIALOG_KEYS.includes(k)?[k,'x_'+k]:[k]){
       const el=$('#'+id); if(!el) continue;
-      if(t==='chk') el.checked=!!S[k]; else el.value=S[k];
+      if(t==='chk') el.checked=!!S[k];
+      else if(t==='rad') el.querySelectorAll('input').forEach(r=>{ r.checked=r.value===S[k]; });
+      else el.value=S[k];
+      if(el.type==='range') el.style.setProperty('--p',(S[k]-el.min)/(el.max-el.min)*100+'%');   // the field's slider line fills to here
     }
     for(const id of ['v_'+k,'xv_'+k]){ const vv=$('#'+id); if(vv) vv.textContent=(fmt[k]||(v=>v))(S[k]); }
+    const n=$('#n_'+k); if(n) n.value=fieldVal(k);
+    const hx=$('#hx_'+k); if(hx) hx.value=String(S[k]).replace('#','').toUpperCase();
   }
   document.querySelectorAll('[data-reset-key]').forEach(b=>{ b.disabled=S[b.dataset.resetKey]===DEFAULTS[b.dataset.resetKey]; });
   const [fw,fh]=frameDims();
@@ -1643,8 +1699,8 @@ function syncControls(){
 for(const [k,t] of bindings){
   for(const id of DIALOG_KEYS.includes(k)?[k,'x_'+k]:[k]){
     const el=$('#'+id); if(!el) continue;
-    el.addEventListener(t==='chk'||t==='sel'||t==='col'?'change':'input',()=>{
-      S[k]= t==='chk'?el.checked : t==='num'?+el.value : el.value;
+    el.addEventListener(t==='chk'||t==='sel'||t==='col'||t==='rad'?'change':'input',()=>{
+      S[k]= t==='chk'?el.checked : t==='num'?+el.value : t==='rad'?el.querySelector('input:checked').value : el.value;
       if(k==='frame' && S.frame!=='custom'){ const [w,h]=S.frame.split('x').map(Number); S.fw=w; S.fh=h; }
       if(k==='size'||k==='weight'||k==='family') nudgeSig='';
       record(t==='num'||t==='text'?'style:'+k:'');   // a slider drag or typing a family name is one step
@@ -1672,15 +1728,76 @@ for(const id of ['fw','fh','x_fw','x_fh']) $('#'+id).addEventListener('change',(
    preset: the default preset only applies on a first load). It goes through the slider's own input event, so saving,
    a card's own style and redrawing behave exactly as for a drag. Double-clicking the slider does the same, like the
    nudge sliders. syncControls() greys a button out while its slider is already at the default. */
-const RESET_KEYS=['size','lh','track','stretchX','stretchY','wrap','outlineW','bgOpacity','padX','radius','topPad','botPad','clear'];
+const RESET_KEYS=['size','lh','track','stretchX','stretchY','wrap','outlineW','bgOpacity','padX','radius','topPad','botPad','clear','slot'];
 function resetSlider(k){ const el=$('#'+k); el.value=DEFAULTS[k]; lastKind=''; el.dispatchEvent(new Event('input')); }   // its own undo step, never merged into the drag before it
 RESET_KEYS.forEach(k=>{
-  const v=$('#v_'+k), b=document.createElement('button'), name=v.parentElement.firstChild.textContent.trim();
+  const v=$('#v_'+k), b=document.createElement('button'), name=v.closest('[data-name]').dataset.name;
   b.type='button'; b.className='sm rs'; b.dataset.resetKey=k; b.textContent='↺';
-  b.setAttribute('aria-label',`Reset ${name}`); b.title=`Reset to default (${(fmt[k]||(x=>x))(DEFAULTS[k])}). Double-clicking the slider works too.`;
+  b.setAttribute('aria-label',`Reset ${name}`); b.title=`Reset to default (${(fmt[k]||(x=>x))(DEFAULTS[k])}). Double-clicking the icon works too.`;
   b.addEventListener('click',()=>resetSlider(k));
   v.before(b);   // both float right, so the button sits at the far right, after the value
   $('#'+k).addEventListener('dblclick',()=>resetSlider(k));
+});
+/* Sidebar fields. Each slider setting is a field: an icon to drag (scrub), the value to type, and the slider as a thin
+   line along the bottom. Every route ends in the slider's own input event, so saving, undo, a card's own style and the
+   redraw work exactly as for a slider drag. A typed value is applied on Enter or leaving the field (applying it while
+   typing would clamp "1" to the minimum before you could type "15"); the slider clamps and rounds it to its step. */
+function fieldVal(k){
+  const el=$('#'+k), d=(String(el.step).split('.')[1]||'').length;
+  return k==='wrap'&&!+S[k] ? '' : String(+(+S[k]).toFixed(d));   // a max width of 0 shows the "Off" placeholder
+}
+function setField(k,v){
+  const el=$('#'+k), old=el.value;
+  el.value=v;
+  if(el.value!==old) el.dispatchEvent(new Event('input',{bubbles:true})); else syncControls();   // nothing changed: just show the real value again
+}
+document.querySelectorAll('aside .fld input[id^="n_"]').forEach(n=>{
+  const k=n.id.slice(2);
+  n.addEventListener('change',()=>{
+    const t=n.value.trim(), v=t===''&&k==='wrap' ? 0 : +t;
+    if(t===''&&k!=='wrap' || !Number.isFinite(v)) return syncControls();
+    setField(k,v);
+  });
+  // Arrow keys step from the current value at once (Shift = 10 steps), like dragging the slider.
+  n.addEventListener('keydown',e=>{
+    if(e.key!=='ArrowUp'&&e.key!=='ArrowDown') return;
+    e.preventDefault();
+    setField(k,+S[k]+(e.key==='ArrowUp'?1:-1)*(+$('#'+k).step)*(e.shiftKey?10:1));
+  });
+});
+// Scrubbing: drag an icon (or the X/Y of the card position) sideways, one step per pixel, Shift = 10. Accumulates per
+// move so pressing Shift mid-drag changes speed without a jump. Double-click resets (or sets a position to 0).
+let fieldScrub=null;
+const aside=$('aside');
+aside.addEventListener('pointerdown',e=>{
+  const h=e.target.closest('[data-scrub-for]'); if(!h||e.button!==0) return;
+  e.preventDefault(); h.setPointerCapture(e.pointerId);
+  const k=h.dataset.scrubFor, el=$('#'+k);
+  fieldScrub={k,x:e.clientX,v:+el.value||0,step:+el.step||1};
+});
+aside.addEventListener('pointermove',e=>{
+  if(!fieldScrub) return;
+  const f=fieldScrub; f.v+=(e.clientX-f.x)*f.step*(e.shiftKey?10:1); f.x=e.clientX;
+  const el=$('#'+f.k);
+  if(el.type==='range') setField(f.k,f.v);
+  else if(Math.round(f.v)!==+el.value){ el.value=Math.round(f.v); el.dispatchEvent(new Event('input',{bubbles:true})); }
+});
+for(const t of ['pointerup','pointercancel']) aside.addEventListener(t,()=>{ fieldScrub=null; });
+aside.addEventListener('dblclick',e=>{
+  const h=e.target.closest('[data-scrub-for]'); if(!h) return;
+  const k=h.dataset.scrubFor;
+  if(RESET_KEYS.includes(k)) resetSlider(k);
+  else { $('#'+k).value=0; $('#'+k).dispatchEvent(new Event('input',{bubbles:true})); }
+});
+// Hex codes: typed with or without "#", three or six digits. Anything else puts the current colour back.
+document.querySelectorAll('aside input.hex').forEach(h=>{
+  const k=h.id.slice(3), pick=$('#'+k);
+  h.addEventListener('change',()=>{
+    let v=h.value.trim().replace(/^#/,'');
+    if(/^[0-9a-f]{3}$/i.test(v)) v=v.replace(/./g,c=>c+c);
+    if(!/^[0-9a-f]{6}$/i.test(v) || '#'+v.toLowerCase()===String(S[k]).toLowerCase()) return syncControls();
+    pick.value='#'+v.toLowerCase(); pick.dispatchEvent(new Event('change',{bubbles:true}));
+  });
 });
 // The last-used style is the shared one: a card's own style must not become what the app opens with.
 function persistStyle(){
