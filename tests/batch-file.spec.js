@@ -332,9 +332,9 @@ test.describe('opening files that are not ours', () => {
     await openFile(page, { ...good, style: { family } });
     await expect(page.locator('#fileMsg')).toContainText('Opened 1 card');
     await settle(page);
-    await expect(page.locator('#banner')).toBeVisible();
-    await expect(page.locator('#banner b')).toHaveText(`“${family}” isn't installed on this computer`);
-    expect(await page.locator('#banner img').count()).toBe(0);
+    await expect(page.locator('#fontWarn')).toBeVisible();
+    await expect(page.locator('#fontWarnMsg b')).toHaveText(`“${family}” isn't installed or loaded`);
+    expect(await page.locator('#fontWarnMsg img').count()).toBe(0);
     expect(await page.evaluate(() => window.__ran)).toBeUndefined();
   });
 });

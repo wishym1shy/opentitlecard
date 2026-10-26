@@ -40,12 +40,13 @@ test.describe('loading and fonts', () => {
     await expandUi(page);
     await page.fill('#family', 'Definitely Not An Installed Font 12345');
     await expect(page.locator('#fontChip')).toHaveClass(/bad/);
-    await expect(page.locator('#banner')).toBeVisible();
-    await expect(page.locator('#banner')).toContainText('isn\'t installed');
+    await expect(page.locator('#fontWarn')).toBeVisible();
+    await expect(page.locator('#fontWarnMsg')).toContainText('isn\'t installed or loaded');
     await expect(page.locator('#export')).toContainText('fallback font');
     await loadTestFont(page);
     await expect(page.locator('#fontChip')).toHaveClass(/ok/);
-    await expect(page.locator('#banner')).toBeHidden();
+    await expect(page.locator('#fontWarn')).toBeHidden();
+    await expect(page.locator('#fontWarnMsg')).toBeHidden();
     await expect(page.locator('#export')).toHaveText('Download PNG');
     expect(errors).toEqual([]);
   });
