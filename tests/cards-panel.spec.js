@@ -84,6 +84,8 @@ test.describe('Cards panel (layers)', () => {
   });
 
   test('with no room below its button, the menu opens above it', async ({ app: { page } }) => {
+    // as on first open (only Cards open), so the pinned Export panel can't cover the button in such a short window
+    for (const k of ['canvas', 'safezone', 'export']) await page.click(`#fph_${k}`);
     await page.setViewportSize({ width: 1280, height: 230 }); // the button still fits, the menu doesn't below it
     const btn = page.locator('#batchMenuBtn');
     await btn.click();
