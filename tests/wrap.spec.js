@@ -150,7 +150,7 @@ test.describe('auto-wrap (max card width)', () => {
     const full = boxW((await settle(page)).lines[0]);
     await setWrap(page, Math.round(full * 0.4));
     for (const a of ['left', 'right', 'center']) {
-      await page.selectOption('#align', a);
+      await page.check(`#align input[value="${a}"]`);
       const L = await settle(page);
       expect(L.lines.length).toBeGreaterThan(1);
       if (a === 'left') for (const l of L.lines) expect(l.x0).toBeCloseTo(L.lines[0].x0, 6);
