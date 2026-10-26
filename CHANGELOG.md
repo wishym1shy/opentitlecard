@@ -4,6 +4,11 @@ What changed in OpenTitlecard, newest first. The version is shown next to the ap
 
 Versions are `vMAJOR.MINOR`. Each merged pull request that changes the app adds one to the minor number (v1.31 → v1.32 → …). The changelog started at v1.31: v1.27 stands for everything merged before the UI review that led to v1.28–v1.31 (pull requests up to #31), so the numbers line up with the work done.
 
+## v1.40
+
+### Added
+- An app icon for the browser tab, bookmarks and phone home screens: a capital **O** with a small raised **t**, white on a cyan, blue and green gradient in a rounded square.
+
 ## v1.39
 
 ### Added
