@@ -191,7 +191,7 @@
 </head>
 <body>
 <header>
-  <h1>OpenTitlecard <a id="appVersion" href="https://github.com/wishym1shy/opentitlecard/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer" title="What's new in this version (changelog on GitHub)">v1.40</a></h1>
+  <h1>OpenTitlecard <a id="appVersion" href="https://github.com/wishym1shy/opentitlecard/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer" title="What's new in this version (changelog on GitHub)">v1.41</a></h1>
   <a class="gh" href="https://github.com/wishym1shy/opentitlecard" target="_blank" rel="noopener noreferrer" title="View the source on GitHub">
     <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
     <span>View on GitHub</span>
@@ -679,10 +679,16 @@ const BUNDLED_FAMILY='OpenTitlecard Inter';
 const isInter = f => /^inter$/i.test((f||'').trim());
 let bundledState='pending';   // 'pending' while the embedded font loads, then 'ready' or 'failed'
 let rememberedState='pending';   // 'pending' until the fonts remembered from earlier visits are loaded (see "remembered fonts"), then 'done'
+// Families remembered last time (their names are also kept in localStorage, so they are known before IndexedDB answers).
+const REMEMBERED_KEY='opentitlecard.rememberedFonts';
+const pendingFams=new Set((()=>{ const v=store.get(REMEMBERED_KEY,[]); return Array.isArray(v)?v.filter(x=>typeof x==='string'):[]; })());
+let rememberedDone; const rememberedReady=new Promise(r=>rememberedDone=r);   // exports wait for it, so they never draw a fallback by accident
+function endRememberedPending(){ if(rememberedState!=='pending') return; rememberedState='done'; rememberedDone(); render(); }
 const fontStack = fam => `${JSON.stringify(fam)}, ${isInter(fam)?JSON.stringify(BUNDLED_FAMILY)+', ':''}"Helvetica Neue", Arial, sans-serif`;
 // "Pending" counts as available so the warning doesn't flash for the few milliseconds the embedded font takes to load.
-// While the remembered fonts load at startup every family counts as usable, so the ⚠ doesn't flash for one about to arrive.
-const fontAvailable = (fam,weight) => fontInstalled(fam,weight) || loadedFaces.has(fam) || (isInter(fam) && bundledState!=='failed') || rememberedState==='pending';
+// While the remembered fonts load at startup, the ones remembered last time count as usable, so the ⚠ doesn't flash for a
+// font about to arrive. Only those: any other missing family is reported straight away.
+const fontAvailable = (fam,weight) => fontInstalled(fam,weight) || loadedFaces.has(fam) || (isInter(fam) && bundledState!=='failed') || (rememberedState==='pending' && pendingFams.has(fam));
 async function loadBundledInter(){
   try{
     const bin=atob($('#interFont').textContent.trim()), bytes=new Uint8Array(bin.length);
@@ -851,7 +857,9 @@ function layout(){
       while((m=re.exec(it.text))){
         // xs[j] = where the word's j-th character starts (the last entry is its end), so the highlight and a click can
         // work on part of a word, such as the "!" of "here!"
-        const xs=[]; for(let j=0;j<=m[0].length;j++) xs.push(x+dx+mctx.measureText(it.text.slice(0,m.index+j)).width*sx);
+        const a=mctx.measureText(it.text.slice(0,m.index)).width*sx, xs=[x+dx+a];
+        for(let j=1;j<m[0].length;j++) xs.push(x+dx+a+mctx.measureText(m[0].slice(0,j)).width*sx);
+        xs.push(x+dx+mctx.measureText(it.text.slice(0,m.index+m[0].length)).width*sx);
         words.push({x0:xs[0],x1:xs[xs.length-1],s:it.s+m.index,e:it.s+m.index+m[0].length,xs});
       }
       x+=it.w;
@@ -1427,7 +1435,8 @@ cv.addEventListener('pointerup',e=>{
 });
 // The character under a preview x (line units), or -1 when the click is between words.
 function charAtX(l,lx){
-  const w=l.words.find(w=>lx>=w.x0-6&&lx<=w.x1+6); if(!w) return -1;
+  // the box that really contains the point first: a word split by color ("here" + "!") has two boxes side by side
+  const w=l.words.find(w=>lx>=w.x0&&lx<=w.x1)||l.words.find(w=>lx>=w.x0-6&&lx<=w.x1+6); if(!w) return -1;
   for(let j=1;j<w.xs.length-1;j++) if(lx<w.xs[j]) return w.s+j-1;
   return w.e-1;
 }
@@ -1580,7 +1589,10 @@ $('#loadInstalled').addEventListener('click',async()=>{
 $('#loadFile').addEventListener('click',()=>$('#fontFile').click());
 $('#fontFile').addEventListener('change',async e=>{
   const f=e.target.files[0]; if(!f) return;
-  const name=f.name.replace(/\.[^.]+$/,'').replace(/[^\w\- ]/g,'');
+  let name=f.name.replace(/\.[^.]+$/,'').replace(/[^\w\- ]/g,'');
+  // A file named like the default or an installed family ("Inter.ttf") would replace that family for good once
+  // remembered (and a one-weight file would stand in for every weight), so it gets a name of its own.
+  if(!loadedFaces.has(name) && (isInter(name)||fontInstalled(name,S.weight))) name+=' (file)';
   try{
     const data=await f.arrayBuffer();
     const face=new FontFace(name,data,{weight:'1 1000'}); await face.load(); document.fonts.add(face);
@@ -1602,18 +1614,26 @@ $('#fontReset').addEventListener('click',()=>{
    app works as before; the ⚠ then offers the way back to the default. */
 const FONT_DB='opentitlecard', FONT_STORE='fonts', MAX_REMEMBERED=30, MAX_FONT_BYTES=30e6;
 let remembered=[];   // family names kept in the browser
+// Even reading window.indexedDB can throw (a sandboxed frame), so it is read once, guarded, and every step rejects
+// instead of throwing.
+const idb=(()=>{ try{ return window.indexedDB||null; }catch(e){ return null; } })();
 function fontStore(mode,fn){
   return new Promise((res,rej)=>{
-    const open=indexedDB.open(FONT_DB,1);
+    if(!idb) throw new Error('no IndexedDB');
+    const open=idb.open(FONT_DB,1);
     open.onupgradeneeded=()=>open.result.createObjectStore(FONT_STORE,{keyPath:'family'});
     open.onerror=()=>rej(open.error); open.onblocked=()=>rej(new Error('blocked'));
     open.onsuccess=()=>{
-      const db=open.result, tx=db.transaction(FONT_STORE,mode), req=fn(tx.objectStore(FONT_STORE));
-      tx.oncomplete=()=>{ db.close(); res(req&&req.result); };
-      tx.onerror=tx.onabort=()=>{ db.close(); rej(tx.error); };
+      const db=open.result;
+      try{
+        const tx=db.transaction(FONT_STORE,mode), req=fn(tx.objectStore(FONT_STORE));
+        tx.oncomplete=()=>{ db.close(); res(req&&req.result); };
+        tx.onerror=tx.onabort=()=>{ db.close(); rej(tx.error); };
+      }catch(e){ db.close(); rej(e); }
     };
   });
 }
+const saveRememberedNames = () => store.set(REMEMBERED_KEY,remembered);
 async function rememberFont(family,data,file){
   if(data.byteLength>MAX_FONT_BYTES) return;
   try{
@@ -1623,6 +1643,7 @@ async function rememberFont(family,data,file){
       const all=st.getAll(); all.onsuccess=()=>all.result.sort((a,b)=>b.added-a.added).slice(MAX_REMEMBERED).forEach(r=>st.delete(r.family));
     });
     if(!remembered.includes(family)) remembered.push(family);
+    saveRememberedNames();
   }catch(e){}
   showRemembered();
 }
@@ -1634,7 +1655,7 @@ async function loadRememberedFonts(){
       catch(e){}   // a damaged entry is skipped, never fatal
     }));
   }catch(e){}
-  rememberedState='done'; showRemembered(); render();
+  saveRememberedNames(); showRemembered(); endRememberedPending();
 }
 function showRemembered(){
   const n=remembered.length;
@@ -1645,7 +1666,7 @@ function showRemembered(){
 $('#fontForget').addEventListener('click',async()=>{
   const ok=await confirmAction({title:'Forget the remembered fonts?',message:'The fonts you loaded from files are removed from this browser. They stay usable until you close this page; after that, load the files again to use them.',ok:'Forget fonts'});
   if(!ok) return;
-  try{ await fontStore('readwrite',st=>st.clear()); remembered=[]; }catch(e){}
+  try{ await fontStore('readwrite',st=>st.clear()); remembered=[]; saveRememberedNames(); }catch(e){}
   showRemembered();
 });
 // The family box suggests the remembered fonts, plus the installed ones once "Installed fonts…" has listed them.
@@ -1654,8 +1675,8 @@ function fillFontList(){
   const fams=[...new Set([...remembered,...installedFams])];
   $('#fontlist').replaceChildren(...fams.map(f=>{ const o=document.createElement('option'); o.value=f; return o; }));
 }
-if(window.indexedDB) loadRememberedFonts(); else rememberedState='done';
-setTimeout(()=>{ if(rememberedState==='pending'){ rememberedState='done'; render(); } },3000);   // never wait on a stuck store
+if(idb) loadRememberedFonts(); else endRememberedPending();
+setTimeout(endRememberedPending,3000);   // never wait on a stuck store
 
 /* ============ presets ============ */
 function presets(){ return store.get('opentitlecard.presets',{}); }
@@ -1729,7 +1750,8 @@ function exportCanvas(){
   draw(c.getContext('2d'),g.W,g.H,{u:g.u,cx:g.cx,cy:g.cy,guides:false,sel:null});
   return c;
 }
-$('#export').addEventListener('click',()=>{
+$('#export').addEventListener('click',async()=>{
+  await rememberedReady;   // only waits in the first moments after the page opens, while remembered fonts load
   const c=exportCanvas();
   if(!c) return;   // the button is disabled while the export would be over 4K
   const stem=(S.text.replace(/\p{Extended_Pictographic}|️|‍/gu,'').trim().split(/\s+/).map(w=>w.replace(/[^\w\-]/g,'')).filter(Boolean).slice(0,5).join('-').replace(/[^\w\-]/g,'')||'titlecard').slice(0,40);
@@ -1801,24 +1823,27 @@ function withCard(c,fn){
 const cardLabel = t => (t.split('\n').map(x=>x.trim()).find(Boolean)||'');
 const cardsWord = n => `${n} card${n===1?'':'s'}`;
 let cardSig='';
-function renderCards(){
+function cardListState(){
   const labels=cards.map((c,i)=>cardLabel(i===active?S.text:c.text));
   const own=cards.map((c,i)=>!!c.style);
-  const sig=active+'\u0001'+labels.join('\u0001')+'\u0001'+own.join(',')+'\u0001'+cards.map(c=>c.name).join('\u0001');
+  return {labels, own, sig:active+'\u0001'+labels.join('\u0001')+'\u0001'+own.join(',')+'\u0001'+cards.map(c=>c.name).join('\u0001')};
+}
+function cardRow(i,t,own){
+  const b=document.createElement('button'); b.type='button';
+  b.className=(i===active?'on':'')+(t?'':' empty'); b.dataset.card=i;
+  if(i===active) b.setAttribute('aria-current','true');
+  const lbl=document.createElement('span'); lbl.className='lbl';
+  const cn=document.createElement('span'); cn.className='cn'; cn.textContent=cards[i].name;
+  const nm=document.createElement('span'); nm.className='nm'; nm.textContent=t||'(empty)';
+  lbl.append(cn,nm); b.append(lbl); b.title='Double-click (or F2) to rename';
+  if(own){ const m=document.createElement('span'); m.className='own'; m.textContent='◆'; m.title='Has its own style'; m.setAttribute('aria-label','has its own style'); b.append(m); b.dataset.own='1'; }
+  return b;
+}
+function renderCards(){
+  const {labels,own,sig}=cardListState();
   if(sig===cardSig) return;
   cardSig=sig;
-  const host=$('#cardList'); host.innerHTML='';
-  labels.forEach((t,i)=>{
-    const b=document.createElement('button'); b.type='button';
-    b.className=(i===active?'on':'')+(t?'':' empty'); b.dataset.card=i;
-    if(i===active) b.setAttribute('aria-current','true');
-    const lbl=document.createElement('span'); lbl.className='lbl';
-    const cn=document.createElement('span'); cn.className='cn'; cn.textContent=cards[i].name;
-    const nm=document.createElement('span'); nm.className='nm'; nm.textContent=t||'(empty)';
-    lbl.append(cn,nm); b.append(lbl); b.title='Double-click (or F2) to rename';
-    if(own[i]){ const m=document.createElement('span'); m.className='own'; m.textContent='◆'; m.title='Has its own style'; m.setAttribute('aria-label','has its own style'); b.append(m); b.dataset.own='1'; }
-    host.appendChild(b);
-  });
+  $('#cardList').replaceChildren(...labels.map((t,i)=>cardRow(i,t,own[i])));
   $('#cardUp').disabled=active===0; $('#cardDown').disabled=active===cards.length-1;
   const del=cards.length>1?'Delete card':'Clear card'; $('#cardDel').setAttribute('aria-label',del);
   $('#cardDel').title=cards.length>1?'Delete this card':'Clear this card (the last one stays, empty)';
@@ -1851,15 +1876,21 @@ function renameCard(i){
   box.value=cards[i].name; box.maxLength=MAX_NAME; box.setAttribute('aria-label','Card name');
   row.replaceWith(box); box.focus(); box.select();
   let done=false;
-  const finish=keep=>{
+  // Only the box is swapped back for its row (and the list marked as up to date), never the whole list: when the rename
+  // ends because you clicked something (the text box, another card), that click has to land where you clicked.
+  const finish=(keep,refocus)=>{
     if(done) return; done=true;
     const v=cleanName(box.value);
     if(keep && v && v!==cards[i].name){ cards[i].name=v; record(); }
-    cardSig=''; renderCards();
-    const r=$(`#cardList [data-card="${i}"]`); if(r) r.focus();
+    const st=cardListState(), row=cardRow(i,st.labels[i],st.own[i]);
+    box.replaceWith(row); cardSig=st.sig;
+    if(refocus) row.focus();
   };
-  box.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); finish(true); } else if(e.key==='Escape'){ e.preventDefault(); finish(false); } });
-  box.addEventListener('blur',()=>finish(true));
+  box.addEventListener('keydown',e=>{
+    if(e.isComposing) return;   // Enter that confirms an IME conversion (Japanese, Chinese…) is not the end of the rename
+    if(e.key==='Enter'){ e.preventDefault(); finish(true,true); } else if(e.key==='Escape'){ e.preventDefault(); finish(false,true); }
+  });
+  box.addEventListener('blur',()=>finish(true,false));
 }
 function insertCard(i,c){ stash(); cards.splice(i,0,c); active=i; adopt(c); record(); cardSig=''; render(); }
 $('#cardAdd').addEventListener('click',()=>{ insertCard(active+1,newCard()); ta.focus(); });
@@ -1897,13 +1928,42 @@ function listRow(part){
   if(tab<0) return {name:'',text:part};
   return {name:cleanName(first.slice(0,tab)), text:(first.slice(tab+1)+(nl<0?'':part.slice(nl))).replace(/\t/g,' ').trim()};
 }
+/* Rows of cells from a spreadsheet copy: cells split by tabs, rows by line breaks. A cell holding a line break (or a tab)
+   comes wrapped in quote marks, with its own quote marks doubled, and is unwrapped here. A cell that merely starts with a
+   quote mark, like "Clean" Sedan, is kept as typed: a cell only counts as wrapped when its closing quote ends it. */
+function tsvRows(s){
+  const rows=[]; let row=[], i=0;
+  for(;;){
+    let cell=null;
+    if(s[i]==='"'){
+      let j=i+1, v='';
+      for(;;){
+        const q=s.indexOf('"',j); if(q<0){ v=null; break; }
+        if(s[q+1]==='"'){ v+=s.slice(j,q+1); j=q+2; continue; }
+        if(q+1===s.length||s[q+1]==='\t'||s[q+1]==='\n'){ v+=s.slice(j,q); j=q+1; break; }
+        v=null; break;
+      }
+      if(v!==null){ cell=v; i=j; }
+    }
+    if(cell===null){ let e=i; while(e<s.length&&s[e]!=='\t'&&s[e]!=='\n') e++; cell=s.slice(i,e); i=e; }
+    row.push(cell);
+    if(i>=s.length){ rows.push(row); return rows; }
+    if(s[i]==='\n'){ rows.push(row); row=[]; }
+    i++;
+  }
+}
 $('#listAdd').addEventListener('click',()=>{
-  const raw=$('#listText').value.replace(/\r\n?/g,'\n').trim(); if(!raw) return;
-  const parts=($('#listMode').value==='block'?raw.split(/\n\s*\n/):raw.split('\n')).map(x=>x.trim()).filter(Boolean);
+  const all=$('#listText').value.replace(/\r\n?/g,'\n'), raw=all.trim(); if(!raw) return;
+  const block=$('#listMode').value==='block';
+  // Columns pasted from a spreadsheet are read like a spreadsheet copy (quoted cells may hold line breaks, a cell may be
+  // empty); anything else is split by lines or blank lines as before.
+  const rows=!block && raw.includes('\t') ? tsvRows(all.replace(/^\n+|\n+$/g,'')).filter(r=>r.some(f=>f.trim())).map(r=>
+      r.length<2 ? {name:'',text:r[0].trim()} : {name:cleanName(r[0]), text:r.slice(1).join(' ').trim()})
+    : (block?raw.split(/\n\s*\n/):raw.split('\n')).map(x=>x.trim()).filter(Boolean).map(listRow);
   stash();
   // a lone empty card (a fresh page, or one the user cleared) is replaced by the first pasted title instead of being kept
   if(cards.length===1 && !cards[0].text.trim()) cards.length=0;
-  const at=cards.length, rows=parts.map(listRow);
+  const at=cards.length;
   rows.forEach(r=>cards.push(newCard(r.text,r.name||nextCardName())));
   const named=rows.filter(r=>r.name).length;
   fileMsg(named?`Added ${cardsWord(rows.length)}, ${named===rows.length?'all':named} named from the first column. Put {name} in the export file name pattern (Export all as ZIP…) to name the PNGs after them.`:`Added ${cardsWord(rows.length)}.`);
@@ -2177,6 +2237,7 @@ $('#bUseNames').addEventListener('click',()=>{ $('#bPattern').value='{name}'; re
 $('#bCancel').addEventListener('click',()=>dlg.close());
 $('#bClose').addEventListener('click',()=>dlg.close());
 $('#bGo').addEventListener('click',async()=>{
+  await rememberedReady;
   const live=batchItems.filter(b=>!b.empty), names=batchNames($('#bPattern').value,$('#bStart').value,$('#bDigits').value,live.length,live.map(b=>cards[b.idx].name));
   const go=$('#bGo'), status=$('#bStatus'); go.disabled=true;
   try{

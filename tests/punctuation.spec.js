@@ -77,6 +77,23 @@ test.describe('punctuation and part-of-a-word selection', () => {
     expect(runs.slice(-2)).toEqual([['here', '#cf0202'], ['!', '#000000']]);
   });
 
+  test('with the "!" already its own color, clicking its left edge still narrows to the "!"', async ({ app: { page } }) => {
+    await setText(page, TEXT);
+    await setSelection(page, BANG, BANG + 1);
+    await page.click('#swatches .sw:nth-child(2)'); // black "!": now two boxes, "here" and "!"
+    const edge = async () => { const p = await page.evaluate((ci) => {
+      __tt.renderNow();
+      const g = __tt.exportGeometry(), l = __tt.L.lines[0], w = l.words.find((w) => ci >= w.s && ci < w.e);
+      const r = document.querySelector('#cv').getBoundingClientRect();
+      const x = w.xs[0] + (w.xs[1] - w.xs[0]) * 0.12; // the left edge of the "!"
+      return { x: r.left + (g.cx + (l.tx + l.nx + x) * g.u) * (r.width / g.W), y: r.top + (g.cy + l.cy * g.u) * (r.height / g.H) };
+    }, BANG); await page.mouse.click(p.x, p.y); };
+    await edge();
+    expect(await selected(page)).toBe('here!');
+    await edge();
+    expect(await selected(page)).toBe('!');
+  });
+
   test('quotes and apostrophes: “Wow!” splits into “ Wow !”, and don\'t stays one part', async ({ app: { page } }) => {
     const t = '“Wow!” don\'t?';
     await setText(page, t);

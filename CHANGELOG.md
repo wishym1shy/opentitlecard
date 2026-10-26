@@ -4,6 +4,17 @@ What changed in OpenTitlecard, newest first. The version is shown next to the ap
 
 Versions are `vMAJOR.MINOR`. Each merged pull request that changes the app adds one to the minor number (v1.31 → v1.32 → …). The changelog started at v1.31: v1.27 stands for everything merged before the UI review that led to v1.28–v1.31 (pull requests up to #31), so the numbers line up with the work done.
 
+## v1.41
+
+### Fixed
+- After renaming a card, clicking the text box (or another card) works straight away: the click is no longer lost.
+- **Add from list** reads spreadsheet cells that hold line breaks as one card. Before, they turned into two cards with stray quote marks in the PNG. A row with a name and an empty text cell now makes an empty card with that name.
+- With a word's "!" in its own color, clicking the left edge of the "!" selects the "!" (it used to pick the word).
+- Right after the app opens, a missing font is reported at once, and Download PNG and the ZIP wait the moment it takes for remembered fonts to load, so they never use a fallback font by accident.
+- A font file named like the default font (for example "Inter.ttf") is added as "Inter (file)" instead of replacing the built-in Inter for good.
+- The app starts even where the browser refuses access to its storage (for example inside some embedded frames).
+- Renaming a card with a Japanese or Chinese keyboard: pressing Enter to confirm a conversion no longer ends the rename.
+
 ## v1.40
 
 ### Added

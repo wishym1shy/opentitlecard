@@ -1,4 +1,4 @@
-const { test, expect, APP_URL, FONT_FAMILY, expandUi, confirmDialog } = require('./helpers');
+const { test, expect, APP_URL, FONT_FAMILY, FONT_FILE, expandUi, confirmDialog, exportPng } = require('./helpers');
 
 // Fonts loaded from a file are remembered in the browser (IndexedDB) and come back on the next visit. The fixture has
 // already loaded the test font through "Load font file…", so it is remembered at the start of every test here.
@@ -59,6 +59,51 @@ test.describe('remembered fonts', () => {
     await reload(page);
     await chipOk(page, FONT_FAMILY);
   });
+});
+
+test.describe('while remembered fonts load', () => {
+  // holds remembered fonts back, so the "still loading" window is long enough to act in
+  const SLOW = () => {
+    const load = FontFace.prototype.load;
+    FontFace.prototype.load = function () { return new Promise((r) => setTimeout(r, 1200)).then(() => load.call(this)); };
+  };
+
+  test('a family that was never remembered is reported missing straight away', async ({ app: { page } }) => {
+    await page.fill('#family', 'Never Loaded Here');
+    await page.addInitScript(SLOW);
+    await page.reload();
+    await page.waitForFunction(() => window.__tt && window.__tt.L);
+    await expect(page.locator('#fontChip')).toHaveClass(/bad/, { timeout: 600 }); // well before the remembered fonts arrive
+  });
+
+  test('Download PNG waits for them, so the PNG uses the real font', async ({ app: { page } }) => {
+    const after = await page.evaluate(() => __tt.exportGeometry()) && (await exportPng(page)).buffer;
+    await page.addInitScript(SLOW);
+    await page.reload();
+    await page.waitForFunction(() => window.__tt && window.__tt.L);
+    await expandUi(page);
+    const early = (await exportPng(page)).buffer;  // clicked while the font is still loading
+    expect(early.equals(after)).toBe(true);
+  });
+});
+
+test('a font file named like the default ("Inter.woff2") gets its own name instead of replacing Inter', async ({ app: { page } }) => {
+  await page.setInputFiles('#fontFile', { name: 'Inter.woff2', mimeType: 'font/woff2', buffer: require('fs').readFileSync(FONT_FILE) });
+  await expect(page.locator('#family')).toHaveValue('Inter (file)');
+  expect(await page.evaluate(() => __tt.S.family)).toBe('Inter (file)');
+});
+
+test('when even reading window.indexedDB throws (a sandboxed frame), the app still starts', async ({ browser }) => {
+  const context = await browser.newContext();
+  await context.addInitScript(() => { Object.defineProperty(window, 'indexedDB', { get() { throw new DOMException('denied', 'SecurityError'); } }); });
+  const page = await context.newPage();
+  const errors = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.goto(APP_URL);
+  await page.waitForFunction(() => window.__tt && window.__tt.L);
+  await expect(page.locator('#fontChip')).toHaveClass(/ok/);
+  expect(errors).toEqual([]);
+  await context.close();
 });
 
 test('without IndexedDB (a private window, blocked storage) fonts still load for the page and nothing breaks', async ({ browser }) => {
