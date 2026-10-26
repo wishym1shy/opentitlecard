@@ -88,7 +88,7 @@ test.describe('Cards panel (layers)', () => {
     for (const k of ['canvas', 'safezone', 'export']) await page.click(`#fph_${k}`);
     await page.setViewportSize({ width: 1280, height: 230 }); // the button still fits, the menu doesn't below it
     const btn = page.locator('#batchMenuBtn');
-    await btn.click();
+    await btn.evaluate((el) => el.click()); // a plain click: Playwright's own scrolls the stack a fraction of a pixel, which re-places the menu anyway
     const [m, b] = await Promise.all([page.locator('#batchMenu').boundingBox(), btn.boundingBox()]);
     expect(m.y + m.height).toBeLessThanOrEqual(b.y);
     expect(m.y).toBeGreaterThanOrEqual(0);
