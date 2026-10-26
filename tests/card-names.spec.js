@@ -69,6 +69,31 @@ test.describe('card names', () => {
   });
 });
 
+test.describe('rename: the click that ends it lands where you clicked', () => {
+  test('clicking the text box while renaming focuses the text box', async ({ app: { page } }) => {
+    await page.dblclick('#cardList [data-card="0"]');
+    await page.fill('#cardRename', 'Renamed');
+    await page.click('#text');
+    await expect(page.locator('#text')).toBeFocused();
+    expect(await names(page)).toEqual(['Renamed']);
+  });
+
+  test('clicking another card while renaming selects that card', async ({ app: { page } }) => {
+    await addCard(page, 'Two');
+    await page.dblclick('#cardList [data-card="0"]');
+    await page.fill('#cardRename', 'First');
+    await page.click('#cardList [data-card="1"]');
+    expect(await page.evaluate(() => __tt.active)).toBe(1);
+    expect(await names(page)).toEqual(['First', 'Titlecard 2']);
+  });
+
+  test('Enter that confirms an IME conversion does not end the rename', async ({ app: { page } }) => {
+    await page.dblclick('#cardList [data-card="0"]');
+    await page.evaluate(() => document.querySelector('#cardRename').dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', isComposing: true, bubbles: true, cancelable: true })));
+    await expect(page.locator('#cardRename')).toBeVisible();
+  });
+});
+
 test.describe('Add from list', () => {
   test('the old way: one title per line, named Titlecard 1, 2, 3', async ({ app: { page } }) => {
     await setText(page, ''); // a lone empty card is replaced by the list
@@ -88,6 +113,13 @@ test.describe('Add from list', () => {
     expect(await rowNames(page)).toEqual(['ClientA-Set1-Vid-1', 'ClientA-Set1-Vid-2', 'ClientA-Set1-Vid-3']);
     await expect(page.locator('#fileMsg')).toContainText('all named from the first column');
     await expect(page.locator('#fileMsg')).toContainText('{name}');
+  });
+
+  test('spreadsheet cells with line breaks (copied in quote marks) stay one card; an empty text cell stays empty', async ({ app: { page } }) => {
+    await setText(page, '');
+    await paste(page, 'Intro\t"Wait for it\nthe ""end"""\nPlain\t"Clean" Sedan Has A CATCH\nOutro\t');
+    expect(await page.evaluate(() => __tt.cards.map((c, i) => [c.name, i === __tt.active ? __tt.S.text : c.text]))).toEqual([
+      ['Intro', 'Wait for it\nthe "end"'], ['Plain', '"Clean" Sedan Has A CATCH'], ['Outro', '']]);
   });
 
   test('mixed: lines without a name get the next Titlecard number; blocks take the name from their first line', async ({ app: { page } }) => {
