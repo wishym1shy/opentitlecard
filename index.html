@@ -21,6 +21,11 @@
   #appVersion{margin-left:4px;font-size:11.5px;font-weight:500;color:var(--mute);text-decoration:none;font-variant-numeric:tabular-nums;padding:1px 6px;border:1px solid var(--line);border-radius:99px;vertical-align:1px}
   #appVersion:hover{color:var(--text);border-color:#4a5066}
   #appVersion:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  /* "Update available" next to the version: a green pill that pulses (see the motion rules) until it's clicked */
+  #updateBtn{display:inline-flex;align-items:center;gap:6px;margin-left:-4px;padding:2px 10px;font-size:11.5px;font-weight:650;color:#06281a;background:var(--ok);border:1px solid #6fe3b0;border-radius:99px;cursor:pointer}
+  #updateBtn[hidden]{display:none}
+  #updateBtn:hover{background:#5fe0a6}
+  #updateBtn:focus-visible{outline:2px solid #fff;outline-offset:2px}
   header .gh{margin-left:auto;display:inline-flex;align-items:center;gap:7px;color:var(--mute);font-size:12px;text-decoration:none;padding:3px 8px;border-radius:6px}
   header .gh:hover{color:var(--text);background:var(--panel2)}
   header .gh:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
@@ -281,6 +286,8 @@
      its animation ends. A browser without them just opens and closes at once. Off for anyone who prefers reduced
      motion. Nothing animates at page load: the panels' opening rule waits for .anim on <html>, set after first paint. */
   @media (prefers-reduced-motion:no-preference){
+    #updateBtn{animation:update-pulse 1.6s ease-in-out infinite}
+    @keyframes update-pulse{0%,100%{box-shadow:0 0 0 0 #3ecf8e99}50%{box-shadow:0 0 0 7px #3ecf8e00}}
     @supports (interpolate-size:allow-keywords){
       :root{interpolate-size:allow-keywords;--open:170ms;--close:130ms;--ease:cubic-bezier(.45,0,.2,1)}
       aside details::details-content{block-size:0;overflow:clip;overflow-clip-margin:4px;opacity:0;
@@ -307,7 +314,8 @@
 </head>
 <body>
 <header>
-  <h1>OpenTitlecard <a id="appVersion" href="https://github.com/wishym1shy/opentitlecard/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer" title="What's new in this version (changelog on GitHub)">v1.56</a></h1>
+  <h1>OpenTitlecard <a id="appVersion" href="https://github.com/wishym1shy/opentitlecard/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer" title="What's new in this version (changelog on GitHub)">v1.57</a></h1>
+  <button id="updateBtn" type="button" hidden title="A newer version of OpenTitlecard is out. Click to reload the page and get it (save your set first)."></button>
   <a class="gh" href="https://github.com/wishym1shy/opentitlecard" target="_blank" rel="noopener noreferrer" title="View the source on GitHub">
     <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
     <span>View on GitHub</span>
@@ -2907,6 +2915,55 @@ pvDlg.addEventListener('keydown',e=>{
 });
 pvDlg.addEventListener('close',()=>$('#pvStage').replaceChildren());   // let the full-size canvas go
 
+/* ============ new version notice ============ */
+/* A tab keeps running the version it loaded, however long it stays open, so after an update people could go on using an
+   old one without knowing. The app re-reads its own page (same site, bypassing the cache) when it opens, when the tab
+   comes back into view, and every UPDATE_EVERY while it's in view, and compares the version in it with its own. A newer
+   one shows #updateBtn next to the version, pulsing; clicking it reloads (the leave-page prompt still guards unsaved
+   cards). This is the app's one network request (maintainer decision): a plain GET of its own public page, sending
+   nothing about the user. Only the start of the page is read: the version sits near the top. Opened as a local file,
+   it doesn't check. */
+const UPDATE_EVERY=30*60*1000;
+const RUNNING_VERSION=$('#appVersion').textContent.trim();
+const parseVersion=v=>{ const m=/^v(\d+)\.(\d+)$/.exec(v||''); return m?[+m[1],+m[2]]:null; };
+const isNewer=(a,b)=>!!(a&&b)&&(a[0]!==b[0]?a[0]>b[0]:a[1]>b[1]);
+// The version in a copy of the page, from as little of it as possible (streamed, stops once found), or null.
+async function versionAt(url){
+  const r=await fetch(url,{cache:'no-store'}); if(!r.ok||!r.body) return null;
+  const re=/id="appVersion"[^>]*>\s*(v\d+\.\d+)\s*</, reader=r.body.getReader(), dec=new TextDecoder();
+  let text='';
+  for(;;){
+    const {done,value}=await reader.read(); if(done) break;
+    text+=dec.decode(value,{stream:true});
+    const m=re.exec(text); if(m){ reader.cancel().catch(()=>{}); return m[1]; }
+    if(text.length>400000) break;   // not this page
+  }
+  reader.cancel().catch(()=>{}); return null;
+}
+let lastUpdateCheck=0, updateOffered='';
+// url: tests pass one; normally the page's own address, and only when served over http(s)
+async function checkForUpdate(url){
+  if(!url){
+    if(!/^https?:$/.test(location.protocol) || Date.now()-lastUpdateCheck<UPDATE_EVERY) return;
+    url=location.href.split('#')[0];
+  }
+  lastUpdateCheck=Date.now();
+  try{
+    const v=await versionAt(url);
+    if(isNewer(parseVersion(v),parseVersion(RUNNING_VERSION))) offerUpdate(v);
+  }catch(e){}   // offline or blocked: just no notice
+}
+function offerUpdate(v){
+  updateOffered=v;
+  const b=$('#updateBtn'); b.textContent='↻ Update available · Click to reload'; b.hidden=false;
+  b.title=`OpenTitlecard ${v} is out (you have ${RUNNING_VERSION}). Click to reload the page and get it; save your set first.`;
+  b.setAttribute('aria-label',`Update available: version ${v}. Reload the page to update.`);
+}
+$('#updateBtn').addEventListener('click',()=>location.reload());   // a reload revalidates the page, so it comes back new
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible') checkForUpdate(); });
+setInterval(()=>{ if(document.visibilityState==='visible') checkForUpdate(); },UPDATE_EVERY);
+setTimeout(()=>checkForUpdate(),3000);   // after the page has settled
+
 /* ============ boot ============ */
 sharedStyle=pickStyle(); stash(); record();   // the first step: the page as it opens
 buildSwatches(); refreshPresets(); syncControls();
@@ -2918,7 +2975,7 @@ render();
 // Panels animate open from now on, not at page load (their @starting-style rule needs .anim): two frames, so it is
 // added after the first paint.
 requestAnimationFrame(()=>requestAnimationFrame(()=>document.documentElement.classList.add('anim')));
-window.__tt={S,render,renderNow,get L(){return L},exportGeometry,draw,get cards(){return cards},get sharedStyle(){return sharedStyle},get active(){return active},batchNames,zipStem,crc32,buildZip,undo:undoStep,redo:redoStep,unsavedWork,get history(){return {length:hist.length,at:histAt}},get view(){return {...viewState}},get safezone(){return {...SZ,box:szBox&&{...szBox},status:$('#szStatus').textContent,fit:$('#szFit').textContent}},get mockup(){return {...MK,box:mkBox&&{...mkBox},image:mkImage&&mkImage.name,status:$('#mkStatus').textContent}}};
+window.__tt={update:{check:checkForUpdate,get offered(){return updateOffered},running:RUNNING_VERSION},S,render,renderNow,get L(){return L},exportGeometry,draw,get cards(){return cards},get sharedStyle(){return sharedStyle},get active(){return active},batchNames,zipStem,crc32,buildZip,undo:undoStep,redo:redoStep,unsavedWork,get history(){return {length:hist.length,at:histAt}},get view(){return {...viewState}},get safezone(){return {...SZ,box:szBox&&{...szBox},status:$('#szStatus').textContent,fit:$('#szFit').textContent}},get mockup(){return {...MK,box:mkBox&&{...mkBox},image:mkImage&&mkImage.name,status:$('#mkStatus').textContent}}};
 </script>
 </body>
 </html>
