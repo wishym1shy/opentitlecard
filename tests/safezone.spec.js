@@ -173,7 +173,7 @@ test.describe('Instagram Reels UI | iPhone 16 Pro', () => {
     await page.click('#szFit .usecanvas');
     expect(await page.evaluate(() => [__tt.S.frame, __tt.S.fw, __tt.S.fh])).toEqual(['1206x2622', 1206, 2622]);
     expect(await page.evaluate(() => __tt.S.size)).toBeLessThan(100);  // auto-scale fitted the card to the phone
-    await expect(page.locator('#szFit')).toHaveText('✓ The card is inside the safe zone.');
+    await expect(page.locator('#szFit')).toHaveText(/^[✓⚠] The card /);   // a verdict against the phone now
     await expect(page.locator('.usecanvas')).toHaveCount(0);
     await page.keyboard.press('Control+z');                            // one undo step back
     expect(await page.evaluate(() => [__tt.S.frame, __tt.S.size])).toEqual(['1920x1080', 100]);
@@ -190,9 +190,9 @@ test.describe('Instagram Reels UI | iPhone 16 Pro', () => {
     await expect(page.locator('#szKind option[value="igReels16"]')).toHaveText('Instagram Reels UI | iPhone 16 Pro');
     await iphone(page);
     expect((await sz(page)).box).toMatchObject({ x: 0, y: 0, w: 1206, h: 2622, f: 1 });
-    const pill = await previewPx(page, 290, 2466), dot = await previewPx(page, 637, 2490);
-    expect(pill[3]).toBe(255); expect(Math.max(...pill.slice(0, 3))).toBeLessThan(70);  // the dark Reels button in the nav bar
-    expect(dot[0]).toBeGreaterThan(200); expect(dot[1]).toBeLessThan(120);               // the red new-message dot
+    const reels = await previewPx(page, 334, 2440), dot = await previewPx(page, 1120, 2496);
+    expect(Math.min(...reels.slice(0, 3))).toBeGreaterThan(200);                          // the white Reels button in the nav bar
+    expect(dot[0]).toBeGreaterThan(200); expect(dot[1]).toBeLessThan(120);               // the red dot on the profile
     const video = await previewPx(page, 600, 1000);                                      // the 9:16 video area: a neutral tint
     expect(video[3]).toBeGreaterThan(40); expect(video[3]).toBeLessThan(140);
     expect(Math.max(...video.slice(0, 3)) - Math.min(...video.slice(0, 3))).toBeLessThan(8);
@@ -207,9 +207,17 @@ test.describe('Instagram Reels UI | iPhone 16 Pro', () => {
     for (const [x, y] of [[20, 2400], [600, 2600], [1190, 2610]]) expect(await previewPx(page, x, y), `${x},${y}`).toEqual([0, 0, 0, 255]);
     const above = await previewPx(page, 20, 2370);                     // just above the bar: the footage
     expect(above[0]).toBeGreaterThan(200); expect(above[2]).toBeLessThan(80);
-    const pill = await previewPx(page, 290, 2466), dot = await previewPx(page, 637, 2490);
-    expect(pill.slice(0, 3)).not.toEqual([0, 0, 0]);                  // the Reels button and the red dot still show on it
+    const reels = await previewPx(page, 334, 2440), dot = await previewPx(page, 1120, 2496);
+    expect(reels.slice(0, 3)).not.toEqual([0, 0, 0]);                 // the Reels button and the red dot still show on it
     expect(dot[0]).toBeGreaterThan(200);
+  });
+
+  test('the tabs sit just under the status bar, which shows the battery', async ({ app: { page } }) => {
+    await iphone(page);
+    const white = async (x, y) => Math.min(...(await previewPx(page, x, y)).slice(0, 3)) > 200;
+    expect(await white(86, 200)).toBe(true);    // the "+" reaches up to y = 191, level with the tabs at y = 224
+    expect(await white(86, 268)).toBe(false);   // and no lower than y = 253 (it used to reach 279)
+    expect(await white(1100, 78)).toBe(true);   // the battery's charge
   });
 
   test('the section and its toggle are named for the overlays too', async ({ app: { page } }) => {

@@ -4,6 +4,14 @@ What changed in OpenTitlecard, newest first. The version is shown next to the ap
 
 Versions are `vMAJOR.MINOR`. Each merged pull request that changes the app adds one to the minor number (v1.31 → v1.32 → …). The changelog started at v1.31: v1.27 stands for everything merged before the UI review that led to v1.28–v1.31 (pull requests up to #31), so the numbers line up with the work done.
 
+## v1.52
+
+### Changed
+- The **Instagram Reels UI | iPhone 16 Pro** overlay now matches a current Reels screenshot more closely. The **+**, **Reels** / **Friends** tabs and friend bubbles sit higher, just under the status bar, and are larger. The like, comment, repost and share buttons now sit mid-screen, as in the app (they were too low), and repost has no count. The creator row, Follow button and caption line up with the app, and the camera button and "Followed by" line are gone.
+
+### Added
+- The overlay draws the missing parts of the screen as generic shapes: the status bar (time, signal, Wi-Fi, battery), the ⋯ menu lines above the audio square, a music line under the creator's name, the video's progress line, and the nav bar's house, white Reels button, messages, search and profile icons, with a notification dot on the profile.
+
 ## v1.51
 
 ### Changed
