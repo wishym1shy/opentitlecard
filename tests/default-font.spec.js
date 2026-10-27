@@ -173,15 +173,34 @@ test.describe('bundled default font (Inter)', () => {
     await context.close();
   });
 
-  test('italic uses the italic shift with the real default (the slant is synthesized for the bundled upright face)', async ({ browser }) => {
+  test('the default font has a real italic: different letter shapes and spacing, not the upright tilted', async ({ browser }) => {
     const { context, page } = await openPlain(browser);
     await bundledLoaded(page);
+    await page.waitForFunction(() => [...document.fonts].some((f) => f.family.includes('OpenTitlecard Inter') && f.style === 'italic' && f.status === 'loaded'));
+    const m = await page.evaluate(() => {
+      const c = document.createElement('canvas').getContext('2d'), out = {};
+      for (const w of [400, 700, 900]) for (const st of ['normal', 'italic']) { c.font = `${st} ${w} 100px "OpenTitlecard Inter"`; out[`${st}${w}`] = c.measureText('Titlecard affiliate').width; }
+      return out;
+    });
+    // a faked slant keeps the upright advance widths exactly; a real italic face does not
+    for (const w of [400, 700, 900]) expect(Math.abs(m[`italic${w}`] - m[`normal${w}`]), `weight ${w}`).toBeGreaterThan(1);
+    expect(m.italic900).toBeGreaterThan(m.italic400); // the italic has the weight axis too
+    await context.close();
+  });
+
+  test('italic words in the default font are not shifted: a real italic spaces itself', async ({ browser }) => {
+    const { context, page } = await openPlain(browser, NO_SYSTEM_INTER);
+    await bundledLoaded(page);
+    await page.waitForFunction(() => [...document.fonts].some((f) => f.family.includes('OpenTitlecard Inter') && f.style === 'italic' && f.status === 'loaded'));
     await setText(page, 'Hello world');
+    await page.check('#align input[value="left"]'); // left-aligned, so the first run starts at the same place whatever its width
+    const before = (await settle(page)).lines[0].items[0].x;
     await page.evaluate(() => { const t = document.querySelector('#text'); t.focus(); t.setSelectionRange(0, 5); });
     await page.click('#ital');
     const L = await settle(page);
     const first = L.lines[0].items[0], rest = L.lines[0].items[1];
-    expect(first.x).toBeLessThan(0.01 * L.size); // shifted left of its advance position by the italic correction
+    expect(first.text).toBe('Hello'); // the italic run is split off from the rest
+    expect(first.x).toBeCloseTo(before, 3); // a faked slant would be shifted left of this by the italic correction
     expect(rest.x).toBeGreaterThan(first.x);
     await context.close();
   });

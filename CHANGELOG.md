@@ -4,6 +4,13 @@ What changed in OpenTitlecard, newest first. The version is shown next to the ap
 
 Versions are `vMAJOR.MINOR`. Each merged pull request that changes the app adds one to the minor number (v1.31 → v1.32 → …). The changelog started at v1.31: v1.27 stands for everything merged before the UI review that led to v1.28–v1.31 (pull requests up to #31), so the numbers line up with the work done.
 
+## v1.58
+
+### Changed
+- **Italic in the default font is now a real italic.** OpenTitlecard now includes Inter Italic, so italic words in Inter are drawn with Inter's own italic letters (single-storey *a*, a descending *f*) and its own spacing, instead of the upright letters tilted. **Cards that already use italic in Inter will look different**: the letter shapes and the width of italic words change, so lines can wrap or fit a little differently. Re-check those cards before you export again. Italic works at every weight.
+- **No extra italic correction for real italics.** The small nudge that kept tilted words from crowding their neighbours is now only applied to fonts that have no italic of their own; a real italic already spaces itself.
+- The app file is about 70 KB larger because of the italic font. It still works offline.
+
 ## v1.57
 
 ### Added
