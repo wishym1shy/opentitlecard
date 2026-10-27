@@ -283,7 +283,7 @@
 </head>
 <body>
 <header>
-  <h1>OpenTitlecard <a id="appVersion" href="https://github.com/wishym1shy/opentitlecard/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer" title="What's new in this version (changelog on GitHub)">v1.52</a></h1>
+  <h1>OpenTitlecard <a id="appVersion" href="https://github.com/wishym1shy/opentitlecard/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer" title="What's new in this version (changelog on GitHub)">v1.53</a></h1>
   <a class="gh" href="https://github.com/wishym1shy/opentitlecard" target="_blank" rel="noopener noreferrer" title="View the source on GitHub">
     <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
     <span>View on GitHub</span>
@@ -1354,6 +1354,27 @@ syncMKControls();
    [x, y, w, h] in the 1206 x 2622 frame; x is negative because the sides are off-screen. */
 const REELS_VIDEO_H=2386, REELS_VIDEO_W=REELS_VIDEO_H*9/16;
 const REELS_VIDEO=[(1206-REELS_VIDEO_W)/2,0,REELS_VIDEO_W,REELS_VIDEO_H];
+/* What the phone itself hides from a watcher, on the same screen: the rounded display corners, the Dynamic Island and
+   the home indicator. Apple publishes only the screen (2622 x 1206 at 460 ppi), so these are commonly cited developer
+   values, at 3 px per pt: corner radius 62 pt (186 px), island 125 x 37 pt 14 pt from the top, home indicator
+   144 x 5 pt 8 pt above the bottom. The body (bezel, buttons) would sit outside the canvas, so it isn't drawn. */
+const IPHONE_CORNER=186, IPHONE_ISLAND=[603-187.5,42,375,111], IPHONE_HOME=[603-216,2622-24-15,432,15];
+// iOS draws "continuous" corners (a squircle), not circular ones: the curve starts 1.5287 r along each edge. These are
+// the Bezier points of one such corner, as (along the edge it comes from, along the edge it goes to), in units of r.
+const SQUIRCLE=[[1.52866483,0],[1.08849323,0],[0.86840689,0],[0.66993427,0.06549600],[0.63149399,0.07491100],
+  [0.37282392,0.16905899],[0.16905899,0.37282392],[0.07491100,0.63149399],[0.06549600,0.66993427],
+  [0,0.86840689],[0,1.08849323],[0,1.52866483]];
+// adds a squircle-cornered rectangle to the current path, clockwise from the top-left corner
+function squirclePath(ctx,T,x,y,w,h,r){
+  [[x,y,0,1,1,0],[x+w,y,-1,0,0,1],[x+w,y+h,0,-1,-1,0],[x,y+h,1,0,0,-1]].forEach(([cx,cy,ax,ay,bx,by],i)=>{
+    const P=([p,q])=>T(cx+(p*ax+q*bx)*r,cy+(p*ay+q*by)*r), [a,b]=P(SQUIRCLE[0]);
+    i?ctx.lineTo(a,b):ctx.moveTo(a,b);
+    ctx.bezierCurveTo(...P(SQUIRCLE[1]),...P(SQUIRCLE[2]),...P(SQUIRCLE[3])); ctx.lineTo(...P(SQUIRCLE[4]));
+    ctx.bezierCurveTo(...P(SQUIRCLE[5]),...P(SQUIRCLE[6]),...P(SQUIRCLE[7])); ctx.lineTo(...P(SQUIRCLE[8]));
+    ctx.bezierCurveTo(...P(SQUIRCLE[9]),...P(SQUIRCLE[10]),...P(SQUIRCLE[11]));
+  });
+  ctx.closePath();
+}
 function drawReelsUI(ctx,T,s){
   const font=(px,w)=>`${w} ${px*s}px system-ui,-apple-system,"Segoe UI",sans-serif`;
   const dot=(x,y,r)=>{ ctx.beginPath(); ctx.arc(...T(x,y),r*s,0,Math.PI*2); };
@@ -1439,6 +1460,12 @@ function drawReelsUI(ctx,T,s){
   dot(841,2459,27); stroke(5); line([[861,2479],[877,2496]]); stroke(5);
   avatar(1086,2466,37,0);
   dot(1120,2496,11); ctx.save(); ctx.shadowColor='transparent'; fill('#ff3040'); ctx.restore();
+  // the phone over all of it: black outside the rounded display (even-odd: the screen rectangle minus the squircle),
+  // the island in black, and the home indicator in white on the nav bar
+  ctx.shadowColor='transparent';
+  ctx.beginPath(); ctx.rect(...T(0,0),1206*s,2622*s); squirclePath(ctx,T,0,0,1206,2622,IPHONE_CORNER); ctx.fillStyle='#000'; ctx.fill('evenodd');
+  rrect(...IPHONE_ISLAND,55.5); fill('#000');
+  rrect(...IPHONE_HOME,7.5); fill('rgba(255,255,255,.9)');
   ctx.restore();
 }
 const SAFE_ZONES={
