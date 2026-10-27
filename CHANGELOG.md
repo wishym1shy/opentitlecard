@@ -4,6 +4,19 @@ What changed in OpenTitlecard, newest first. The version is shown next to the ap
 
 Versions are `vMAJOR.MINOR`. Each merged pull request that changes the app adds one to the minor number (v1.31 → v1.32 → …). The changelog started at v1.31: v1.27 stands for everything merged before the UI review that led to v1.28–v1.31 (pull requests up to #31), so the numbers line up with the work done.
 
+## v1.60
+
+### Added
+- **Load several font files at once.** In **Load font file…**, pick all the files of a typeface together (Regular, Bold, Italic, Bold Italic…). OpenTitlecard reads each file's own family name, weight and italic, so they join into **one family**: the **Weight** menu switches between the files, and **Italic** uses the real italic file of that weight, not a slanted copy.
+- **The Weight menu shows what the font really has.** For a loaded family it lists only its weights (a variable font: the usual steps inside its range). Loading a font moves Weight to the nearest weight it has, so the menu never shows a weight that isn't drawn. A weight the family lacks is marked "(not in this font)".
+- **Files that can't be read are flagged, not guessed quietly.** TTF, OTF and WOFF files are read directly. WOFF2 files are compressed in a way a browser can't open, so for those OpenTitlecard guesses the family, weight and italic from the file name, uses the font straight away, and shows a yellow row under the font controls where you can correct all three (**Update**) or confirm them (**Looks right**).
+
+### Changed
+- **Loaded fonts are named after the font, not the file.** `Gotham-Bold.otf` is now the family *Gotham* (weight Bold). A font that has the same name as one that comes with the app or one installed on your computer is called "<name> (file)", as before.
+- **Old names keep working.** Presets and set files saved before this version name a loaded font after its file (for example `Gotham-Bold`). Those names still resolve to the same font at the same weight, so your cards look exactly as they did; their Weight menu is locked, with a note, because the name stands for one file. Use the family's own name to choose between weights.
+- **Fonts remembered by earlier versions are upgraded automatically** the first time you open this version: each is filed under its real family and keeps its old name. A file the app can't read inside (WOFF2) stays exactly as it was.
+- The font files you load are remembered face by face (up to 60), so a whole typeface comes back after a reload.
+
 ## v1.59
 
 ### Added

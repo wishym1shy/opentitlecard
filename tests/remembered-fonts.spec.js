@@ -2,7 +2,7 @@ const { test, expect, APP_URL, FONT_FAMILY, FONT_FILE, expandUi, confirmDialog, 
 
 // Fonts loaded from a file are remembered in the browser (IndexedDB) and come back on the next visit. The fixture has
 // already loaded the test font through "Load font file…", so it is remembered at the start of every test here.
-const chipOk = (page, fam) => expect(page.locator('#fontChip')).toHaveText(new RegExp(fam));
+const chipOk = (page, fam) => expect(page.locator('#fontChip')).toContainText(fam);
 async function reload(page) {
   await page.reload();
   await page.waitForFunction(() => window.__tt && window.__tt.L);
@@ -117,7 +117,7 @@ test('without IndexedDB (a private window, blocked storage) fonts still load for
   page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
   await page.goto(APP_URL);
   await page.waitForFunction(() => window.__tt && window.__tt.L);
-  await page.setInputFiles('#fontFile', require.resolve('@fontsource/inter/files/inter-latin-800-normal.woff2'));
+  await page.setInputFiles('#fontFile', FONT_FILE);
   await chipOk(page, FONT_FAMILY);
   await expect(page.locator('#fontMem')).toBeHidden();
   await page.reload();

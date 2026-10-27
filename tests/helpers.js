@@ -6,8 +6,8 @@ const { test: base, expect } = require('@playwright/test');
 const APP_URL = pathToFileURL(path.join(__dirname, '..', 'index.html')).href;
 // Open-source font (SIL OFL) from devDependencies. It is loaded through the app's own
 // "Load font file…" input so every machine (and CI) renders with identical metrics.
-const FONT_FILE = require.resolve('@fontsource/inter/files/inter-latin-800-normal.woff2');
-const FONT_FAMILY = 'inter-latin-800-normal'; // the app derives the family from the file name
+const FONT_FILE = require.resolve('@fontsource/inter/files/inter-latin-800-normal.woff');
+const FONT_FAMILY = 'Inter (file)'; // the app reads the family from the file ('Inter'); it gets "(file)" so it can't replace the bundled Inter
 
 async function loadTestFont(page) {
   await page.setInputFiles('#fontFile', FONT_FILE);
