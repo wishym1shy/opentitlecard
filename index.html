@@ -99,6 +99,11 @@
   #famToggle{position:absolute;right:3px;top:50%;transform:translateY(-50%);display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;padding:0;background:none;border:0;color:var(--mute);cursor:pointer}
   #famToggle:hover{background:var(--panel2);color:var(--text)}
   #famToggle svg{width:14px;height:14px}
+  .guess{margin-top:8px;padding:8px 10px;background:#2a2314;border:1px solid #6b5a28;border-radius:8px;font-size:12px;line-height:1.4;color:#f0d9a0}
+  .guess p{margin:0 0 6px}
+  .guess .grow{display:flex;gap:6px;align-items:center;margin-top:6px;flex-wrap:wrap}
+  .guess .gfam{flex:1 1 120px;min-width:0}
+  .guess .gi{display:inline-flex;gap:4px;align-items:center;margin:0;font-size:12px;color:inherit}
   #famMenu{padding:4px 0;overflow:auto;overscroll-behavior:contain}
   #famMenu .fgh{padding:8px 10px 3px;font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--mute)}
   #famMenu .fgh:first-child{padding-top:4px}
@@ -326,7 +331,7 @@
 </head>
 <body>
 <header>
-  <h1>OpenTitlecard <a id="appVersion" href="https://github.com/wishym1shy/opentitlecard/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer" title="What's new in this version (changelog on GitHub)">v1.59</a></h1>
+  <h1>OpenTitlecard <a id="appVersion" href="https://github.com/wishym1shy/opentitlecard/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer" title="What's new in this version (changelog on GitHub)">v1.60</a></h1>
   <button id="updateBtn" type="button" hidden title="A newer version of OpenTitlecard is out. Click to reload the page and get it (save your set first)."></button>
   <a class="gh" href="https://github.com/wishym1shy/opentitlecard" target="_blank" rel="noopener noreferrer" title="View the source on GitHub">
     <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
@@ -370,8 +375,9 @@
         <div class="row" style="margin-top:6px">
           <button id="loadInstalled" class="sm">Installed fonts…</button>
           <button id="loadFile" class="sm">Load font file…</button>
-          <input type="file" id="fontFile" accept=".ttf,.otf,.woff,.woff2" hidden>
+          <input type="file" id="fontFile" accept=".ttf,.otf,.woff,.woff2" multiple hidden>
         </div>
+        <div id="fontGuess" aria-live="polite"></div>
         <div class="hint" id="fontMem" hidden><span id="fontMemText"></span> · <button type="button" id="fontForget" class="linkish">Forget them</button></div>
         <div><label for="weight">Weight</label>
         <select id="weight"><option value="400">Regular 400</option><option value="500">Medium 500</option><option value="600">Semibold 600</option><option value="700">Bold 700</option><option value="800">Extra Bold 800</option><option value="900">Black 900</option></select></div>
@@ -941,7 +947,12 @@ if(store.get('opentitlecard.style',null)===null){ const d=defaultPreset(); if(d)
 
 let L = null;            // last layout
 let drag = null;
-let loadedFaces = new Set();
+let loadedFaces = new Set();   // families that came from font files (their real names)
+const faceReg = new Map();     // family -> [{id, w:[min,max], italic, face}]: the faces loaded from files, for the weight menu
+const loadedAlias = new Map(); // an old file-based name -> {family, weight}: presets and sets from before real family names keep working
+const WEIGHT_LABELS={100:'Thin',200:'Extra Light',300:'Light',400:'Regular',500:'Medium',600:'Semibold',700:'Bold',800:'Extra Bold',900:'Black'};
+const weightLabel = w => WEIGHT_LABELS[w]?`${WEIGHT_LABELS[w]} ${w}`:String(w);
+const STD_WEIGHTS=[400,500,600,700,800,900];
 
 /* ============ fonts ============ */
 const probe = document.createElement('canvas').getContext('2d');
@@ -975,11 +986,15 @@ const pendingFams=new Set((()=>{ const v=store.get(REMEMBERED_KEY,[]); return Ar
 let bundledDone; const bundledReady=new Promise(r=>bundledDone=r);   // exports wait for it too
 let rememberedDone; const rememberedReady=new Promise(r=>rememberedDone=r);   // exports wait for it, so they never draw a fallback by accident
 function endRememberedPending(){ if(rememberedState!=='pending') return; rememberedState='done'; rememberedDone(); render(); }
-const fontStack = fam => { const b=bundledOf(fam); return `${JSON.stringify(fam)}, ${b?JSON.stringify(bundledAlias(b))+', ':''}${b&&b.serif?'Georgia, "Times New Roman", serif':'"Helvetica Neue", Arial, sans-serif'}`; };
+const resolveFont = fam => { const a=loadedAlias.get(fam); return a?a.family:fam; };
+// An old file-based name stands for that one file, so it keeps the file's weight, as it did when the Weight menu did nothing.
+const aliasPin = fam => { const a=loadedAlias.get(fam); return a&&a.weight!=null?a.weight:null; };
+const effWeight = () => { const p=aliasPin(S.family); return p!=null?p:S.weight; };
+const fontStack = fam => { fam=resolveFont(fam); const b=bundledOf(fam); return `${JSON.stringify(fam)}, ${b?JSON.stringify(bundledAlias(b))+', ':''}${b&&b.serif?'Georgia, "Times New Roman", serif':'"Helvetica Neue", Arial, sans-serif'}`; };
 // "Pending" counts as available so the warning doesn't flash for the few milliseconds the embedded font takes to load.
 // While the remembered fonts load at startup, the ones remembered last time count as usable, so the ⚠ doesn't flash for a
 // font about to arrive. Only those: any other missing family is reported straight away.
-const fontAvailable = (fam,weight) => fontInstalled(fam,weight) || loadedFaces.has(fam) || (()=>{ const b=bundledOf(fam); return !!b && bundledState[b.name]!=='failed'; })() || (rememberedState==='pending' && pendingFams.has(fam));
+const fontAvailable = (fam,weight) => (fam=resolveFont(fam), fontInstalled(fam,weight)) || loadedFaces.has(fam) || (()=>{ const b=bundledOf(fam); return !!b && bundledState[b.name]!=='failed'; })() || (rememberedState==='pending' && pendingFams.has(fam));
 async function loadBundledFonts(){
   // The upright and the italic are separate faces of one family; the italic is a nice-to-have, so its failure leaves
   // the upright working (the browser then slants it) and doesn't mark the family as failed.
@@ -996,7 +1011,7 @@ async function loadBundledFonts(){
   }));
   bundledDone();
 }
-const fontStr = (it,px) => `${it?'italic ':''}${S.weight} ${px}px ${fontStack(S.family)}`;
+const fontStr = (it,px) => `${it?'italic ':''}${effWeight()} ${px}px ${fontStack(S.family)}`;
 const fontReady = () => fontAvailable(S.family, S.weight);
 // Stretch/squish factors. Clamped here too, so a hand-edited preset can't mirror the text (negative) or flatten it to 0.
 const stretch = () => ({sx:clamp(S.stretchX,50,200)/100, sy:clamp(S.stretchY,50,200)/100});
@@ -1059,7 +1074,7 @@ function updateFontChip(){
   const ok = fontReady();
   const chip=$('#fontChip');
   chip.className = ok?'ok':'bad';
-  chip.textContent = ok ? `✓ ${S.family} ${S.weight}` : `⚠ “${S.family}” not found`;
+  chip.textContent = ok ? `✓ ${S.family} ${effWeight()}` : `⚠ “${S.family}” not found`;
   updateFontWarn(ok);
   return ok;
 }
@@ -1115,10 +1130,13 @@ function italicShift(){
   const ink=f=>{ mctx.font=fontStr(f,S.size); const m=mctx.measureText('H'); return ((m.actualBoundingBoxRight-m.actualBoundingBoxLeft)-m.width)/2; };
   return hasRealItalic() ? 0 : -(ink(1)-ink(0));
 }
-/* A real italic face spaces itself, so the correction above only belongs to the slant the browser fakes. A fake slant
-   keeps every upright advance width, so a string that measures the same upright and italic is faked. (A monospace
-   font with a real italic also measures the same and is treated as faked: it gets the ~1px nudge, which is harmless.) */
+/* A real italic face spaces itself, so the correction above only belongs to the slant the browser fakes. For a family
+   loaded from files this is known exactly (does it have an italic face?). For the rest a fake slant keeps every upright
+   advance width, so a string that measures the same upright and italic is faked. (A monospace font with a real italic
+   also measures the same and is treated as faked: it gets the ~1px nudge, which is harmless.) */
 function hasRealItalic(){
+  const loaded=faceReg.get(resolveFont(S.family));
+  if(loaded) return loaded.some(f=>f.italic);
   const w=f=>{ mctx.font=fontStr(f,100); return mctx.measureText('Titlecard affiliate').width; };
   return Math.abs(w(1)-w(0))>0.01;
 }
@@ -2010,6 +2028,7 @@ const fmt={stretchX:v=>v+'%',stretchY:v=>v+'%',size:v=>v+' px',lh:v=>(+v).toFixe
    write the same S keys, so changing one moves the other. */
 const DIALOG_KEYS=['frame','fw','fh','offX','offY','tight','exportScale'];
 function syncControls(){
+  fillWeightMenu();
   for(const [k,t] of bindings){
     for(const id of DIALOG_KEYS.includes(k)?[k,'x_'+k]:[k]){
       const el=$('#'+id); if(!el) continue;
@@ -2238,19 +2257,207 @@ $('#loadInstalled').addEventListener('click',async()=>{
   }catch(e){ alert('Font access was blocked: '+e.message); }
 });
 $('#loadFile').addEventListener('click',()=>$('#fontFile').click());
-$('#fontFile').addEventListener('change',async e=>{
-  const f=e.target.files[0]; if(!f) return;
-  let name=f.name.replace(/\.[^.]+$/,'').replace(/[^\w\- ]/g,'');
-  // A file named like the default or an installed family ("Inter.ttf") would replace that family for good once
-  // remembered (and a one-weight file would stand in for every weight), so it gets a name of its own.
-  if(!loadedFaces.has(name) && (bundledOf(name)||fontInstalled(name,S.weight))) name+=' (file)';
+/* ============ font files ============ */
+/* A font file is read for what it says about itself, so a Regular, a Bold and an Italic file of one typeface become one
+   family: the name table (typographic family and style), OS/2 (weight class, the italic bit) and post (italic angle),
+   plus fvar for the weight range of a variable font. TTF and OTF are read directly, WOFF by inflating the tables with the
+   browser's own DecompressionStream. WOFF2 is Brotli-compressed and the browser has no way to read it, so for those (and
+   collections) the family, weight and italic are guessed from the file name and shown in a row the user can correct:
+   the app never guesses quietly. */
+async function inflate(bytes){
+  const ds=new DecompressionStream('deflate'), w=ds.writable.getWriter(); w.write(bytes); w.close();
+  return new Uint8Array(await new Response(ds.readable).arrayBuffer());
+}
+// The tables we need, as byte arrays; null for a format that can't be read here.
+async function fontTables(buf){
+  const dv=new DataView(buf), tag=o=>String.fromCharCode(dv.getUint8(o),dv.getUint8(o+1),dv.getUint8(o+2),dv.getUint8(o+3));
+  const sig=tag(0), want=['name','OS/2','post','fvar'], out={};
+  if(sig==='wOFF'){
+    for(let i=0,n=dv.getUint16(12);i<n;i++){
+      const o=44+20*i, t=tag(o); if(!want.includes(t)) continue;
+      const off=dv.getUint32(o+4), comp=dv.getUint32(o+8), orig=dv.getUint32(o+12);
+      if(orig>2e6) continue;   // no such table is that large; skip rather than inflate something odd
+      const b=new Uint8Array(buf,off,comp); out[t]=comp<orig?await inflate(b):b;
+    }
+  }else if(sig==='\0\x01\0\0'||sig==='OTTO'||sig==='true'){
+    for(let i=0,n=dv.getUint16(4);i<n;i++){
+      const o=12+16*i, t=tag(o); if(want.includes(t)) out[t]=new Uint8Array(buf,dv.getUint32(o+8),Math.min(dv.getUint32(o+12),2e6));
+    }
+  }else return null;   // WOFF2, a collection, or not a font
+  return out;
+}
+// nameID -> text, preferring the Windows English record, then any Windows/Unicode one, then Mac.
+function readNames(t){
+  const dv=new DataView(t.buffer,t.byteOffset,t.byteLength), count=dv.getUint16(2), so=dv.getUint16(4), best={};
+  for(let i=0;i<count;i++){
+    const o=6+12*i, plat=dv.getUint16(o), lang=dv.getUint16(o+4), id=dv.getUint16(o+6), len=dv.getUint16(o+8), off=so+dv.getUint16(o+10);
+    const rank=plat===3&&lang===0x409?3:plat===3||plat===0?2:plat===1?1:0;
+    if(!rank||(best[id]&&best[id].rank>=rank)) continue;
+    let str='';
+    if(plat===1) for(let j=0;j<len;j++) str+=String.fromCharCode(t[off+j]);
+    else for(let j=0;j+1<len;j+=2) str+=String.fromCharCode(dv.getUint16(off+j));
+    best[id]={rank,str};
+  }
+  const out={}; for(const k in best) out[k]=best[k].str; return out;
+}
+// {family, style, weight, range, italic} from the file's own tables, or null if they can't be read.
+async function readFontFile(buf){
   try{
-    const data=await f.arrayBuffer();
-    const face=new FontFace(name,data,{weight:'1 1000'}); await face.load(); document.fonts.add(face);
-    loadedFaces.add(name); S.family=name; syncControls(); persistStyle(); record(); nudgeSig=''; render();
-    rememberFont(name,data,f.name);
-  }catch(err){ alert('Could not load that font file: '+err.message); }
-  e.target.value='';
+    const t=await fontTables(buf); if(!t||!t.name) return null;
+    const nm=readNames(t.name); let family=(nm[16]||nm[1]||'').trim().slice(0,MAX_NAME); if(!family) return null;
+    const style=(nm[17]||nm[2]||'').trim(); let weight=400, italic=/italic|oblique/i.test(style), range=null;
+    if(t['OS/2']&&t['OS/2'].length>=64){
+      const dv=new DataView(t['OS/2'].buffer,t['OS/2'].byteOffset,t['OS/2'].byteLength), wc=dv.getUint16(4), fs=dv.getUint16(62);
+      if(wc>=1&&wc<=1000) weight=wc;
+      if((fs&1)||(fs&512)) italic=true;   // the italic and oblique bits
+    }
+    if(t.post&&t.post.length>=8&&new DataView(t.post.buffer,t.post.byteOffset,t.post.byteLength).getInt32(4)!==0) italic=true;   // italicAngle
+    if(t.fvar&&t.fvar.length>=16){
+      const dv=new DataView(t.fvar.buffer,t.fvar.byteOffset,t.fvar.byteLength), ao=dv.getUint16(4), n=dv.getUint16(8), sz=dv.getUint16(10);
+      for(let i=0;i<n;i++){
+        const o=ao+i*sz; if(String.fromCharCode(dv.getUint8(o),dv.getUint8(o+1),dv.getUint8(o+2),dv.getUint8(o+3))!=='wght') continue;
+        const lo=Math.round(dv.getInt32(o+4)/65536), hi=Math.round(dv.getInt32(o+12)/65536);
+        if(lo>=1&&hi<=1000&&lo<hi) range=[lo,hi];
+      }
+    }
+    // Many static fonts carry no typographic family (ID 16) and put the weight into the plain one ("Inter ExtraBold"), which
+    // would keep a Bold and an ExtraBold file from pairing. Drop a trailing style word only when the file's own weight
+    // class and italic bit agree with it.
+    if(!nm[16]&&!range){
+      const g=guessFromName(family), tail=g.popped.join('').toLowerCase(), flat=family.replace(/[-_]+/g,' ');
+      if(tail&&g.weight===weight&&g.italic===italic&&flat.replace(/ /g,'').toLowerCase().endsWith(tail)){
+        let n=tail.length, end=flat.length;
+        while(n>0&&end>0){ end--; if(flat[end]!==' ') n--; }   // cut that many letters off the end, spaces not counted
+        family=flat.slice(0,end).trim()||family;
+      }
+    }
+    return {family,style,weight,range,italic};
+  }catch(e){ return null; }
+}
+// A guess from the file name, for files whose tables can't be read: "Gotham-BoldItalic.woff2" -> Gotham, 700, italic.
+const GUESS_WORDS={thin:100,hairline:100,extralight:200,ultralight:200,light:300,regular:400,normal:400,book:400,roman:400,medium:500,
+  semibold:600,demibold:600,bold:700,extrabold:800,ultrabold:800,black:900,heavy:900};
+function guessFromName(file){
+  const base=file.replace(/\.[^.]+$/,'').replace(/[^\w\- ]/g,'').replace(/([a-z])([A-Z])/g,'$1 $2');   // BoldItalic -> Bold Italic
+  const toks=base.split(/[-_ ]+/).filter(Boolean), popped=[]; let italic=false, weight=null;
+  const word=t=>t.toLowerCase();
+  for(;toks.length>1;){
+    const last=word(toks[toks.length-1]), two=toks.length>2?word(toks[toks.length-2]+toks[toks.length-1]):'';
+    if(last==='italic'||last==='oblique'||(last==='it'&&toks.length>1)){ italic=true; popped.unshift(toks.pop()); }
+    else if(two&&GUESS_WORDS[two]){ if(!/^(regular|normal|book|roman)$/.test(two)) weight=weight||GUESS_WORDS[two]; popped.unshift(toks.pop()); popped.unshift(toks.pop()); }
+    else if(GUESS_WORDS[last]!=null){ if(!/^(regular|normal|book|roman)$/.test(last)) weight=weight||GUESS_WORDS[last]; popped.unshift(toks.pop()); }
+    else if(/^[1-9]00$/.test(last)){ weight=weight||+last; popped.unshift(toks.pop()); }
+    else break;
+  }
+  return {family:toks.join(' ').slice(0,MAX_NAME)||base.slice(0,MAX_NAME)||'Font', weight:weight||400, italic, popped};
+}
+// The family a file's faces are filed under. A name that is bundled or installed gets "(file)" so the loaded font can't
+// replace it; once a family exists, its other files join it.
+function assignFamily(name){
+  if(loadedFaces.has(name)) return name;
+  const alt=name+' (file)'; if(loadedFaces.has(alt)) return alt;
+  return bundledOf(name)||fontInstalled(name,400)?alt:name;
+}
+// What older versions called a loaded file: its file name (with the same "(file)" rule). Presets and sets saved then
+// used that name, so it stays as an alias.
+function oldFileName(file){
+  const name=file.replace(/\.[^.]+$/,'').replace(/[^\w\- ]/g,'');
+  return !loadedFaces.has(name)&&(bundledOf(name)||fontInstalled(name,400))?name+' (file)':name;
+}
+function faceRec(family,w,italic,data,file,alias){
+  return {id:`${family}|${w[0]}-${w[1]}|${italic?'i':'n'}`,family,w,italic,data,file:file||'',alias:alias||null,added:Date.now()};
+}
+async function registerFace(rec){
+  const [a,b]=rec.w, face=new FontFace(rec.family,rec.data,{weight:a===b?String(a):`${a} ${b}`,style:rec.italic?'italic':'normal'});
+  await face.load();
+  const list=faceReg.get(rec.family)||[], i=list.findIndex(f=>f.id===rec.id);
+  if(i>=0){ document.fonts.delete(list[i].face); list.splice(i,1); }   // the same face loaded again replaces itself
+  document.fonts.add(face); list.push({id:rec.id,w:rec.w,italic:rec.italic,face}); faceReg.set(rec.family,list);
+  loadedFaces.add(rec.family);
+  if(rec.alias&&rec.alias!==rec.family&&!loadedFaces.has(rec.alias)) loadedAlias.set(rec.alias,{family:rec.family,weight:a===b?a:null});
+}
+function unregisterFace(id,family){
+  const list=faceReg.get(family)||[], i=list.findIndex(f=>f.id===id);
+  if(i>=0){ document.fonts.delete(list[i].face); list.splice(i,1); }
+  if(!list.length){ faceReg.delete(family); loadedFaces.delete(family); for(const [k,v] of [...loadedAlias]) if(v.family===family) loadedAlias.delete(k); }
+}
+// The Weight menu lists what the loaded family really has (a variable font: the standard steps inside its range). Other
+// families keep Regular to Black; an old file-based name is fixed to its file's weight, so its menu is locked.
+function fillWeightMenu(){
+  const sel=$('#weight'), fam=resolveFont(S.family), list=faceReg.get(fam), pin=aliasPin(S.family);
+  let opts;
+  if(pin!=null) opts=[[S.weight,weightLabel(pin)+' (set by the file)']];
+  else{
+    let ws=STD_WEIGHTS;
+    if(list&&list.length&&!list.some(f=>f.w[0]<=1&&f.w[1]>=1000)){   // a face spanning 1-1000 is "any weight", as legacy files were
+      const set=new Set();
+      for(const f of list){ if(f.w[0]===f.w[1]) set.add(f.w[0]); else{ for(let w=100;w<=900;w+=100) if(w>=f.w[0]&&w<=f.w[1]) set.add(w); } }
+      ws=[...set].sort((x,y)=>x-y);
+    }
+    opts=ws.map(w=>[w,weightLabel(w)]);
+    if(list&&!ws.includes(S.weight)) opts.push([S.weight,`${S.weight} (not in this font)`]);
+  }
+  sel.disabled=pin!=null; sel.title=pin!=null?"This name stands for one font file, so its weight is fixed. Pick the family's own name to choose among its weights.":'';
+  const sig=JSON.stringify(opts); if(sel.dataset.sig===sig) return;
+  sel.dataset.sig=sig; sel.replaceChildren(...opts.map(([v,t])=>{ const o=document.createElement('option'); o.value=v; o.textContent=t; return o; }));
+}
+// After loading, a weight the family doesn't have moves to the nearest one it does (the menu would otherwise show a weight that isn't drawn).
+function nearestWeight(fam,w){
+  const list=faceReg.get(fam)||[]; let best=w, d=Infinity;
+  for(const f of list){ const x=clamp(w,f.w[0],f.w[1]), dd=Math.abs(x-w); if(dd<d||(dd===d&&!f.italic)){ d=dd; best=x; } }
+  return best;
+}
+const guessRows=new Map();   // rec id -> row element, for faces read from their file name
+function guessRow(rec,file){
+  const row=document.createElement('div'); row.className='guess'; row.setAttribute('role','group');
+  const p=document.createElement('p'), b=document.createElement('b'); b.textContent=file;
+  p.append('⚠ OpenTitlecard can\'t read the details inside ',b,' (WOFF2 files are compressed in a way a browser can\'t open), so its family, weight and style are guessed from the file name. Check them:');
+  const r1=document.createElement('div'); r1.className='grow';
+  const fam=document.createElement('input'); fam.type='text'; fam.className='gfam'; fam.value=rec.family; fam.setAttribute('aria-label','Family of '+file); fam.maxLength=MAX_NAME;
+  const wt=document.createElement('select'); wt.setAttribute('aria-label','Weight of '+file);
+  for(let w=100;w<=900;w+=100){ const o=document.createElement('option'); o.value=w; o.textContent=weightLabel(w); wt.append(o); }
+  wt.value=String(Math.round(clamp(rec.w[0],100,900)/100)*100);
+  const lab=document.createElement('label'); lab.className='gi'; const it=document.createElement('input'); it.type='checkbox'; it.checked=rec.italic; lab.append(it,' Italic');
+  r1.append(fam,wt,lab);
+  const r2=document.createElement('div'); r2.className='grow';
+  const up=document.createElement('button'); up.type='button'; up.className='sm'; up.textContent='Update';
+  const ok=document.createElement('button'); ok.type='button'; ok.className='sm'; ok.textContent='Looks right';
+  r2.append(up,ok); row.append(p,r1,r2);
+  let cur=rec;
+  ok.addEventListener('click',()=>{ row.remove(); guessRows.delete(cur.id); });
+  up.addEventListener('click',async()=>{
+    const name=cleanName(fam.value); if(!name) return;
+    const family=name===cur.family?name:(loadedFaces.has(name)?name:assignFamily(name)), w=+wt.value, italic=it.checked;
+    const next=faceRec(family,[w,w],italic,cur.data,cur.file,cur.alias);
+    if(next.id===cur.id) return;
+    try{ await registerFace(next); }catch(err){ alert('Could not use those settings: '+err.message); return; }
+    unregisterFace(cur.id,cur.family); forgetFace(cur.id); rememberFace(next);
+    guessRows.delete(cur.id); cur=next; guessRows.set(cur.id,row);
+    if(S.family===next.family||S.family===rec.family){ S.family=next.family; S.weight=nearestWeight(next.family,S.weight); }
+    fam.value=next.family; syncControls(); persistStyle(); record(); nudgeSig=''; render(); fillFontList();
+  });
+  guessRows.set(rec.id,row);
+  return row;
+}
+$('#fontFile').addEventListener('change',async e=>{
+  const files=[...e.target.files]; e.target.value='';
+  if(!files.length) return;
+  const failed=[]; let last=null;
+  for(const f of files){
+    try{
+      const data=await f.arrayBuffer(), info=await readFontFile(data);
+      const g=info?null:guessFromName(f.name), family=assignFamily(info?info.family:g.family);
+      const w=info?(info.range||[info.weight,info.weight]):[g.weight,g.weight], italic=info?info.italic:g.italic;
+      const rec=faceRec(family,w,italic,data,f.name,oldFileName(f.name));
+      await registerFace(rec); last=rec; rememberFace(rec);
+      if(g) $('#fontGuess').append(guessRow(rec,f.name));
+    }catch(err){ failed.push(`${f.name} (${err.message||'not a font'})`); }
+  }
+  if(last){
+    S.family=last.family; S.weight=nearestWeight(last.family,S.weight);
+    syncControls(); persistStyle(); record(); nudgeSig=''; render();
+  }
+  if(failed.length) alert('Could not load: '+failed.join(', '));
 });
 // Back to the default font, so the family box and the preview agree again (offered in the missing-font warning).
 $('#fontReset').addEventListener('click',()=>{
@@ -2260,56 +2467,87 @@ $('#fontReset').addEventListener('click',()=>{
 /* ============ remembered fonts ============ */
 /* A font loaded from a file is kept in this browser's IndexedDB: a copy of the file, on this computer only (nothing is
    uploaded), so it is back on the next visit and the original file can be moved or deleted. localStorage is too small
-   for font files. At startup loadRememberedFonts() registers them all; until it finishes rememberedState is 'pending'
-   (see fontAvailable). Without IndexedDB (a private window, blocked or cleared storage) nothing is remembered and the
-   app works as before; the ⚠ then offers the way back to the default. */
-const FONT_DB='opentitlecard', FONT_STORE='fonts', MAX_REMEMBERED=30, MAX_FONT_BYTES=30e6;
-let remembered=[];   // family names kept in the browser
+   for font files. One record per face (family, weight range, italic), so a typeface of several files comes back whole.
+   At startup loadRememberedFonts() registers them all; until it finishes rememberedState is 'pending' (see
+   fontAvailable). Without IndexedDB (a private window, blocked or cleared storage) nothing is remembered and the app
+   works as before; the ⚠ then offers the way back to the default.
+   Version 1 of the database kept one record per file in the store `fonts`, named after the file. On the first load with
+   this version each of those is read, filed under its real family and kept as an alias, and the old store is emptied. */
+const FONT_DB='opentitlecard', FACE_STORE='faces', LEGACY_STORE='fonts', MAX_REMEMBERED=60, MAX_FONT_BYTES=30e6;
+let remembered=[];          // family names kept in the browser
+let rememberedAliases=[];   // old file-based names that still resolve (kept so the ⚠ doesn't flash for them either)
+const rememberedIds=new Set();
 // Even reading window.indexedDB can throw (a sandboxed frame), so it is read once, guarded, and every step rejects
 // instead of throwing.
 const idb=(()=>{ try{ return window.indexedDB||null; }catch(e){ return null; } })();
-function fontStore(mode,fn){
+function fontStore(mode,fn,name=FACE_STORE){
   return new Promise((res,rej)=>{
     if(!idb) throw new Error('no IndexedDB');
-    const open=idb.open(FONT_DB,1);
-    open.onupgradeneeded=()=>open.result.createObjectStore(FONT_STORE,{keyPath:'family'});
+    const open=idb.open(FONT_DB,2);
+    open.onupgradeneeded=()=>{
+      const db=open.result;
+      if(!db.objectStoreNames.contains(LEGACY_STORE)) db.createObjectStore(LEGACY_STORE,{keyPath:'family'});
+      if(!db.objectStoreNames.contains(FACE_STORE)) db.createObjectStore(FACE_STORE,{keyPath:'id'});
+    };
     open.onerror=()=>rej(open.error); open.onblocked=()=>rej(new Error('blocked'));
     open.onsuccess=()=>{
       const db=open.result;
       try{
-        const tx=db.transaction(FONT_STORE,mode), req=fn(tx.objectStore(FONT_STORE));
+        const tx=db.transaction(name,mode), req=fn(tx.objectStore(name));
         tx.oncomplete=()=>{ db.close(); res(req&&req.result); };
         tx.onerror=tx.onabort=()=>{ db.close(); rej(tx.error); };
       }catch(e){ db.close(); rej(e); }
     };
   });
 }
-const saveRememberedNames = () => store.set(REMEMBERED_KEY,remembered);
-async function rememberFont(family,data,file){
-  if(data.byteLength>MAX_FONT_BYTES) return;
+const saveRememberedNames = () => store.set(REMEMBERED_KEY,[...remembered,...rememberedAliases]);
+function noteRemembered(rec){
+  rememberedIds.add(rec.id);
+  if(!remembered.includes(rec.family)) remembered.push(rec.family);
+  if(rec.alias&&rec.alias!==rec.family&&!rememberedAliases.includes(rec.alias)) rememberedAliases.push(rec.alias);
+}
+async function rememberFace(rec){
+  if(rec.data.byteLength>MAX_FONT_BYTES) return;
   try{
     await fontStore('readwrite',st=>{
-      st.put({family,data,file,added:Date.now()});
+      st.put(rec);
       // keep the newest MAX_REMEMBERED: drop the oldest beyond that
-      const all=st.getAll(); all.onsuccess=()=>all.result.sort((a,b)=>b.added-a.added).slice(MAX_REMEMBERED).forEach(r=>st.delete(r.family));
+      const all=st.getAll(); all.onsuccess=()=>all.result.sort((a,b)=>b.added-a.added).slice(MAX_REMEMBERED).forEach(r=>st.delete(r.id));
     });
-    if(!remembered.includes(family)) remembered.push(family);
-    saveRememberedNames();
+    noteRemembered(rec); saveRememberedNames();
   }catch(e){}
   showRemembered();
 }
+async function forgetFace(id){ try{ await fontStore('readwrite',st=>st.delete(id)); rememberedIds.delete(id); }catch(e){} showRemembered(); }
+async function migrateLegacyFonts(){
+  const old=await fontStore('readonly',st=>st.getAll(),LEGACY_STORE)||[];
+  if(!old.length) return;
+  for(const r of old){
+    if(!r||!r.data||typeof r.family!=='string') continue;
+    const info=await readFontFile(r.data); let rec;
+    if(info){
+      const family=assignFamily(info.family);
+      rec=faceRec(family,info.range||[info.weight,info.weight],info.italic,r.data,r.file,r.family);
+    }else rec=faceRec(r.family,[1,1000],false,r.data,r.file,null);   // unreadable (WOFF2): exactly as before, one face for every weight
+    rec.added=r.added||rec.added;
+    await fontStore('readwrite',st=>st.put(rec));
+  }
+  await fontStore('readwrite',st=>st.clear(),LEGACY_STORE);   // only after every record was written, so a failure retries next time
+}
 async function loadRememberedFonts(){
+  try{ await migrateLegacyFonts(); }catch(e){}
   try{
     const recs=await fontStore('readonly',st=>st.getAll())||[];
-    await Promise.all(recs.map(async r=>{
-      try{ const face=new FontFace(r.family,r.data,{weight:'1 1000'}); await face.load(); document.fonts.add(face); loadedFaces.add(r.family); remembered.push(r.family); }
+    for(const r of recs){   // one at a time: faces of a family land in the order they were added
+      try{ await registerFace(r); noteRemembered(r); }
       catch(e){}   // a damaged entry is skipped, never fatal
-    }));
+    }
   }catch(e){}
   saveRememberedNames(); showRemembered(); endRememberedPending();
+  syncControls(); render();   // the Weight menu may now list a loaded family's own weights
 }
 function showRemembered(){
-  const n=remembered.length;
+  const n=rememberedIds.size;
   $('#fontMem').hidden=!n;
   $('#fontMemText').textContent=`${n} loaded font${n===1?'':'s'} remembered on this computer`;
   fillFontList();
@@ -2317,7 +2555,7 @@ function showRemembered(){
 $('#fontForget').addEventListener('click',async()=>{
   const ok=await confirmAction({title:'Forget the remembered fonts?',message:'The fonts you loaded from files are removed from this browser. They stay usable until you close this page; after that, load the files again to use them.',ok:'Forget fonts'});
   if(!ok) return;
-  try{ await fontStore('readwrite',st=>st.clear()); remembered=[]; saveRememberedNames(); }catch(e){}
+  try{ await fontStore('readwrite',st=>st.clear()); await fontStore('readwrite',st=>st.clear(),LEGACY_STORE); remembered=[]; rememberedAliases=[]; rememberedIds.clear(); saveRememberedNames(); }catch(e){}
   showRemembered();
 });
 /* The font picker: a menu under the family box (the chevron, or the arrow keys, or typing), grouped into the fonts that
@@ -2902,7 +3140,7 @@ This can't be undone. Save the set first, and export any preset you want to keep
 async function resetApp(kind){
   if(!await confirmAction(RESETS[kind])) return;
   try{ Object.keys(localStorage).filter(k=>kind==='all'?isAppKey(k):SOFT_RESET_KEYS.includes(k)).forEach(k=>localStorage.removeItem(k)); }catch(e){}
-  if(kind==='all'){ try{ await fontStore('readwrite',st=>st.clear()); }catch(e){} }
+  if(kind==='all'){ for(const n of [FACE_STORE,LEGACY_STORE]){ try{ await fontStore('readwrite',st=>st.clear(),n); }catch(e){} } }
   resetting=true; location.reload();
 }
 $('#softReset').addEventListener('click',()=>resetApp('soft'));
@@ -3192,7 +3430,7 @@ render();
 // Panels animate open from now on, not at page load (their @starting-style rule needs .anim): two frames, so it is
 // added after the first paint.
 requestAnimationFrame(()=>requestAnimationFrame(()=>document.documentElement.classList.add('anim')));
-window.__tt={update:{check:checkForUpdate,get offered(){return updateOffered},running:RUNNING_VERSION},S,render,renderNow,get L(){return L},exportGeometry,draw,get cards(){return cards},get sharedStyle(){return sharedStyle},get active(){return active},batchNames,zipStem,crc32,buildZip,undo:undoStep,redo:redoStep,unsavedWork,get history(){return {length:hist.length,at:histAt}},get view(){return {...viewState}},get safezone(){return {...SZ,box:szBox&&{...szBox},status:$('#szStatus').textContent,fit:$('#szFit').textContent}},get mockup(){return {...MK,box:mkBox&&{...mkBox},image:mkImage&&mkImage.name,status:$('#mkStatus').textContent}}};
+window.__tt={fonts:{read:readFontFile,guess:guessFromName,get faces(){ return [...faceReg].map(([family,l])=>({family,faces:l.map(f=>({w:f.w,italic:f.italic}))})); },get aliases(){ return [...loadedAlias].map(([name,a])=>({name,family:a.family,weight:a.weight})); }},update:{check:checkForUpdate,get offered(){return updateOffered},running:RUNNING_VERSION},S,render,renderNow,get L(){return L},exportGeometry,draw,get cards(){return cards},get sharedStyle(){return sharedStyle},get active(){return active},batchNames,zipStem,crc32,buildZip,undo:undoStep,redo:redoStep,unsavedWork,get history(){return {length:hist.length,at:histAt}},get view(){return {...viewState}},get safezone(){return {...SZ,box:szBox&&{...szBox},status:$('#szStatus').textContent,fit:$('#szFit').textContent}},get mockup(){return {...MK,box:mkBox&&{...mkBox},image:mkImage&&mkImage.name,status:$('#mkStatus').textContent}}};
 </script>
 </body>
 </html>

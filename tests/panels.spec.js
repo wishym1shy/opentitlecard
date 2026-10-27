@@ -130,8 +130,9 @@ test.describe('first open', () => {
       await expect(page.locator(id), id).toBeVisible();
       expect(await sectionOf(page, id), id).toBe('Text');
     }
-    await page.selectOption('#weight', '900');
-    expect(await page.evaluate(() => __tt.S.weight)).toBe(900);
+    // the test font is a single Extra Bold file, so that is the only weight its menu offers (see font-families.spec.js)
+    expect(await page.locator('#weight option').evaluateAll((o) => o.map((x) => x.value))).toEqual(['800']);
+    expect(await page.evaluate(() => __tt.S.weight)).toBe(800);
   });
 
   test('X, Y and Scale sit together in Position & Scale; in tight crop only Scale stays', async ({ app: { page } }) => {

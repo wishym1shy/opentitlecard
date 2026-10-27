@@ -80,7 +80,7 @@ The default font is **Inter** (Bold), a free, open-source typeface (SIL Open Fon
 To use another font:
 
 - open the **Font family** menu (the arrow in the box, or press ↓) to pick one of the included fonts, a font you loaded earlier, or (after **Installed fonts…**) one installed on your computer. Type to filter the list, or type any family name, or
-- use **Load font file…** to load any font from disk for the current session.
+- use **Load font file…** to load fonts from disk (`.ttf`, `.otf`, `.woff`, `.woff2`). Pick all the files of a typeface at once (Regular, Bold, Italic…): OpenTitlecard reads each file's family, weight and italic, so they become one family with a working **Weight** menu and a real italic. For `.woff2` files (which a browser can't read inside) it guesses these from the file name and asks you to check them.
 
 If the selected family isn't available, the app shows a warning and renders with a fallback font, so you know the export won't match the intended look.
 

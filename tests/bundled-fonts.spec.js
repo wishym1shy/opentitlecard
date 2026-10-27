@@ -122,15 +122,21 @@ test.describe('bundled font families', () => {
     await context.close();
   });
 
-  test('a font file named like a bundled family gets its own name instead of replacing it', async ({ browser }) => {
+  test('a font file that says it is a bundled family gets its own name instead of replacing it; an unreadable one is judged by its file name', async ({ browser }) => {
     const { context, page } = await openPlain(browser);
     await allLoaded(page);
     const { FONT_FILE } = require('./helpers');
     const fs = require('fs'), os = require('os'), path = require('path');
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'otc-font-'));
-    const file = path.join(dir, 'Montserrat.woff2');
-    fs.copyFileSync(FONT_FILE, file);
-    await page.setInputFiles('#fontFile', file);
+    // a readable file is named by what is inside it (the real Inter), whatever the file is called
+    const readable = path.join(dir, 'Montserrat.woff');
+    fs.copyFileSync(FONT_FILE, readable);
+    await page.setInputFiles('#fontFile', readable);
+    await expect(page.locator('#family')).toHaveValue('Inter (file)');
+    // an unreadable one (WOFF2) falls back to its file name, which here is a bundled family
+    const guessed = path.join(dir, 'Montserrat.woff2');
+    fs.copyFileSync(require.resolve('@fontsource/inter/files/inter-latin-800-normal.woff2'), guessed);
+    await page.setInputFiles('#fontFile', guessed);
     await expect(page.locator('#family')).toHaveValue('Montserrat (file)');
     await context.close();
   });
