@@ -99,6 +99,18 @@
   #famToggle{position:absolute;right:3px;top:50%;transform:translateY(-50%);display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;padding:0;background:none;border:0;color:var(--mute);cursor:pointer}
   #famToggle:hover{background:var(--panel2);color:var(--text)}
   #famToggle svg{width:14px;height:14px}
+  .fsbar{position:relative;display:flex;align-items:center;gap:4px;margin:12px 0 10px}
+  .fsbar .fs svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+  .fsbar .fs{width:30px;height:28px;padding:0;display:inline-flex;align-items:center;justify-content:center;font-size:14px;line-height:1;font-family:system-ui,sans-serif}
+  .fsbar .fs[aria-pressed=true]{background:var(--accent2);border-color:var(--accent);color:#fff}
+  .fauxwarn{margin-left:auto;display:inline-flex;align-items:center;gap:5px;height:26px;padding:0 8px;background:#2a1714;border:1px solid #6b3028;border-radius:6px;color:var(--warn);font-size:12px;cursor:help}
+  .fauxwarn[hidden]{display:none}
+  .fauxwarn svg{width:14px;height:14px}
+  .fauxwarn:focus-visible{outline:2px solid var(--warn);outline-offset:1px}
+  .fauxtip{display:none;position:absolute;z-index:5;left:0;right:0;top:calc(100% + 4px);padding:8px 10px;background:#2a1714;border:1px solid #6b3028;border-radius:8px;color:#ffb3a8;font-size:12px;line-height:1.45;box-shadow:0 10px 30px #000a}
+  .fauxwarn:hover~.fauxtip,.fauxwarn:focus-visible~.fauxtip,.fauxtip:hover{display:block}
+  #toast{position:fixed;left:50%;bottom:44px;translate:-50% 0;z-index:30;max-width:min(560px,calc(100vw - 32px));padding:10px 14px;background:#2a1714;border:1px solid #6b3028;border-radius:10px;color:#ffd2ca;font-size:13px;line-height:1.4;box-shadow:0 10px 30px #000a;opacity:0;pointer-events:none;transition:opacity .4s}
+  #toast.on{opacity:1;pointer-events:auto;cursor:pointer}
   .guess{margin-top:8px;padding:8px 10px;background:#2a2314;border:1px solid #6b5a28;border-radius:8px;font-size:12px;line-height:1.4;color:#f0d9a0}
   .guess p{margin:0 0 6px}
   .guess .grow{display:flex;gap:6px;align-items:center;margin-top:6px;flex-wrap:wrap}
@@ -331,7 +343,7 @@
 </head>
 <body>
 <header>
-  <h1>OpenTitlecard <a id="appVersion" href="https://github.com/wishym1shy/opentitlecard/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer" title="What's new in this version (changelog on GitHub)">v1.61</a></h1>
+  <h1>OpenTitlecard <a id="appVersion" href="https://github.com/wishym1shy/opentitlecard/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer" title="What's new in this version (changelog on GitHub)">v1.62</a></h1>
   <button id="updateBtn" type="button" hidden title="A newer version of OpenTitlecard is out. Click to reload the page and get it (save your set first)."></button>
   <a class="gh" href="https://github.com/wishym1shy/opentitlecard" target="_blank" rel="noopener noreferrer" title="View the source on GitHub">
     <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
@@ -358,12 +370,19 @@
         <button id="clr" class="sm" title="Back to default text color">Reset color</button>
       </div>
       <div class="row tight" style="margin-top:8px;flex-wrap:wrap">
-        <button id="ital" class="sm" title="Ctrl+I"><i>Italic</i></button>
         <button id="addSlot" class="sm">＋ Emoji slot</button>
-        <span class="hint" style="margin:0 0 0 auto"><kbd>Alt</kbd>+<kbd>1–9</kbd> palette · <kbd>Ctrl</kbd>+<kbd>I</kbd> italic</span>
+        <span class="hint" style="margin:0 0 0 auto"><kbd>Alt</kbd>+<kbd>1–9</kbd> palette · <kbd>Ctrl</kbd>+<kbd>B</kbd> <kbd>I</kbd> <kbd>U</kbd> style</span>
       </div>
       <!-- The font settings touched on almost every job live here; the rest of the look is under Titlecard Properties. -->
       <div class="fontbox">
+        <!-- Bold, italic and underline apply to the selected letters, or the word at the caret, like the colors above. -->
+        <div class="fsbar" id="fontStyleBar" role="toolbar" aria-label="Text style">
+          <button type="button" id="bold" class="fs" aria-pressed="false" title="Bold (Ctrl+B)" aria-label="Bold"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5.2 2.8v10.4M5.2 2.8h3.1a2.4 2.4 0 0 1 0 4.8H5.2M5.2 7.6h3.7a2.8 2.8 0 0 1 0 5.6H5.2"/></svg></button>
+          <button type="button" id="ital" class="fs" aria-pressed="false" title="Italic (Ctrl+I)" aria-label="Italic"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M7 3h5M4 13h5M9.7 3 6.3 13"/></svg></button>
+          <button type="button" id="und" class="fs" aria-pressed="false" title="Underline (Ctrl+U)" aria-label="Underline"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4.6 2.6v5.2a3.4 3.4 0 0 0 6.8 0V2.6M3.4 14h9.2"/></svg></button>
+          <button type="button" id="fauxWarn" class="fauxwarn" aria-describedby="fauxTip" hidden><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.8 15 14H1z" fill="currentColor"/><path d="M8 6v3.8" stroke="#2a1714" stroke-width="1.6" stroke-linecap="round"/><circle cx="8" cy="12" r=".9" fill="#2a1714"/></svg><span id="fauxLabel"></span></button>
+          <div id="fauxTip" class="fauxtip" role="tooltip"></div>
+        </div>
         <label for="family">Font family</label>
         <div class="famwrap">
           <input type="text" id="family" autocomplete="off" spellcheck="false" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="famMenu" aria-haspopup="listbox">
@@ -597,6 +616,7 @@
     </div>
   </div>
   <!-- the bottom bar: the canvas size and the card's numbers on the left, file messages, whether it clears the safe zone on the right -->
+  <div id="toast" role="status" aria-live="polite"></div>
   <div id="info"><span id="dims"></span><span id="infoStats"></span><span id="fileMsg" role="status"></span><span id="szFit" role="status"></span></div>
 </section>
 </div>
@@ -1033,10 +1053,11 @@ function validStyle(raw,keys=STYLE_KEYS){
   return o;
 }
 const validColors = a => Array.isArray(a) ? a.filter(h=>typeof h==='string'&&HEX_RE.test(h)) : [];
+const FMT=['ital','bold','und'];   // per-character formats kept next to the text: arrays of 0/1, like S.colors
 const S = Object.assign({}, DEFAULTS, validStyle(store.get('opentitlecard.style',{})));
 S.text = PLACEHOLDER_TEXT;
 S.colors = Array(S.text.length).fill(null);
-S.ital = Array(S.text.length).fill(0);
+S.ital = Array(S.text.length).fill(0); S.bold = Array(S.text.length).fill(0); S.und = Array(S.text.length).fill(0);
 S.nudges = []; S.custom = validColors(store.get('opentitlecard.custom',[]));
 S.previewBg = 'checker';
 let cards=[], active=0;   // batch cards; the active one lives in S (see "cards" below)
@@ -1112,7 +1133,10 @@ async function loadBundledFonts(){
   }));
   bundledDone();
 }
-const fontStr = (it,px) => `${it?'italic ':''}${effWeight()} ${px}px ${fontStack(S.family)}`;
+// f is a run's format: 1 italic, 2 bold (4, underline, is drawn, not asked of the font). Callers that only mean italic pass 0 or 1.
+// Bold is the next weight up, by CSS's `bolder` rule, so the family's own Bold face is used where it has one.
+const boldOf = w => w<350?400:w<550?700:900;
+const fontStr = (f,px) => `${f&1?'italic ':''}${f&2?boldOf(effWeight()):effWeight()} ${px}px ${fontStack(S.family)}`;
 const fontReady = () => fontAvailable(S.family, S.weight);
 // Stretch/squish factors. Clamped here too, so a hand-edited preset can't mirror the text (negative) or flatten it to 0.
 const stretch = () => ({sx:clamp(S.stretchX,50,200)/100, sy:clamp(S.stretchY,50,200)/100});
@@ -1181,6 +1205,7 @@ function updateFontChip(){
 }
 
 /* ============ layout ============ */
+const UNDERLINE_Y=0.12, UNDERLINE_H=0.065;   // em: the bar's top below the baseline, and its thickness (inside the box's 0.49em bottom)
 const mctx = document.createElement('canvas').getContext('2d');
 /* Greedy word-wrap of ONE manual line. `items` are styled runs and emoji slots; `limit` is the widest the
    TEXT may be (units), or 0 for "no wrapping". Returns one item list per visual line. Words are runs of
@@ -1191,9 +1216,9 @@ function wrapItems(items, limit){
   const pieces=[], {sx}=stretch();
   for(const it of items){
     if(it.k==='slot'){ pieces.push({...it,sp:false}); continue; }
-    mctx.font=fontStr(it.it,S.size);
+    mctx.font=fontStr(it.f,S.size);
     for(const m of it.text.matchAll(/\s+|\S+/g)){
-      pieces.push({k:'t',text:m[0],s:it.s+m.index,e:it.s+m.index+m[0].length,c:it.c,it:it.it,w:mctx.measureText(m[0]).width*sx,sp:/^\s/.test(m[0])});
+      pieces.push({k:'t',text:m[0],s:it.s+m.index,e:it.s+m.index+m[0].length,c:it.c,f:it.f,w:mctx.measureText(m[0]).width*sx,sp:/^\s/.test(m[0])});
     }
   }
   const out=[]; let line=[], lineW=0, gap=[], gapW=0, word=[], wordW=0;
@@ -1213,8 +1238,8 @@ function wrapItems(items, limit){
     const res=[];
     for(const p of list){
       const last=res[res.length-1];
-      if(p.k==='t' && last && last.k==='t' && last.c===p.c && last.it===p.it && last.e===p.s){ last.text+=p.text; last.e=p.e; }
-      else res.push(p.k==='t'?{k:'t',text:p.text,s:p.s,e:p.e,c:p.c,it:p.it}:p);
+      if(p.k==='t' && last && last.k==='t' && last.c===p.c && last.f===p.f && last.e===p.s){ last.text+=p.text; last.e=p.e; }
+      else res.push(p.k==='t'?{k:'t',text:p.text,s:p.s,e:p.e,c:p.c,f:p.f}:p);
     }
     return res;
   });
@@ -1259,12 +1284,20 @@ function layout(){
     const start=idx; idx+=raw.length+1;
     if(!raw.trim()) continue;
     const items0=[];
+    // A space is underlined when the letters on both sides of it are, so one underline runs under "brave new" instead of
+    // breaking at the space (a space's own flag is ignored: a space typed after an underlined word isn't underlined).
+    const sp=j=>/\s/.test(raw[j]), undAt=Array.from(raw,(_,j)=>S.und[start+j]|0);
+    for(let j=0,a=-1;j<raw.length;j++){
+      if(!sp(j)){ a=j; continue; }
+      let b=j+1; while(b<raw.length&&sp(b)) b++;
+      undAt[j]=a>=0&&b<raw.length&&undAt[a]&&undAt[b]?1:0;
+    }
     for(const {segment,index} of SEG.segment(raw)){
       const gi=start+index;
       if(isEmoji(segment)){ items0.push({k:'slot',s:gi,e:gi+segment.length,w:slotW}); continue; }
-      const c=S.colors[gi]??null, it=S.ital[gi]|0, last=items0[items0.length-1];
-      if(last && last.k==='t' && last.c===c && last.it===it && last.e===gi){ last.text+=segment; last.e+=segment.length; }
-      else items0.push({k:'t',text:segment,s:gi,e:gi+segment.length,c,it});
+      const c=S.colors[gi]??null, f=(S.ital[gi]?1:0)|(S.bold[gi]?2:0)|(undAt[index]?4:0), last=items0[items0.length-1];
+      if(last && last.k==='t' && last.c===c && last.f===f && last.e===gi){ last.text+=segment; last.e+=segment.length; }
+      else items0.push({k:'t',text:segment,s:gi,e:gi+segment.length,c,f});
     }
     for(const items of wrapItems(items0,wrapLimit)){
     // trim whitespace at both ends of the line
@@ -1274,8 +1307,8 @@ function layout(){
     let x=0; const words=[]; let hasSlot=false, below=0;
     for(const it of items){
       if(it.k==='slot'){ it.x=x; x+=it.w; hasSlot=true; below=Math.max(below,it.w/2-capH/2); continue; }
-      const dx=it.it?slantDx:0;                 // keeps the slant centred on the run's advance box (see italicShift)
-      mctx.font = fontStr(it.it,size);         // italicShift changed the measuring font
+      const dx=it.f&1?slantDx:0;                 // keeps the slant centred on the run's advance box (see italicShift)
+      mctx.font = fontStr(it.f,size);         // italicShift changed the measuring font
       it.x=x+dx; const mm=mctx.measureText(it.text); it.w=mm.width*sx; below=Math.max(below,(mm.actualBoundingBoxDescent||0)*sy);
       const re=/\S+/g; let m;
       while((m=re.exec(it.text))){
@@ -1391,7 +1424,7 @@ function draw(ctx, W, H, o){
   for(const l of lines){
     for(const it of l.items){
       if(it.k!=='t') continue;
-      ctx.font=fontStr(it.it,S.size*u);
+      ctx.font=fontStr(it.f,S.size*u);
       const x=o.cx+(l.tx+l.nx+it.x)*u, y=o.cy+(l.base+l.ny)*u;
       if(S.textShadow){ ctx.shadowColor='rgba(0,0,0,0.32)'; ctx.shadowBlur=7*u; ctx.shadowOffsetY=3*u; } else { ctx.shadowColor='transparent'; }
       // Stretch around the run's baseline origin. Canvas shadows ignore the transform, so they stay round and unscaled.
@@ -1399,6 +1432,9 @@ function draw(ctx, W, H, o){
       // the outline is scaled with the glyphs; dividing by the mean scale keeps its average thickness at the set width
       if(S.outlineW>0){ ctx.strokeStyle=S.outlineColor; ctx.lineWidth=S.outlineW*2*u/Math.sqrt(L.sx*L.sy); ctx.strokeText(it.text,0,0); }
       ctx.fillStyle=it.c||S.textColor; ctx.fillText(it.text,0,0);
+      // underline: a bar under the run in the text color, from where it starts to where it ends (the run is trimmed at the
+      // ends of the line, so it never sticks out). Drawn in the scaled space, so a stretched card gets a stretched underline.
+      if(it.f&4) ctx.fillRect(0,S.size*u*UNDERLINE_Y,it.w*u/L.sx,Math.max(1,S.size*u*UNDERLINE_H));
       ctx.restore();
     }
   }
@@ -1441,7 +1477,7 @@ let raf=0;
 function render(){ cancelAnimationFrame(raf); raf=requestAnimationFrame(renderNow); }
 function renderNow(){
   L=layout();
-  syncNudgeRows(); const fontOk=updateFontChip(); renderCards();
+  syncNudgeRows(); const fontOk=updateFontChip(); syncFmtBar(); renderCards();
   const g=exportGeometry();
   const big=tooLarge(g), xb=$('#export');
   xb.disabled=big; xb.classList.toggle('warn',!fontOk&&!big);
@@ -2001,10 +2037,10 @@ ta.addEventListener('input',e=>{
     let a=old.length,b=nw.length; while(a>p&&b>p&&old[a-1]===nw[b-1]){a--;b--;}
     rem=a-p; ins=b-p;
   }
-  let c=null,i=0;
-  if(ins===1 && it==='insertText' && p>0 && !/\s/.test(old[p-1])){ c=S.colors[p-1]??null; i=S.ital[p-1]|0; }
+  // typing at the end of a word continues its color and formats; a new word starts plain
+  const keepStyle=ins===1 && it==='insertText' && p>0 && !/\s/.test(old[p-1]), c=keepStyle?S.colors[p-1]??null:null;
   S.colors.splice(p,rem,...Array(ins).fill(c));
-  S.ital.splice(p,rem,...Array(ins).fill(i));
+  for(const k of FMT) S[k].splice(p,rem,...Array(ins).fill(keepStyle?S[k][p-1]|0:0));
   S.text=nw;
   // a burst of typing (or of deleting) is one undo step; a paste, drop or cut is always its own
   record(it==='insertText'||it==='insertLineBreak'?'type':it.startsWith('deleteContent')?'delete':'');
@@ -2023,16 +2059,19 @@ function applyColor(hex){
   for(let k=r[0];k<r[1];k++) if(!/\s/.test(S.text[k])) S.colors[k]=hex;
   record(); render();
 }
-function toggleItalic(){
+// Bold, italic and underline work alike: if every letter of the selection (or of the word at the caret) has the format it is
+// taken off, otherwise it is put on all of them.
+function toggleFmt(key){
   const r=targetRange(); if(!r) return;
-  let all=true; for(let k=r[0];k<r[1];k++) if(!/\s/.test(S.text[k]) && !S.ital[k]) all=false;
-  for(let k=r[0];k<r[1];k++) if(!/\s/.test(S.text[k])) S.ital[k]=all?0:1;
+  let all=true; for(let k=r[0];k<r[1];k++) if(!/\s/.test(S.text[k]) && !S[key][k]) all=false;
+  for(let k=r[0];k<r[1];k++) if(!/\s/.test(S.text[k])) S[key][k]=all?0:1;
   record(); render();
 }
+const toggleItalic = () => toggleFmt('ital');
 function insertSlot(){
   const s=ta.selectionStart,e=ta.selectionEnd, ins=' 🙂';
   S.text=S.text.slice(0,s)+ins+S.text.slice(e);
-  S.colors.splice(s,e-s,...Array(ins.length).fill(null)); S.ital.splice(s,e-s,...Array(ins.length).fill(0));
+  S.colors.splice(s,e-s,...Array(ins.length).fill(null)); for(const k of FMT) S[k].splice(s,e-s,...Array(ins.length).fill(0));
   ta.value=S.text; ta.focus(); ta.setSelectionRange(s+ins.length,s+ins.length); record(); render();
 }
 
@@ -2051,12 +2090,71 @@ function buildSwatches(){
 $('#applyPick').addEventListener('click',()=>applyColor($('#pick').value));
 $('#pin').addEventListener('click',()=>{ const v=$('#pick').value; if(!S.custom.includes(v)&&!PALETTE.some(p=>p[1]===v)){ S.custom.push(v); store.set('opentitlecard.custom',S.custom); buildSwatches(); } });
 $('#clr').addEventListener('click',()=>applyColor(null));
-$('#ital').addEventListener('click',toggleItalic);
+/* The style bar: Bold, Italic and Underline. Each button is pressed while every letter of the selection (or the word at the
+   caret) has the format. The mouse doesn't take the focus from the text box, so the selection stays where it was. */
+const FMT_BUTTONS=[['bold','bold'],['ital','ital'],['und','und']];
+for(const [id,key] of FMT_BUTTONS){ const b=$('#'+id); b.addEventListener('mousedown',e=>e.preventDefault()); b.addEventListener('click',()=>toggleFmt(key)); }
+function fmtOn(key){
+  const r=targetRange(); if(!r) return false;
+  let n=0; for(let k=r[0];k<r[1];k++) if(!/\s/.test(S.text[k])){ n++; if(!S[key][k]) return false; }
+  return n>0;
+}
+/* Faux styles (#68 step 3). Italic and Bold ask the font for its own face; a font that has none gets a slant or a thickening
+   from the browser instead, which looks worse and the designer never drew. The card keeps working (a lot of brand fonts ship
+   without an italic, and the slant is still useful), but the user is told: a ⚠ by the style buttons while the card uses one,
+   with the reason on hover or focus, and a toast the first time it happens for a family (it fades after TOAST_MS). */
+const TOAST_MS=5000;
+let toastTimer=0;
+function toast(msg){
+  const t=$('#toast'); t.textContent=msg; t.classList.add('on');
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('on'),TOAST_MS);
+}
+$('#toast').addEventListener('click',()=>{ clearTimeout(toastTimer); $('#toast').classList.remove('on'); });
+function fauxItalicNow(){
+  if(!fontReady()) return false;   // a missing font has its own warning
+  const b=bundledOf(resolveFont(S.family)); if(b&&bundledState[b.name]==='pending') return false;   // still loading: not known yet
+  return !hasRealItalic();
+}
+// Bold is the next weight up. In a family loaded from files, if that picks the same face as the weight in use there is no
+// bolder face: the browser thickens it (below Semibold) or nothing changes. Bundled and installed families aren't judged.
+function fauxBoldNow(){
+  const list=faceReg.get(resolveFont(S.family)); if(!list||!list.length) return false;
+  const base=effWeight(), want=boldOf(base); if(want<=base) return false;
+  const pick=w=>{ let best=null,d=Infinity; for(const f of list){ if(f.italic) continue; const dd=Math.abs(clamp(w,f.w[0],f.w[1])-w); if(dd<d){ d=dd; best=f; } } return best; };
+  const a=pick(base); return !!a && a===pick(want);
+}
+const fauxToasted=new Set();
+function updateFaux(){
+  const used=k=>{ for(let i=0;i<S.text.length;i++) if(S[k][i] && !/\s/.test(S.text[i])) return true; return false; };
+  const kinds=[];
+  if(used('ital') && fauxItalicNow()) kinds.push('italic');
+  if(used('bold') && fauxBoldNow()) kinds.push('bold');
+  const btn=$('#fauxWarn'); btn.hidden=!kinds.length;
+  if(!kinds.length) return;
+  const fam=S.family, why={
+    italic:`“${fam}” has no italic face, so its italic words are only slanted by the browser, not drawn by the type designer. Load the font's Italic file with Load font file… (select all its files together), or pick another font.`,
+    bold:`“${fam}” has no bolder face than the one in use, so Bold is faked or changes nothing. Load the font's Bold file with Load font file…, or pick another weight.`,
+  };
+  const label='Faux '+kinds.join(' and '), tip=kinds.map(k=>why[k]).join(' ');
+  $('#fauxLabel').textContent=label; $('#fauxTip').textContent=tip;
+  for(const k of kinds){
+    const key=fam+'\u0001'+k; if(fauxToasted.has(key)) continue;
+    fauxToasted.add(key);
+    toast(`Faux ${k}: “${fam}” has no real ${k==='bold'?'bolder':'italic'} face, so its ${k} words are faked. Hover the ⚠ by the style buttons for details.`);
+  }
+}
+function syncFmtBar(){
+  for(const [id,key] of FMT_BUTTONS) $('#'+id).setAttribute('aria-pressed',String(fmtOn(key)));
+  updateFaux();
+}
 $('#addSlot').addEventListener('click',insertSlot);
 if(window.EyeDropper){ $('#eye').addEventListener('click',async()=>{ try{ const r=await new EyeDropper().open(); $('#pick').value=r.sRGBHex; applyColor(r.sRGBHex);}catch(e){} }); }
 else $('#eye').style.display='none';
 ta.addEventListener('keydown',e=>{
-  if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='i'){ e.preventDefault(); toggleItalic(); }   // Cmd+I on a Mac
+  if((e.ctrlKey||e.metaKey)&&!e.altKey&&!e.shiftKey){   // Cmd on a Mac
+    const k={i:'ital',b:'bold',u:'und'}[e.key.toLowerCase()];
+    if(k){ e.preventDefault(); toggleFmt(k); }   // Ctrl+U would otherwise open the page source
+  }
   // e.code (the physical key), not e.key: on a Mac, Option+1 reports the key as "¡"
   const d=/^Digit([1-9])$/.exec(e.code);
   if(e.altKey&&d){ e.preventDefault(); const all=PALETTE.map(p=>p[1]).concat(S.custom); const h=all[+d[1]-1]; if(h) applyColor(h); }
@@ -2841,8 +2939,8 @@ $('#cCancel').addEventListener('click',()=>answerConfirm(false));
    Style settings (font, colors, box, canvas) are shared by all cards: that is what makes a batch consistent. */
 /* A card's `style` is null (it follows `sharedStyle`) or its own copy of the card-level style keys. Whichever applies to
    the active card is what S holds, so the style controls always edit "the card in front of you". */
-const copyCard = c => ({name:c.name, text:c.text, colors:c.colors.slice(), ital:c.ital.slice(), nudges:Array.from(c.nudges,n=>n?{...n}:null), style:c.style?{...c.style}:null});
-const newCard = (text='',name=nextCardName()) => ({name, text, colors:Array(text.length).fill(null), ital:Array(text.length).fill(0), nudges:[], style:null});
+const copyCard = c => ({name:c.name, text:c.text, colors:c.colors.slice(), ital:c.ital.slice(), bold:c.bold.slice(), und:c.und.slice(), nudges:Array.from(c.nudges,n=>n?{...n}:null), style:c.style?{...c.style}:null});
+const newCard = (text='',name=nextCardName()) => ({name, text, colors:Array(text.length).fill(null), ital:Array(text.length).fill(0), bold:Array(text.length).fill(0), und:Array(text.length).fill(0), nudges:[], style:null});
 /* Card names, like layer names: every new card is "Titlecard N", where N is one more than both the highest such number
    in the batch and the number of cards already there (so the first card of a fresh page is "Titlecard 1", a card added
    after five named ones is "Titlecard 6", and no number is reused). A card can be renamed, or named by the first column of a pasted
@@ -2861,7 +2959,7 @@ function stash(){
   if(!own) sharedStyle=pickStyle();
 }
 function adopt(c){
-  const k=copyCard(c); S.text=k.text; S.colors=k.colors; S.ital=k.ital; S.nudges=k.nudges;
+  const k=copyCard(c); S.text=k.text; S.colors=k.colors; S.ital=k.ital; S.bold=k.bold; S.und=k.und; S.nudges=k.nudges;
   Object.assign(S,k.style||sharedStyle);
   ta.value=S.text; nudgeSig=''; syncControls();
 }
@@ -2871,10 +2969,10 @@ function selectCard(i){
 }
 /* Runs fn with card `c` temporarily in S/L (layout and draw read those globals), then puts the active card back. */
 function withCard(c,fn){
-  const keep={text:S.text,colors:S.colors,ital:S.ital,nudges:S.nudges,style:pickStyle(),L};
-  S.text=c.text; S.colors=c.colors; S.ital=c.ital; S.nudges=c.nudges; Object.assign(S,c.style||sharedStyle);
+  const keep={text:S.text,colors:S.colors,ital:S.ital,bold:S.bold,und:S.und,nudges:S.nudges,style:pickStyle(),L};
+  S.text=c.text; S.colors=c.colors; S.ital=c.ital; S.bold=c.bold; S.und=c.und; S.nudges=c.nudges; Object.assign(S,c.style||sharedStyle);
   try{ L=layout(); return fn(); }
-  finally{ S.text=keep.text; S.colors=keep.colors; S.ital=keep.ital; S.nudges=keep.nudges; Object.assign(S,keep.style); L=keep.L; }
+  finally{ S.text=keep.text; S.colors=keep.colors; S.ital=keep.ital; S.bold=keep.bold; S.und=keep.und; S.nudges=keep.nudges; Object.assign(S,keep.style); L=keep.L; }
 }
 const cardLabel = t => (t.split('\n').map(x=>x.trim()).find(Boolean)||'');
 const cardsWord = n => `${n} card${n===1?'':'s'}`;
@@ -3032,13 +3130,14 @@ $('#listAdd').addEventListener('click',()=>{
    kept inside the app or the browser: the file is the only copy, and the user decides where it lives. Colors and
    italics are stored sparsely (only the characters that have one). A file is untrusted input (old, hand-edited, cut
    short, or not ours at all), so every field is checked and anything unusable is dropped, never trusted. */
+const FMT_FILE=[['i','ital'],['b','bold'],['u','und']];   // a card's formats in a set file: the character positions that have them
 const BATCH_APP='opentitlecard', MAX_CARDS=500, MAX_TEXT=2000, MAX_FILE=5e6;
 function encodeBatch(){
   stash();
   return {app:BATCH_APP, type:'batch', v:1, name:setName, active, style:sharedStyle, cards:cards.map(c=>{
     const o={m:c.name, t:c.text};
     const col={}; c.colors.forEach((h,i)=>{ if(h) col[i]=h; }); if(Object.keys(col).length) o.c=col;
-    const it=[]; c.ital.forEach((v,i)=>{ if(v) it.push(i); }); if(it.length) o.i=it;
+    for(const [k,key] of FMT_FILE){ const ix=[]; c[key].forEach((v,i)=>{ if(v) ix.push(i); }); if(ix.length) o[k]=ix; }
     let last=c.nudges.length; while(last>0 && !(c.nudges[last-1]&&(c.nudges[last-1].x||c.nudges[last-1].y))) last--;
     if(last) o.n=c.nudges.slice(0,last).map(n=>n&&(n.x||n.y)?{x:n.x||0,y:n.y||0}:null);
     if(c.style) o.s=c.style;
@@ -3058,7 +3157,7 @@ function decodeBatch(raw){
     const text=typeof r.t==='string'?r.t.slice(0,MAX_TEXT):'';
     const c=newCard(text,cleanName(r.m));   // files saved before names existed have none: numbered below
     if(r.c&&typeof r.c==='object') for(const k of Object.keys(r.c)){ const i=+k; if(Number.isInteger(i)&&i>=0&&i<text.length&&typeof r.c[k]==='string'&&HEX_RE.test(r.c[k])) c.colors[i]=r.c[k]; }
-    if(Array.isArray(r.i)) for(const i of r.i) if(Number.isInteger(i)&&i>=0&&i<text.length) c.ital[i]=1;
+    for(const [k,key] of FMT_FILE) if(Array.isArray(r[k])) for(const i of r[k]) if(Number.isInteger(i)&&i>=0&&i<text.length) c[key][i]=1;   // an older file simply has no b or u
     if(Array.isArray(r.n)) c.nudges=r.n.slice(0,200).map(n=>n&&num(n.x)&&num(n.y)?{x:clamp(n.x,-5000,5000),y:clamp(n.y,-5000,5000)}:null);
     if(r.s&&typeof r.s==='object') c.style=cleanStyle(r.s,style);   // keys missing from (or invalid in) the card's style fall back to the batch's shared style
     return c;
@@ -3192,7 +3291,7 @@ function batchHasWork(){
   stash();
   if(cards.length>1) return true;
   const c=cards[0]; if(c.style) return true;
-  if(c.colors.some(Boolean)||c.ital.some(Boolean)||c.nudges.some(n=>n&&(n.x||n.y))) return true;
+  if(c.colors.some(Boolean)||FMT.some(k=>c[k].some(Boolean))||c.nudges.some(n=>n&&(n.x||n.y))) return true;
   return !!c.text.trim() && c.text!==PLACEHOLDER_TEXT;
 }
 /* Cards live only in memory, so closing or reloading the tab loses them. The browser asks first (its own prompt: the
