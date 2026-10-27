@@ -65,6 +65,7 @@ test.describe('client presets', () => {
 
   test('exporting a preset downloads valid JSON with style keys only', async ({ app: { page } }) => {
     await page.fill('#presetName', 'my-client');
+    await page.click('#fileMenuBtn');
     const [dl] = await Promise.all([page.waitForEvent('download'), page.click('#presetExport')]);
     expect(dl.suggestedFilename()).toBe('my-client.json');
     const chunks = []; for await (const c of await dl.createReadStream()) chunks.push(c);
@@ -223,14 +224,15 @@ test.describe('settings from files and older versions are checked', () => {
 
   test('a file with nothing usable in it is refused and changes nothing', async ({ browser }) => {
     const page = await browser.newPage();
-    const errors = [], dialogs = [];
+    const errors = [], dialogs = [];   // no browser dialog at all: the refusal is a message in the bottom bar
     page.on('pageerror', (e) => errors.push(e.message));
     page.on('dialog', (d) => { dialogs.push(d.message()); d.dismiss(); });
     await page.goto(APP_URL);
     await page.waitForFunction(() => window.__tt && window.__tt.L);
     const payload = Buffer.from(JSON.stringify({ app: 'opentitlecard', type: 'batch', v: 1, cards: [{ t: 'x' }] })); // a batch file, not a preset
     await page.setInputFiles('#presetFile', { name: 'b.json', mimeType: 'application/json', buffer: payload });
-    await expect.poll(() => dialogs).toEqual(['Not a valid preset file.']);
+    await expect(page.locator('#fileMsg')).toContainText('isn\'t an OpenTitlecard preset');
+    expect(dialogs).toEqual([]);
     expect(await page.evaluate(() => __tt.S.size)).toBe(100);
     expect(errors).toEqual([]);
     await page.close();

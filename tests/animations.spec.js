@@ -51,15 +51,15 @@ test.describe('open and close animations', () => {
     expect(await page.evaluate(() => __tt.S.nudges[0].x)).toBe(1);
   });
 
-  test('the ⋮ menu and the dialogs fade in', async ({ app: { page } }) => {
+  test('the File menu and the dialogs fade in', async ({ app: { page } }) => {
     await ready(page);
     const fade = (sel) => page.evaluate((sel) => document.getAnimations()
       .some((a) => a.effect && a.effect.target === document.querySelector(sel) && a.transitionProperty === 'opacity'), sel);
-    await page.click('#batchMenuBtn');
-    expect(await fade('#batchMenu')).toBe(true);
-    await expect(page.locator('#batchMenu')).toBeVisible();
+    await page.click('#fileMenuBtn');
+    expect(await fade('#fileMenu')).toBe(true);
+    await expect(page.locator('#fileMenu')).toBeVisible();
     await page.keyboard.press('Escape');
-    await expect(page.locator('#batchMenu')).toBeHidden();
+    await expect(page.locator('#fileMenu')).toBeHidden();
     await page.click('#fph_export');
     await expect(page.locator('#batchOpen')).toBeVisible();
     await page.click('#batchOpen');

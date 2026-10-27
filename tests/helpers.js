@@ -36,7 +36,10 @@ async function expandUi(page) {
 /** Fixture: opens the app, loads the test font, and fails the test on any page/console error. */
 const test = base.extend({
   expandUi: [true, { option: true }],
-  app: async ({ page, expandUi: expand }, use) => {
+  // Chromium's file pickers (File System Access) open native dialogs a test can't answer, so they are switched off and
+  // Save downloads a copy, as in other browsers. Tests of write-back set this to true and stub the pickers themselves.
+  fileAccess: [false, { option: true }],
+  app: async ({ page, expandUi: expand, fileAccess }, use) => {
     const errors = [];
     page.on('pageerror', (e) => errors.push('pageerror: ' + e.message));
     page.on('console', (m) => { if (m.type() === 'error') errors.push('console: ' + m.text()); });
@@ -45,6 +48,7 @@ const test = base.extend({
       if (d.type() === 'beforeunload') return d.accept();
       errors.push('dialog: ' + d.message()); d.dismiss();
     });
+    if (!fileAccess) await page.addInitScript(() => { window.showSaveFilePicker = undefined; window.showOpenFilePicker = undefined; });
     await page.goto(APP_URL);
     await page.waitForFunction(() => window.__tt && window.__tt.L);
     await loadTestFont(page);
@@ -197,4 +201,10 @@ async function confirmDialog(page, accept = true) {
   await page.waitForSelector('#confirmDlg', { state: 'hidden' });
 }
 
-module.exports = { expandUi, confirmDialog, addCard, readZip, crc32, pngSize, downloadZip, test, expect, APP_URL, FONT_FILE, FONT_FAMILY, loadTestFont, setText, settle, setRange, setSelection, exportPng, inspectPng };
+/** Opens the File menu and chooses an item (by id). */
+async function fileMenu(page, id) {
+  await page.click('#fileMenuBtn');
+  await page.click('#' + id);
+}
+
+module.exports = { fileMenu, expandUi, confirmDialog, addCard, readZip, crc32, pngSize, downloadZip, test, expect, APP_URL, FONT_FILE, FONT_FAMILY, loadTestFont, setText, settle, setRange, setSelection, exportPng, inspectPng };

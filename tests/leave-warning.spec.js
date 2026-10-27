@@ -13,7 +13,7 @@ async function reloadAsks(page) {
   return asked;
 }
 async function saveBatch(page) {
-  await page.click('#batchMenuBtn');
+  await page.click('#fileMenuBtn');
   const [dl] = await Promise.all([page.waitForEvent('download'), page.click('#batchSave')]);
   const chunks = [];
   for await (const c of await dl.createReadStream()) chunks.push(c);
