@@ -4,6 +4,11 @@ What changed in OpenTitlecard, newest first. The version is shown next to the ap
 
 Versions are `vMAJOR.MINOR`. Each merged pull request that changes the app adds one to the minor number (v1.31 → v1.32 → …). The changelog started at v1.31: v1.27 stands for everything merged before the UI review that led to v1.28–v1.31 (pull requests up to #31), so the numbers line up with the work done.
 
+## v1.56
+
+### Added
+- **Export preview:** in **Export all as ZIP…**, click a card's thumbnail (or press Enter on it) to see it large, exactly as the PNG will be exported, with its file name, size and "2 of 5". Flip through the cards with the ‹ › buttons or ← → (Home and End jump to the first and last); empty cards aren't shown, since they aren't exported. Esc closes the preview and returns to the export dialog.
+
 ## v1.55
 
 ### Changed

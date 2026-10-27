@@ -187,7 +187,17 @@
   .bitem{border:1px solid var(--line);border-radius:8px;background:var(--panel2);padding:6px;min-width:0}
   .bitem .thumb{height:150px;display:flex;align-items:center;justify-content:center;border-radius:4px;background:#15171c}
   /* the checkers are on the canvas, not the box, so the thumbnail shows the canvas's real shape (vertical, square…) */
-  .bitem canvas{max-width:100%;max-height:100%;cursor:default;background:conic-gradient(#2b2d34 25%,#383b44 0 50%,#2b2d34 0 75%,#383b44 0) 0 0/10px 10px;box-shadow:0 0 0 1px #4a4e59}
+  .bitem button.thumb{width:100%;padding:0;border:0;cursor:zoom-in}
+  .bitem button.thumb:hover{background:#1b1e24}
+  .bitem button.thumb:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  /* the export preview: the card as large as the window allows, on the same checkered canvas as the thumbnails */
+  .pv{width:min(1100px,96vw)}
+  .pv #pvCount{color:var(--mute);font-size:12px;font-variant-numeric:tabular-nums}
+  .pvbody{display:flex;align-items:center;gap:8px;padding:12px;height:min(76vh,900px)}
+  .pvstage{flex:1;min-width:0;height:100%;display:flex;align-items:center;justify-content:center}
+  .pvstage canvas{max-width:100%;max-height:100%;background:conic-gradient(#2b2d34 25%,#383b44 0 50%,#2b2d34 0 75%,#383b44 0) 0 0/16px 16px;box-shadow:0 0 0 1px #4a4e59}
+  .pvnav{flex:none;width:40px;height:64px;font-size:26px;line-height:1;padding:0}
+  .bitem canvas{max-width:100%;max-height:100%;cursor:inherit;background:conic-gradient(#2b2d34 25%,#383b44 0 50%,#2b2d34 0 75%,#383b44 0) 0 0/10px 10px;box-shadow:0 0 0 1px #4a4e59}
   .bitem .fn{margin-top:6px;font-size:11.5px;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
   .bitem.skip{opacity:.5}
   .bitem.skip .fn{color:var(--warn)}
@@ -297,7 +307,7 @@
 </head>
 <body>
 <header>
-  <h1>OpenTitlecard <a id="appVersion" href="https://github.com/wishym1shy/opentitlecard/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer" title="What's new in this version (changelog on GitHub)">v1.55</a></h1>
+  <h1>OpenTitlecard <a id="appVersion" href="https://github.com/wishym1shy/opentitlecard/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer" title="What's new in this version (changelog on GitHub)">v1.56</a></h1>
   <a class="gh" href="https://github.com/wishym1shy/opentitlecard" target="_blank" rel="noopener noreferrer" title="View the source on GitHub">
     <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
     <span>View on GitHub</span>
@@ -607,6 +617,17 @@
     <div class="bgrid" id="bGrid"></div>
   </div>
   <div class="df"><span class="status" id="bStatus" role="status" aria-live="polite"></span><button id="bCancel">Cancel</button><button id="bGo" class="primary">Download ZIP</button></div>
+</dialog>
+
+<!-- The export preview: one card at a time, exactly as it will be exported, flipped with the arrows. -->
+<dialog id="pvDlg" class="pv" aria-labelledby="pvTitle">
+  <div class="dh"><h2 id="pvTitle"></h2><span id="pvCount"></span><button id="pvClose" class="sm" style="margin-left:auto" aria-label="Close preview">✕</button></div>
+  <div class="pvbody">
+    <button id="pvPrev" class="pvnav" aria-label="Previous card" title="Previous card (←)">‹</button>
+    <div class="pvstage" id="pvStage"></div>
+    <button id="pvNext" class="pvnav" aria-label="Next card" title="Next card (→)">›</button>
+  </div>
+  <div class="df"><span class="status" id="pvInfo"></span><span class="hint" style="margin:0">← → flip · Esc closes</span></div>
 </dialog>
 
 <!--
@@ -2809,8 +2830,13 @@ function fillBatchGrid(){
       t.setAttribute('role','img'); t.setAttribute('aria-label',`Card ${idx+1}: ${cardLabel(c.text)}`);
       return t;
     });
-    if(cvs) th.appendChild(cvs); else item.classList.add('skip');
-    item.append(th,fn); grid.appendChild(item); batchItems.push({idx,empty:!cvs,fn});
+    if(cvs){
+      // a card that will be exported: its thumbnail opens the preview on it
+      const btn=document.createElement('button'); btn.type='button'; btn.className='thumb'; btn.title='Preview this card';
+      btn.setAttribute('aria-label',`Preview card ${idx+1}`); btn.appendChild(cvs); item.appendChild(btn);
+      const at=batchItems.filter(b=>!b.empty).length; btn.addEventListener('click',()=>openPreview(at));
+    }else{ item.appendChild(th); item.classList.add('skip'); }
+    item.appendChild(fn); grid.appendChild(item); batchItems.push({idx,empty:!cvs,fn});
   });
   const [W,H]=frameDims();
   $('#bInfo').textContent=S.tight?`Each card is cropped to its own size at ${S.exportScale}×, transparent PNG.`:`${W} × ${H} px, transparent PNG.`;
@@ -2852,6 +2878,34 @@ $('#bGo').addEventListener('click',async()=>{
   }catch(err){ status.textContent='Export failed: '+err.message; }
   finally{ go.disabled=batchTooLarge||!batchItems.some(b=>!b.empty); }
 });
+
+/* The export preview shows the cards the ZIP will hold (empty ones are skipped), one at a time, painted by exportCanvas()
+   at full export size: what you see is the PNG you'll get. The arrows (or ← → Home End) flip through them; it stops at
+   either end rather than wrapping, so the count always reads in order. Esc or ✕ closes it and leaves the export dialog
+   open, with the focus back on the thumbnail. */
+const pvDlg=$('#pvDlg'); let pvAt=0;
+function showPreview(i){
+  const [live,names]=batchFileNames(); if(!live.length) return;
+  pvAt=clamp(i,0,live.length-1);
+  const card=cards[live[pvAt].idx], c=withCard(card,exportCanvas), stage=$('#pvStage');
+  stage.replaceChildren();
+  if(c){ c.setAttribute('role','img'); c.setAttribute('aria-label',`${names[pvAt]}: ${cardLabel(card.text)}`); stage.appendChild(c); }
+  else stage.textContent=`This card would be too large: exports are limited to ${MAX_SIDE} px on each side (4K).`;
+  $('#pvTitle').textContent=names[pvAt];
+  $('#pvCount').textContent=`${pvAt+1} of ${live.length}`;
+  $('#pvInfo').textContent=c?`${c.width} × ${c.height} px · ${card.name}`:card.name;
+  $('#pvPrev').disabled=pvAt===0; $('#pvNext').disabled=pvAt===live.length-1;
+}
+function openPreview(i){ showPreview(i); if(!pvDlg.open) pvDlg.showModal(); }
+$('#pvPrev').addEventListener('click',()=>showPreview(pvAt-1));
+$('#pvNext').addEventListener('click',()=>showPreview(pvAt+1));
+$('#pvClose').addEventListener('click',()=>pvDlg.close());
+pvDlg.addEventListener('keydown',e=>{
+  const n=batchFileNames()[0].length, to={ArrowLeft:pvAt-1,ArrowRight:pvAt+1,Home:0,End:n-1}[e.key];
+  if(to===undefined) return;
+  e.preventDefault(); showPreview(to);
+});
+pvDlg.addEventListener('close',()=>$('#pvStage').replaceChildren());   // let the full-size canvas go
 
 /* ============ boot ============ */
 sharedStyle=pickStyle(); stash(); record();   // the first step: the page as it opens
