@@ -163,6 +163,46 @@ test.describe('batch export dialog', () => {
     await addCard(page, 'Mid length');
   }
 
+  test('files and the ZIP are named after the set by default; an untitled set gives "titlecard"', async ({ app: { page } }) => {
+    await threeCards(page);
+    await page.click('#batchOpen');
+    await expect(page.locator('#bPattern')).toHaveValue('{set}-{n}');
+    await expect(page.locator('#bGrid .fn').first()).toHaveText('titlecard-1.png');
+    await page.keyboard.press('Escape');
+    await page.fill('#setName', 'Spring: promo'); await page.press('#setName', 'Enter');
+    await page.click('#batchOpen');
+    await expect(page.locator('#bGrid .fn')).toHaveText(['Spring- promo-1.png', 'Spring- promo-2.png', 'Spring- promo-3.png']);
+    const { buffer, filename } = await downloadZip(page);
+    expect(filename).toBe('Spring- promo.zip');
+    expect(readZip(buffer).map((f) => f.name)).toEqual(['Spring- promo-1.png', 'Spring- promo-2.png', 'Spring- promo-3.png']);
+    // a pattern of your own is kept; "Name files after the set" goes back to the set
+    await page.click('#batchOpen');
+    await page.fill('#bPattern', 'Mine{n}');
+    await page.keyboard.press('Escape');
+    await page.click('#batchOpen');
+    await expect(page.locator('#bPattern')).toHaveValue('Mine{n}');
+    await page.click('#bUseSet');
+    await expect(page.locator('#bPattern')).toHaveValue('{set}-{n}');
+  });
+
+  test('the old default pattern, saved without being chosen, becomes the set name pattern', async ({ app: { page } }) => {
+    await page.evaluate(() => localStorage.setItem('opentitlecard.batch', JSON.stringify({ pattern: 'titlecard-{n}', start: 1, digits: 1 })));
+    await page.click('#batchOpen');
+    await expect(page.locator('#bPattern')).toHaveValue('{set}-{n}');
+  });
+
+  test('thumbnails show the canvas\'s own shape: a vertical canvas gives tall checkered previews', async ({ app: { page } }) => {
+    await page.selectOption('#frame', '1080x1920');
+    await page.click('#batchOpen');
+    const t = page.locator('#bGrid canvas').first();
+    const box = await t.boundingBox();
+    expect(box.height / box.width).toBeCloseTo(1920 / 1080, 1);
+    expect(box.height).toBeGreaterThan(120);   // big enough to read the card's place
+    // the checkers (the transparent canvas) are on the canvas itself, so its edges show against the plain box around it
+    expect(await t.evaluate((el) => getComputedStyle(el).backgroundImage)).toContain('conic-gradient');
+    expect(await t.evaluate((el) => getComputedStyle(el.parentElement).backgroundImage)).toBe('none');
+  });
+
   test('opens as a dialog with a thumbnail and a live file name for every card', async ({ app: { page } }) => {
     await threeCards(page);
     await page.click('#batchOpen');
