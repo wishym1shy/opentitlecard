@@ -4,6 +4,17 @@ What changed in OpenTitlecard, newest first. The version is shown next to the ap
 
 Versions are `vMAJOR.MINOR`. Each merged pull request that changes the app adds one to the minor number (v1.31 → v1.32 → …). The changelog started at v1.31: v1.27 stands for everything merged before the UI review that led to v1.28–v1.31 (pull requests up to #31), so the numbers line up with the work done.
 
+## v1.59
+
+### Added
+- **Three more fonts come with the app:** **Montserrat**, **Source Serif 4** and **Playfair Display**, next to Inter. Each has a real italic and a full weight range, and works offline with nothing to install or load. They are open source (SIL Open Font License); their notices are in the app file and in `THIRD_PARTY_LICENSES.md`.
+- **A real font picker.** The **Font family** box now has an arrow (or press ↓) that opens a menu: the fonts that come with the app, the fonts you loaded from files, and, once you've pressed **Installed fonts…**, the ones installed on your computer. Every name is shown in its own typeface; type to filter, use ↑ ↓ and Enter, or click. You can still type any family name.
+
+### Changed
+- **Installed fonts… opens the menu straight away,** so you can see the list it just read.
+- The app file is about 350 KB larger because of the new fonts (about 735 KB now). It still works offline.
+- A font file you load that is named like an included font (for example `Montserrat.woff2`) gets its own name, `Montserrat (file)`, instead of replacing it.
+
 ## v1.58
 
 ### Changed

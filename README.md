@@ -75,16 +75,16 @@ Turn on **Show safe zone/overlay** (under **Safe zone & overlay**) in the **Mock
 
 ## Fonts
 
-The default font is **Inter** (Bold), a free, open-source typeface (SIL Open Font License 1.1) that works well for this style. It ships inside `index.html` (about 64 KB, Latin alphabet), so the app looks right on any computer with nothing to install and nothing downloaded. If you have Inter installed, your own copy is used instead (it covers more languages).
+The default font is **Inter** (Bold), a free, open-source typeface (SIL Open Font License 1.1) that works well for this style. Three more open-source families ship with it: **Montserrat** (a geometric sans), **Source Serif 4** and **Playfair Display** (two serifs). Each comes with real upright and italic faces and every weight, and they are embedded in `index.html` (Latin alphabet), so the app looks right on any computer with nothing to install and nothing downloaded. If you have one of them installed, your own copy is used instead (it may cover more languages).
 
 To use another font:
 
-- type another installed family into **Font family** (use **Installed fonts…** to browse the list), or
+- open the **Font family** menu (the arrow in the box, or press ↓) to pick one of the included fonts, a font you loaded earlier, or (after **Installed fonts…**) one installed on your computer. Type to filter the list, or type any family name, or
 - use **Load font file…** to load any font from disk for the current session.
 
 If the selected family isn't available, the app shows a warning and renders with a fallback font, so you know the export won't match the intended look.
 
-Inter is the only font bundled, and it is open source. The app never bundles any other font, and never uploads fonts. Its copyright notice and license are kept next to the embedded font in `index.html` and in [`THIRD_PARTY_LICENSES.md`](THIRD_PARTY_LICENSES.md).
+The bundled fonts are open source and free to use commercially and non-commercially, and the app never uploads fonts. Their copyright notices and license are kept next to the embedded fonts in `index.html` and in [`THIRD_PARTY_LICENSES.md`](THIRD_PARTY_LICENSES.md). If you fork OpenTitlecard to make something commercial, check the licenses of what you ship yourself.
 
 ## Browser support
 
