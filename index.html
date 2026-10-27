@@ -185,8 +185,9 @@
   dialog .df .status{flex:1;color:var(--mute);font-size:12px}
   .bgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;margin-top:12px}
   .bitem{border:1px solid var(--line);border-radius:8px;background:var(--panel2);padding:6px;min-width:0}
-  .bitem .thumb{height:96px;display:flex;align-items:center;justify-content:center;border-radius:4px;background:conic-gradient(#2b2d34 25%,#383b44 0 50%,#2b2d34 0 75%,#383b44 0) 0 0/16px 16px}
-  .bitem canvas{max-width:100%;max-height:100%;cursor:default}
+  .bitem .thumb{height:150px;display:flex;align-items:center;justify-content:center;border-radius:4px;background:#15171c}
+  /* the checkers are on the canvas, not the box, so the thumbnail shows the canvas's real shape (vertical, square…) */
+  .bitem canvas{max-width:100%;max-height:100%;cursor:default;background:conic-gradient(#2b2d34 25%,#383b44 0 50%,#2b2d34 0 75%,#383b44 0) 0 0/10px 10px;box-shadow:0 0 0 1px #4a4e59}
   .bitem .fn{margin-top:6px;font-size:11.5px;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
   .bitem.skip{opacity:.5}
   .bitem.skip .fn{color:var(--warn)}
@@ -296,7 +297,7 @@
 </head>
 <body>
 <header>
-  <h1>OpenTitlecard <a id="appVersion" href="https://github.com/wishym1shy/opentitlecard/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer" title="What's new in this version (changelog on GitHub)">v1.54</a></h1>
+  <h1>OpenTitlecard <a id="appVersion" href="https://github.com/wishym1shy/opentitlecard/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer" title="What's new in this version (changelog on GitHub)">v1.55</a></h1>
   <a class="gh" href="https://github.com/wishym1shy/opentitlecard" target="_blank" rel="noopener noreferrer" title="View the source on GitHub">
     <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
     <span>View on GitHub</span>
@@ -577,7 +578,7 @@
       <div><label for="bStart">First number</label><input type="number" id="bStart" min="0" max="99999" step="1"></div>
       <div><label for="bDigits">Digits</label><input type="number" id="bDigits" min="1" max="6" step="1"></div>
     </div>
-    <div class="hint"><code>{n}</code> becomes the card number: <code>ClientA-Vid{n}-TC</code> gives <code>ClientA-Vid1-TC.png</code>, <code>ClientA-Vid2-TC.png</code>… <code>{name}</code> becomes the card's name, as in the Cards list. With neither, the number is added after a dash. Empty cards are skipped and not numbered. <button type="button" id="bUseNames" class="linkish">Name files after the cards</button></div>
+    <div class="hint"><code>{set}</code> becomes the set's name (the box next to ☰ File; <i>titlecard</i> while it's untitled) and <code>{n}</code> the card number: <code>{set}-{n}</code> in a set named <i>Promo</i> gives <code>Promo-1.png</code>, <code>Promo-2.png</code>… in <code>Promo.zip</code>. <code>{name}</code> becomes the card's name, as in the Cards list. With no <code>{n}</code> or <code>{name}</code>, the number is added after a dash. Empty cards are skipped and not numbered. <button type="button" id="bUseSet" class="linkish">Name files after the set</button> · <button type="button" id="bUseNames" class="linkish">Name files after the cards</button></div>
     <div class="hint" id="bInfo"></div>
     <div class="bsec">
       <div class="row">
@@ -2769,8 +2770,17 @@ function buildZip(files,date=new Date()){
 const dlg=$('#batchDlg');
 let batchItems=[];   // {idx, empty, fn:Element} per card, in list order
 function batchSettings(){ return {pattern:$('#bPattern').value, start:$('#bStart').value, digits:$('#bDigits').value}; }
+/* {set} in the file name pattern is the set's name, so a named set's PNGs and ZIP are named after it by default. An
+   untitled set gives "titlecard" rather than "Untitled set". Filled before {n} and {name}, so a set name containing
+   "{n}" stays as typed. */
+const SET_PATTERN='{set}-{n}', OLD_DEFAULT_PATTERN='titlecard-{n}';
+const setForFiles=()=>setName===SET_UNTITLED?'titlecard':setName;
+const withSet=p=>(p||'').replace(/\{set\}/gi,()=>setForFiles());
+const batchPattern=()=>withSet($('#bPattern').value);
+// what the dialog would export, with the names it would give
+function batchFileNames(){ const live=batchItems.filter(b=>!b.empty); return [live,batchNames(batchPattern(),$('#bStart').value,$('#bDigits').value,live.length,live.map(b=>cards[b.idx].name))]; }
 function refreshBatchNames(){
-  const live=batchItems.filter(b=>!b.empty), names=batchNames($('#bPattern').value,$('#bStart').value,$('#bDigits').value,live.length,live.map(b=>cards[b.idx].name));
+  const [live,names]=batchFileNames();
   live.forEach((b,i)=>{ b.fn.textContent=names[i]; });
   batchItems.filter(b=>b.empty).forEach(b=>{ b.fn.textContent='Empty, skipped'; });
   $('#bGo').textContent=live.length?`Download ZIP (${live.length} PNG${live.length===1?'':'s'})`:'Nothing to export';
@@ -2812,7 +2822,7 @@ function fillBatchGrid(){
 }
 function openBatch(){
   const b=store.get('opentitlecard.batch',{});
-  $('#bPattern').value=b.pattern||'titlecard-{n}'; $('#bStart').value=b.start??1; $('#bDigits').value=b.digits??1;
+  $('#bPattern').value=!b.pattern||b.pattern===OLD_DEFAULT_PATTERN?SET_PATTERN:b.pattern; $('#bStart').value=b.start??1; $('#bDigits').value=b.digits??1;
   $('#dPreset').value=$('#presetSel').value; updateDefaultBtn();
   fillBatchGrid();   // the dialog's canvas controls are kept in step with the panel's by syncControls()
   dlg.showModal();
@@ -2820,11 +2830,12 @@ function openBatch(){
 $('#batchOpen').addEventListener('click',openBatch);
 ['#bPattern','#bStart','#bDigits'].forEach(id=>$(id).addEventListener('input',refreshBatchNames));
 $('#bUseNames').addEventListener('click',()=>{ $('#bPattern').value='{name}'; refreshBatchNames(); });
+$('#bUseSet').addEventListener('click',()=>{ $('#bPattern').value=SET_PATTERN; refreshBatchNames(); });
 $('#bCancel').addEventListener('click',()=>dlg.close());
 $('#bClose').addEventListener('click',()=>dlg.close());
 $('#bGo').addEventListener('click',async()=>{
   await rememberedReady;
-  const live=batchItems.filter(b=>!b.empty), names=batchNames($('#bPattern').value,$('#bStart').value,$('#bDigits').value,live.length,live.map(b=>cards[b.idx].name));
+  const [live,names]=batchFileNames();
   const go=$('#bGo'), status=$('#bStatus'); go.disabled=true;
   try{
     const files=[];
@@ -2836,7 +2847,7 @@ $('#bGo').addEventListener('click',async()=>{
       files.push({name:names[i],data:new Uint8Array(await blob.arrayBuffer())});
     }
     status.textContent='Packing ZIP…';
-    download(buildZip(files),zipStem($('#bPattern').value)+'.zip');
+    download(buildZip(files),zipStem(batchPattern())+'.zip');
     dlg.close();
   }catch(err){ status.textContent='Export failed: '+err.message; }
   finally{ go.disabled=batchTooLarge||!batchItems.some(b=>!b.empty); }

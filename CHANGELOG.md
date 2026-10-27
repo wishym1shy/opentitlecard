@@ -4,6 +4,12 @@ What changed in OpenTitlecard, newest first. The version is shown next to the ap
 
 Versions are `vMAJOR.MINOR`. Each merged pull request that changes the app adds one to the minor number (v1.31 → v1.32 → …). The changelog started at v1.31: v1.27 stands for everything merged before the UI review that led to v1.28–v1.31 (pull requests up to #31), so the numbers line up with the work done.
 
+## v1.55
+
+### Changed
+- **Export all as ZIP… names files after the set.** The file name pattern now starts as `{set}-{n}`. In a set named *Promo* that gives `Promo-1.png`, `Promo-2.png`… inside `Promo.zip`. An untitled set still gives `titlecard-1.png`. **Name files after the set** returns to this pattern after you've typed your own. If your saved pattern was the old default, it switches over automatically; a pattern you typed yourself is kept.
+- **The export previews show the canvas's real shape.** On a vertical canvas the thumbnails are tall, with the checkerboard on the canvas itself, so you can see where each card sits. They're also larger than before.
+
 ## v1.54
 
 ### Added
