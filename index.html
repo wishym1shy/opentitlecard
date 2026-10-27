@@ -251,7 +251,7 @@
 </head>
 <body>
 <header>
-  <h1>OpenTitlecard <a id="appVersion" href="https://github.com/wishym1shy/opentitlecard/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer" title="What's new in this version (changelog on GitHub)">v1.45</a></h1>
+  <h1>OpenTitlecard <a id="appVersion" href="https://github.com/wishym1shy/opentitlecard/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer" title="What's new in this version (changelog on GitHub)">v1.46</a></h1>
   <a class="gh" href="https://github.com/wishym1shy/opentitlecard" target="_blank" rel="noopener noreferrer" title="View the source on GitHub">
     <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
     <span>View on GitHub</span>
@@ -1294,6 +1294,10 @@ syncMKControls();
    artwork: generic icons, placeholder avatars and text, at the positions measured from the maintainer's reference
    screenshot (taken at 914 px wide and scaled by 1206/914). x, y are in that 1206 x 2622 frame; s turns frame px into
    bitmap px. White on the video like the real app, with a soft shadow so it reads on light footage too. */
+/* The 9:16 video inside that screen: full width (1206 x 2144), its bottom on the top of the navigation bar (y = 2386),
+   as the app places it (maintainer's screenshot of the real app). The screen is taller than 9:16, so the spare height
+   goes above it, under the status bar and tabs. [x, y, w, h] in the 1206 x 2622 frame. */
+const REELS_VIDEO=[0,2386-2144,1206,2144];
 function drawReelsUI(ctx,T,s){
   const font=(px,w)=>`${w} ${px*s}px system-ui,-apple-system,"Segoe UI",sans-serif`;
   const dot=(x,y,r)=>{ ctx.beginPath(); ctx.arc(...T(x,y),r*s,0,Math.PI*2); };
@@ -1313,7 +1317,14 @@ function drawReelsUI(ctx,T,s){
   const heart=(x,y)=>{ const [a,b]=T(x,y), r=s; ctx.beginPath(); ctx.moveTo(a,b+24*r);
     ctx.bezierCurveTo(a-44*r,b-4*r,a-26*r,b-38*r,a,b-16*r); ctx.bezierCurveTo(a+26*r,b-38*r,a+44*r,b-4*r,a,b+24*r); stroke(5); };
   ctx.save();
-  ctx.shadowColor='rgba(0,0,0,.35)'; ctx.shadowBlur=8*s; ctx.lineJoin=ctx.lineCap='round'; ctx.textBaseline='middle';
+  ctx.lineJoin=ctx.lineCap='round'; ctx.textBaseline='middle';
+  // where a 9:16 video plays: a neutral tint painted behind what is already drawn (so the card keeps its true colours,
+  // and an opaque mock-up background covers it), with its dashed edge and label on top
+  { const [vx,vy,vw,vh]=REELS_VIDEO, [a,b]=T(vx,vy);
+    ctx.save(); ctx.globalCompositeOperation='destination-over'; ctx.fillStyle='rgba(128,128,128,.35)'; ctx.fillRect(a,b,vw*s,vh*s); ctx.restore();
+    ctx.setLineDash([14*s,10*s]); ctx.lineWidth=3*s; ctx.strokeStyle='rgba(255,255,255,.6)'; ctx.strokeRect(a,b,vw*s,vh*s); ctx.setLineDash([]);
+    text('9x16 video',vx+24,vy+100,30,600,'left',.8); }   // under the tabs, which sit on the video's top edge
+  ctx.shadowColor='rgba(0,0,0,.35)'; ctx.shadowBlur=8*s;
   // top: "+" on the left, the Reels / Friends tabs with three friends, a camera on the right
   line([[80,231],[80,279]]); stroke(5); line([[56,255],[104,255]]); stroke(5);
   text('Reels',396,255,46,700,'center');

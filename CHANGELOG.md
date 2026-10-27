@@ -4,6 +4,11 @@ What changed in OpenTitlecard, newest first. The version is shown next to the ap
 
 Versions are `vMAJOR.MINOR`. Each merged pull request that changes the app adds one to the minor number (v1.31 → v1.32 → …). The changelog started at v1.31: v1.27 stands for everything merged before the UI review that led to v1.28–v1.31 (pull requests up to #31), so the numbers line up with the work done.
 
+## v1.46
+
+### Added
+- The **Instagram Reels UI | iPhone 16 Pro** overlay now marks where a 9:16 video plays on that taller screen: a grey area with a dashed edge, labelled "9x16 video" (1206 × 2144 px, resting on the navigation bar, as in the app). The tint sits behind your card, so the card keeps its real colours.
+
 ## v1.45
 
 ### Changed

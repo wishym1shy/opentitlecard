@@ -153,7 +153,23 @@ test.describe('Instagram Reels UI | iPhone 16 Pro', () => {
     const pill = await previewPx(page, 290, 2466), dot = await previewPx(page, 637, 2490);
     expect(pill[3]).toBe(255); expect(Math.max(...pill.slice(0, 3))).toBeLessThan(70);  // the dark Reels button in the nav bar
     expect(dot[0]).toBeGreaterThan(200); expect(dot[1]).toBeLessThan(120);               // the red new-message dot
-    expect(await previewPx(page, 600, 1000)).toEqual([0, 0, 0, 0]);                      // nothing over the middle of the video
+    const video = await previewPx(page, 600, 1000);                                      // the 9:16 video area: a neutral tint
+    expect(video[3]).toBeGreaterThan(40); expect(video[3]).toBeLessThan(140);
+    expect(Math.max(...video.slice(0, 3)) - Math.min(...video.slice(0, 3))).toBeLessThan(8);
+  });
+
+  test('marks the 9:16 video area (1206 × 2144, resting on the nav bar) without tinting the card', async ({ app: { page } }) => {
+    await iphone(page);
+    await setText(page, 'Hi');
+    expect(await previewPx(page, 600, 150)).toEqual([0, 0, 0, 0]);   // above the video (y < 242): the screen only
+    expect((await previewPx(page, 600, 300))[3]).toBeGreaterThan(40); // just inside its top edge
+    expect((await previewPx(page, 600, 2370))[3]).toBeGreaterThan(40); // it runs right down to the nav bar (y = 2386)
+    expect(await previewPx(page, 600, 2400)).toEqual([0, 0, 0, 0]);  // the nav bar itself isn't video
+    const pad = await page.evaluate(() => {                           // the card's box, in its left padding
+      __tt.renderNow(); const g = __tt.exportGeometry(), l = __tt.L.lines[0];
+      return [g.cx + (l.x0 + 8) * g.u, g.cy + ((l.y0 + l.y1) / 2) * g.u];
+    });
+    expect(await previewPx(page, ...pad)).toEqual([255, 255, 255, 255]);
   });
 
   test('says whether the card is clear of the interface', async ({ app: { page } }) => {
