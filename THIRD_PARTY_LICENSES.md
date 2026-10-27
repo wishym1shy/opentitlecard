@@ -1,16 +1,23 @@
 # Third-party licenses
 
-## Inter (bundled font)
+## Bundled fonts
 
-`index.html` embeds **Inter** and **Inter Italic** (variable fonts, weight axis, Latin subset, from the `@fontsource-variable/inter` package,
-version 5.3.0) as base64, so the app has a good default font on every computer. Inter is licensed under the SIL Open
-Font License 1.1. The fonts are not modified beyond the Latin subsetting done by that package, and it is not sold by itself.
+`index.html` embeds four open-source font families, each with an upright and an italic face (variable fonts, weight axis,
+Latin subset, from the `@fontsource-variable/*` packages), as base64, so the app works offline and has good fonts on every
+computer. All four are licensed under the SIL Open Font License 1.1 (text at the end of this section). The fonts are not
+modified beyond the Latin subsetting done by those packages, and they are not sold by themselves.
 
-The license text below is also kept inside `index.html`, next to the embedded font.
+| Family | Package (version) | Copyright |
+|---|---|---|
+| Inter (the default) | `@fontsource-variable/inter` 5.3.0 | Copyright 2016 The Inter Project Authors (https://github.com/rsms/inter) |
+| Montserrat | `@fontsource-variable/montserrat` 5.3.0 | Copyright 2011 The Montserrat Project Authors (https://github.com/JulietaUla/Montserrat) |
+| Source Serif 4 | `@fontsource-variable/source-serif-4` 5.3.1 | Copyright 2014 The Source Serif 4 Project Authors (https://github.com/adobe-fonts/source-serif) |
+| Playfair Display | `@fontsource-variable/playfair-display` 5.3.0 | Copyright 2017 The Playfair Display Project Authors (https://github.com/clauseggers/Playfair-Display), with Reserved Font Name "Playfair Display" |
+
+The italic faces carry the same copyright notices as their upright faces. The notices and the license text are also kept
+inside `index.html`, next to the embedded fonts.
 
 ```
-Copyright 2016 The Inter Project Authors (https://github.com/rsms/inter) Inter-Italic[opsz,wght].ttf: Copyright 2016 The Inter Project Authors (https://github.com/rsms/inter)
-
 This Font Software is licensed under the SIL Open Font License, Version 1.1.
 This license is copied below, and is also available with a FAQ at:
 http://scripts.sil.org/OFL

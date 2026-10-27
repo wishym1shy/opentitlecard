@@ -25,7 +25,9 @@ test.describe('remembered fonts', () => {
     await page.waitForTimeout(2600);
     expect(await page.evaluate(() => window.__warnSeen)).toBe(false);
     expect(await page.evaluate((f) => [...document.fonts].some((x) => x.family.replace(/"/g, '') === f && x.status === 'loaded'), FONT_FAMILY)).toBe(true);
-    expect(await page.locator('#fontlist option').evaluateAll((o) => o.map((x) => x.value))).toContain(FONT_FAMILY); // suggested in the family box
+    await page.click('#famToggle'); // suggested in the font picker, under "Loaded from files"
+    expect(await page.locator('#famMenu [role=option]').evaluateAll((o) => o.map((x) => x.dataset.fam))).toContain(FONT_FAMILY);
+    await page.keyboard.press('Escape');
   });
 
   test('a font that is not here offers Reset to Inter, which makes the box and the preview agree again (and can be undone)', async ({ app: { page } }) => {
