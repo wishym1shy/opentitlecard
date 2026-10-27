@@ -1294,10 +1294,13 @@ syncMKControls();
    artwork: generic icons, placeholder avatars and text, at the positions measured from the maintainer's reference
    screenshot (taken at 914 px wide and scaled by 1206/914). x, y are in that 1206 x 2622 frame; s turns frame px into
    bitmap px. White on the video like the real app, with a soft shadow so it reads on light footage too. */
-/* The 9:16 video inside that screen: full width (1206 x 2144), its bottom on the top of the navigation bar (y = 2386),
-   as the app places it (maintainer's screenshot of the real app). The screen is taller than 9:16, so the spare height
-   goes above it, under the status bar and tabs. [x, y, w, h] in the 1206 x 2622 frame. */
-const REELS_VIDEO=[0,2386-2144,1206,2144];
+/* The 9:16 video inside that screen. On iPhone the app fills everything above the navigation bar with it: from the
+   very top (under the status bar and the Dynamic Island) down to the bar (y = 2386). That area (1206 x 2386) is taller
+   than 9:16, so the video is scaled to its height, 1342 px wide, and about 68 px of each side falls off the screen.
+   Measured on the maintainer's iPhone 13 screenshot (591 x 1280: video rows 0-1150, the bar's progress line at 1151).
+   [x, y, w, h] in the 1206 x 2622 frame; x is negative because the sides are off-screen. */
+const REELS_VIDEO_H=2386, REELS_VIDEO_W=REELS_VIDEO_H*9/16;
+const REELS_VIDEO=[(1206-REELS_VIDEO_W)/2,0,REELS_VIDEO_W,REELS_VIDEO_H];
 function drawReelsUI(ctx,T,s){
   const font=(px,w)=>`${w} ${px*s}px system-ui,-apple-system,"Segoe UI",sans-serif`;
   const dot=(x,y,r)=>{ ctx.beginPath(); ctx.arc(...T(x,y),r*s,0,Math.PI*2); };
@@ -1319,11 +1322,16 @@ function drawReelsUI(ctx,T,s){
   ctx.save();
   ctx.lineJoin=ctx.lineCap='round'; ctx.textBaseline='middle';
   // where a 9:16 video plays: a neutral tint painted behind what is already drawn (so the card keeps its true colours,
-  // and an opaque mock-up background covers it), with its dashed edge and label on top
-  { const [vx,vy,vw,vh]=REELS_VIDEO, [a,b]=T(vx,vy);
+  // and an opaque mock-up background covers it), with its dashed edge and label on top. Clipped to the screen: the
+  // video's sides are off it.
+  { const [vx,vy,vw,vh]=REELS_VIDEO, [a,b]=T(vx,vy), [c,d]=T(0,0), crop=Math.round(-vx);
+    ctx.save(); ctx.beginPath(); ctx.rect(c,d,1206*s,2622*s); ctx.clip();
     ctx.save(); ctx.globalCompositeOperation='destination-over'; ctx.fillStyle='rgba(128,128,128,.35)'; ctx.fillRect(a,b,vw*s,vh*s); ctx.restore();
-    ctx.setLineDash([14*s,10*s]); ctx.lineWidth=3*s; ctx.strokeStyle='rgba(255,255,255,.6)'; ctx.strokeRect(a,b,vw*s,vh*s); ctx.setLineDash([]);
-    text('9x16 video',vx+24,vy+100,30,600,'left',.8); }   // under the tabs, which sit on the video's top edge
+    ctx.setLineDash([14*s,10*s]); ctx.lineWidth=3*s; ctx.strokeStyle='rgba(255,255,255,.6)'; ctx.strokeRect(a,b,vw*s,vh*s);
+    ctx.restore();
+    // under the tabs
+    text('9x16 video',24,355,30,600,'left',.8);
+    text(`fills the screen down to the bar: ${crop} px of each side is cut off`,24,395,24,400,'left',.7); }
   ctx.shadowColor='rgba(0,0,0,.35)'; ctx.shadowBlur=8*s;
   // top: "+" on the left, the Reels / Friends tabs with three friends, a camera on the right
   line([[80,231],[80,279]]); stroke(5); line([[56,255],[104,255]]); stroke(5);

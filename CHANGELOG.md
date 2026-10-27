@@ -7,7 +7,7 @@ Versions are `vMAJOR.MINOR`. Each merged pull request that changes the app adds 
 ## v1.46
 
 ### Added
-- The **Instagram Reels UI | iPhone 16 Pro** overlay now marks where a 9:16 video plays on that taller screen: a grey area with a dashed edge, labelled "9x16 video" (1206 × 2144 px, resting on the navigation bar, as in the app). The tint sits behind your card, so the card keeps its real colours.
+- The **Instagram Reels UI | iPhone 16 Pro** overlay now marks where a 9:16 video plays on that taller screen: a grey area labelled "9x16 video". As in the app on iPhone, the video fills the screen from the very top (under the Dynamic Island) down to the navigation bar, so it is scaled to 2386 px tall and about 68 px of each side is cut off; the label says so. The tint sits behind your card, so the card keeps its real colours.
 
 ## v1.45
 

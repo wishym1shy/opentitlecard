@@ -158,13 +158,13 @@ test.describe('Instagram Reels UI | iPhone 16 Pro', () => {
     expect(Math.max(...video.slice(0, 3)) - Math.min(...video.slice(0, 3))).toBeLessThan(8);
   });
 
-  test('marks the 9:16 video area (1206 × 2144, resting on the nav bar) without tinting the card', async ({ app: { page } }) => {
+  test('marks the 9:16 video area (top of the screen to the nav bar) without tinting the card', async ({ app: { page } }) => {
     await iphone(page);
     await setText(page, 'Hi');
-    expect(await previewPx(page, 600, 150)).toEqual([0, 0, 0, 0]);   // above the video (y < 242): the screen only
-    expect((await previewPx(page, 600, 300))[3]).toBeGreaterThan(40); // just inside its top edge
-    expect((await previewPx(page, 600, 2370))[3]).toBeGreaterThan(40); // it runs right down to the nav bar (y = 2386)
-    expect(await previewPx(page, 600, 2400)).toEqual([0, 0, 0, 0]);  // the nav bar itself isn't video
+    expect((await previewPx(page, 600, 10))[3]).toBeGreaterThan(40);   // from the very top, under the status bar
+    expect((await previewPx(page, 5, 1200))[3]).toBeGreaterThan(40);   // edge to edge: the sides are cropped off-screen
+    expect((await previewPx(page, 600, 2370))[3]).toBeGreaterThan(40); // right down to the nav bar (y = 2386)
+    expect(await previewPx(page, 600, 2400)).toEqual([0, 0, 0, 0]);    // the nav bar itself isn't video
     const pad = await page.evaluate(() => {                           // the card's box, in its left padding
       __tt.renderNow(); const g = __tt.exportGeometry(), l = __tt.L.lines[0];
       return [g.cx + (l.x0 + 8) * g.u, g.cy + ((l.y0 + l.y1) / 2) * g.u];
