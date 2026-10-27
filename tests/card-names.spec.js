@@ -152,7 +152,7 @@ test.describe('names elsewhere', () => {
   test('names are saved in batch files; files from before names get Titlecard 1, 2…', async ({ app: { page } }) => {
     await page.dblclick('#cardList [data-card="0"]'); await page.fill('#cardRename', 'Opener'); await page.keyboard.press('Enter');
     await addCard(page, 'Two');
-    await page.click('#batchMenuBtn');
+    await page.click('#fileMenuBtn');
     const [dl] = await Promise.all([page.waitForEvent('download'), page.click('#batchSave')]);
     const chunks = []; for await (const c of await dl.createReadStream()) chunks.push(c);
     const json = JSON.parse(Buffer.concat(chunks).toString('utf8'));

@@ -1,6 +1,6 @@
 {
   "name": "opentitlecard",
-  "version": "1.53.0",
+  "version": "1.54.0",
   "description": "OpenTitlecard: open-source titlecards for social video, as transparent PNGs from your browser. The app itself is a single dependency-free index.html; dependencies here are for tests only.",
   "private": true,
   "license": "MIT",

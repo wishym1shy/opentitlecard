@@ -16,7 +16,7 @@ test.describe('floating panels', () => {
   });
 
   test('Export all as ZIP… is in the Export panel, once, and opens the export dialog', async ({ app: { page } }) => {
-    await expect(page.locator('#fp_export #batchOpen')).toHaveText('Export all as ZIP…');
+    await expect(page.locator('#fp_export #batchOpen')).toHaveText('Export as ZIP…');
     await expect(page.locator('#fp_cards button', { hasText: /ZIP/ })).toHaveCount(0);
     await expect(page.locator('#panels button', { hasText: /ZIP/ })).toHaveCount(1);
     await page.click('#batchOpen');

@@ -1,7 +1,7 @@
 const { test, expect, FONT_FAMILY, setText, settle, setRange, setSelection, readZip, downloadZip, addCard, confirmDialog } = require('./helpers');
 
 async function saveBatch(page) {
-  await page.click('#batchMenuBtn');
+  await page.click('#fileMenuBtn');
   const [dl] = await Promise.all([page.waitForEvent('download'), page.click('#batchSave')]);
   const chunks = [];
   for await (const c of await dl.createReadStream()) chunks.push(c);
@@ -38,12 +38,12 @@ async function buildBatch(page) {
   await settle(page);
 }
 
-test.describe('save and open a batch file', () => {
-  test('Save downloads a readable .json with every card, named from the file name pattern', async ({ app: { page } }) => {
+test.describe('save and open a set file', () => {
+  test('Save downloads a readable .opntcd file with every card, named after the set', async ({ app: { page } }) => {
     await buildBatch(page);
     const { json, filename, text } = await saveBatch(page);
-    expect(filename).toBe('titlecard-set.json');
-    expect(json).toMatchObject({ app: 'opentitlecard', type: 'batch', v: 1, active: 1 });
+    expect(filename).toBe('Untitled set.opntcd');
+    expect(json).toMatchObject({ app: 'opentitlecard', type: 'batch', v: 1, name: 'Untitled set', active: 1 });
     expect(json.cards.map((c) => c.t)).toEqual(['Alpha beta', 'Second card', 'Third']);
     expect(json.cards[0].c).toEqual({ 0: '#cf0202', 1: '#cf0202', 2: '#cf0202', 3: '#cf0202', 4: '#cf0202' });
     expect(json.cards[0].n).toEqual([{ x: 12, y: 0 }]);
@@ -53,12 +53,13 @@ test.describe('save and open a batch file', () => {
     await expect(page.locator('#fileMsg')).toContainText('Saved 3 cards');
   });
 
-  test('the file name follows the batch naming pattern', async ({ app: { page } }) => {
+  test('the file is named after the set, with characters a file name can\'t hold replaced', async ({ app: { page } }) => {
     await setText(page, 'Hi');
-    await page.click('#batchOpen');
-    await page.fill('#bPattern', 'ClientA-Vid{n}-TC');
-    await page.keyboard.press('Escape');
-    expect((await saveBatch(page)).filename).toBe('ClientA-Vid-TC-set.json');
+    await page.fill('#setName', 'Spring: promo/cuts');
+    await page.press('#setName', 'Enter');
+    const { filename, json } = await saveBatch(page);
+    expect(filename).toBe('Spring- promo-cuts.opntcd');
+    expect(json.name).toBe('Spring: promo/cuts');   // the name itself is kept as typed, inside the file
   });
 
   test('a saved batch opens again with everything intact, and exports the same ZIP', async ({ app: { page } }) => {
@@ -125,13 +126,13 @@ test.describe('save and open a batch file', () => {
 test.describe('confirmations', () => {
   const file = { app: 'opentitlecard', type: 'batch', v: 1, active: 0, cards: [{ t: 'From file' }] };
 
-  test('New batch asks first, naming the card count; Cancel and Esc keep everything', async ({ app: { page } }) => {
+  test('New set asks first, naming the card count; Cancel and Esc keep everything', async ({ app: { page } }) => {
     await buildBatch(page);
     const before = await snapshot(page);
     await page.click('#cardsNew');
-    await expect(page.locator('#cTitle')).toHaveText('Start a new batch?');
+    await expect(page.locator('#cTitle')).toHaveText('Start a new set?');
     await expect(page.locator('#cMsg')).toContainText('all 3 cards');
-    await expect(page.locator('#cMsg')).toContainText('Save batch to file');
+    await expect(page.locator('#cMsg')).toContainText('Save set');
     await confirmDialog(page, false);
     expect(await snapshot(page)).toEqual(before);
     await page.click('#cardsNew');
@@ -162,7 +163,7 @@ test.describe('confirmations', () => {
     await buildBatch(page);
     const before = await snapshot(page);
     await openFile(page, file, 'mine.json');
-    await expect(page.locator('#cTitle')).toHaveText('Open this batch?');
+    await expect(page.locator('#cTitle')).toHaveText('Open this set?');
     await expect(page.locator('#cMsg')).toContainText('“mine.json” replaces your 3 current cards');
     await confirmDialog(page, false);
     await expect(page.locator('#fileMsg')).toContainText('Cancelled');
@@ -238,7 +239,7 @@ test.describe('nothing about the cards is stored in the browser', () => {
     expect(await page.evaluate(() => ({ n: __tt.cards.length, text: __tt.S.text }))).toEqual({ n: 1, text: 'Type your Titlecard here! 😳' });
   });
 
-  test('New batch only clears the cards on screen', async ({ app: { page } }) => {
+  test('New set only clears the cards on screen', async ({ app: { page } }) => {
     await buildBatch(page);
     await page.click('#cardsNew');
     await confirmDialog(page);
@@ -263,7 +264,7 @@ test.describe('opening files that are not ours', () => {
     ];
     for (const b of bad) {
       await openFile(page, b);
-      await expect(page.locator('#fileMsg'), JSON.stringify(b)).toContainText('isn\'t an OpenTitlecard batch');
+      await expect(page.locator('#fileMsg'), JSON.stringify(b)).toContainText('isn\'t an OpenTitlecard set');
       await expect(page.locator('#fileMsg')).toHaveClass(/bad/);
       expect(await page.evaluate(() => __tt.S.text), JSON.stringify(b)).toBe('Original');
     }

@@ -137,6 +137,7 @@ test.describe('auto-wrap (max card width)', () => {
   test('the setting is part of presets and persists across reloads', async ({ app: { page } }) => {
     await setWrap(page, 500);
     await page.fill('#presetName', 'wrapped');
+    await page.click('#fileMenuBtn');
     const [dl] = await Promise.all([page.waitForEvent('download'), page.click('#presetExport')]);
     const chunks = []; for await (const c of await dl.createReadStream()) chunks.push(c);
     expect(JSON.parse(Buffer.concat(chunks).toString('utf8')).wrap).toBe(500);

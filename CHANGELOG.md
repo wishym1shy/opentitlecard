@@ -4,6 +4,24 @@ What changed in OpenTitlecard, newest first. The version is shown next to the ap
 
 Versions are `vMAJOR.MINOR`. Each merged pull request that changes the app adds one to the minor number (v1.31 → v1.32 → …). The changelog started at v1.31: v1.27 stands for everything merged before the UI review that led to v1.28–v1.31 (pull requests up to #31), so the numbers line up with the work done.
 
+## v1.54
+
+### Added
+- **☰ File menu** at the top right of the toolbar: New set, Open set…, Save set, Save set as…, Import and export presets, Soft reset… and Reset all….
+- **Set name:** name your set in the box next to the File menu. Saving names the file after it, and opening a file brings its name back.
+- **`.opntcd` set files:** sets are saved as `.opntcd` files, so they're easy to spot. They're still plain JSON inside, and sets saved earlier as `.json` still open.
+- **Save to the same file (Chrome, Edge):** the first Save asks where to put the file, and later Saves update that same file instead of downloading a new copy each time. **Save set as…** makes a copy. Other browsers still download a copy on every Save.
+- **Shortcuts:** Ctrl+S (⌘S) saves the set, Ctrl+Shift+S saves it as a new file, Ctrl+O (⌘O) opens one.
+- **Drag and drop:** drop a set file anywhere on the page to open it. It asks first if there's unsaved work on the page.
+- **Soft reset…** puts every setting back to how the app first opens, and keeps your presets, palette colors and remembered fonts. **Reset all…** deletes everything the app keeps in your browser. Both list exactly what they clear before you confirm.
+
+### Changed
+- What was called a "batch" is now a **set** everywhere in the app.
+- The Export panel now offers **Download PNG** and **Export all N as ZIP…** as two equal buttons, with the number of cards in the label.
+- Save and Open moved from the Cards panel's ⋮ menu to the File menu, and preset Export JSON / Import JSON moved from the Presets section to the File menu.
+- The canvas size moved from the toolbar to the bottom bar, and **Panels** is now its own button over the top right of the preview.
+- A preset file that can't be read is reported in the bottom bar instead of a browser alert.
+
 ## v1.53
 
 ### Added
