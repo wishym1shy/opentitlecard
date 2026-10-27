@@ -1,6 +1,6 @@
 const { test, expect, expandUi, APP_URL, setText, settle } = require('./helpers');
 
-// The families that ship inside index.html (Inter, Montserrat, Source Serif 4, Playfair Display), and the font picker
+// The families that ship inside index.html (Inter, Montserrat, Source Serif 4, Playfair Display, Linik Sans), and the font picker
 // that lists them. Like default-font.spec.js these tests never load the test font: they use what a first-time visitor
 // gets. (Every other spec loads a pinned static Inter through "Load font file…" for identical metrics.)
 
@@ -9,6 +9,7 @@ const FAMILIES = [
   { name: 'Montserrat', serif: false },
   { name: 'Source Serif 4', serif: true },
   { name: 'Playfair Display', serif: true },
+  { name: 'Linik Sans', serif: false },
 ];
 
 async function openPlain(browser, init) {
@@ -24,10 +25,10 @@ async function openPlain(browser, init) {
   await expandUi(page);
   return { context, page, errors, requests };
 }
-// all eight embedded faces (four families, upright and italic) are registered and loaded
+// all ten embedded faces (five families, upright and italic) are registered and loaded
 const allLoaded = (page) => page.waitForFunction(() => {
   const faces = [...document.fonts].filter((f) => f.family.includes('OpenTitlecard') && f.status === 'loaded');
-  return faces.length === 8;
+  return faces.length === 10;
 });
 // typing a name opens the menu (as for a user); Esc closes it again so it doesn't cover the controls below
 async function setFamily(page, name) { await page.fill('#family', name); await page.keyboard.press('Escape'); }
@@ -84,7 +85,7 @@ test.describe('bundled font families', () => {
         expect(/serif/.test(f.replace(/sans-serif/g, ''))).toBe(serif);
       }
     }
-    expect(new Set(Object.values(widths).map((w) => Math.round(w))).size, 'four different typefaces').toBe(4);
+    expect(new Set(Object.values(widths).map((w) => Math.round(w))).size, 'five different typefaces').toBe(5);
     await context.close();
   });
 
@@ -113,7 +114,7 @@ test.describe('bundled font families', () => {
       window.FontFace = function (name, ...rest) { if (String(name).includes('OpenTitlecard Montserrat')) throw new Error('blocked'); return new Orig(name, ...rest); };
       window.FontFace.prototype = Orig.prototype;
     });
-    await page.waitForFunction(() => [...document.fonts].filter((f) => f.family.includes('OpenTitlecard') && f.status === 'loaded').length === 6);
+    await page.waitForFunction(() => [...document.fonts].filter((f) => f.family.includes('OpenTitlecard') && f.status === 'loaded').length === 8);
     await setFamily(page, 'Source Serif 4');
     await expect(page.locator('#fontWarn')).toBeHidden();
     await setFamily(page, 'Montserrat');
@@ -198,7 +199,7 @@ test.describe('font picker', () => {
     // arrows alone open the full list; Esc leaves the family as it was
     await page.keyboard.press('ArrowDown');
     await expect(page.locator('#famMenu')).toBeVisible();
-    expect(await options(page)).toHaveLength(4);
+    expect(await options(page)).toHaveLength(5);
     await page.keyboard.press('ArrowDown');
     await page.keyboard.press('Escape');
     await expect(page.locator('#famMenu')).toBeHidden();

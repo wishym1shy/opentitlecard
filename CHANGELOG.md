@@ -4,6 +4,14 @@ What changed in OpenTitlecard, newest first. The version is shown next to the ap
 
 Versions are `vMAJOR.MINOR`. Each merged pull request that changes the app adds one to the minor number (v1.31 → v1.32 → …). The changelog started at v1.31: v1.27 stands for everything merged before the UI review that led to v1.28–v1.31 (pull requests up to #31), so the numbers line up with the work done.
 
+## v1.61
+
+### Added
+- **Linik Sans comes with the app,** next to Inter, Montserrat, Source Serif 4 and Playfair Display. It has a real italic and every weight from Thin to Black, and works offline with nothing to install or load. It is open source (SIL Open Font License); its notice is in the app file and in `THIRD_PARTY_LICENSES.md`.
+
+### Changed
+- The app file is about 130 KB larger because of Linik Sans (about 895 KB now). It still works offline.
+
 ## v1.60
 
 ### Added
