@@ -66,9 +66,11 @@ test.describe('safe zone overlay', () => {
     expect(b.x).toBeCloseTo(540 + 100 - 270, 5);
     expect(b.y).toBeCloseTo(960 - 50 - 480, 5);
     await expect(page.locator('#v_szScale')).toHaveText('50%');
-    for (const k of ['x', 'y', 'scale']) await page.click(`[data-sz-reset="${k}"]`);
+    for (const k of ['X', 'Y']) await page.dblclick(`[data-view-scrub="sz${k}"]`);
+    await page.click('[data-sz-reset="scale"]');
     expect((await sz(page)).box).toMatchObject({ x: 0, y: 0, w: 1080, h: 1920 });
-    await expect(page.locator('[data-sz-reset="x"]')).toBeDisabled();
+    await expect(page.locator('[data-sz-reset="scale"]')).toBeDisabled();
+    await expect(page.locator('[data-sz-reset="x"]')).toHaveCount(0);
   });
 
   test('the verdict sits at the right end of the bottom bar; the panel keeps only notes about the overlay', async ({ app: { page } }) => {
@@ -159,6 +161,25 @@ test.describe('safe zone overlay', () => {
 });
 
 test.describe('Instagram Reels UI | iPhone 16 Pro', () => {
+  test('on another canvas it warns, in the bottom bar and the panel, with a one-click switch to the iPhone canvas', async ({ app: { page } }) => {
+    await setText(page, 'A fairly long titlecard here');
+    await page.check('#szOn');
+    await page.selectOption('#szKind', 'igReels16');                   // the canvas is still 1920 x 1080
+    for (const where of ['#szFit', '#szStatus']) {
+      await expect(page.locator(where)).toContainText('the canvas is 1920 × 1080');
+      await expect(page.locator(`${where} .usecanvas`)).toHaveText('Use iPhone 16 Pro canvas');
+    }
+    expect((await sz(page)).fit).not.toContain('inside the safe zone'); // no verdict against the wrong canvas
+    await page.click('#szFit .usecanvas');
+    expect(await page.evaluate(() => [__tt.S.frame, __tt.S.fw, __tt.S.fh])).toEqual(['1206x2622', 1206, 2622]);
+    expect(await page.evaluate(() => __tt.S.size)).toBeLessThan(100);  // auto-scale fitted the card to the phone
+    await expect(page.locator('#szFit')).toHaveText('✓ The card is inside the safe zone.');
+    await expect(page.locator('.usecanvas')).toHaveCount(0);
+    await page.keyboard.press('Control+z');                            // one undo step back
+    expect(await page.evaluate(() => [__tt.S.frame, __tt.S.size])).toEqual(['1920x1080', 100]);
+    await expect(page.locator('#szFit .usecanvas')).toHaveCount(1);
+  });
+
   const iphone = async (page) => {
     await page.selectOption('#frame', '1206x2622');
     await page.check('#szOn');
