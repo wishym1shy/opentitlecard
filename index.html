@@ -1130,10 +1130,13 @@ function italicShift(){
   const ink=f=>{ mctx.font=fontStr(f,S.size); const m=mctx.measureText('H'); return ((m.actualBoundingBoxRight-m.actualBoundingBoxLeft)-m.width)/2; };
   return hasRealItalic() ? 0 : -(ink(1)-ink(0));
 }
-/* A real italic face spaces itself, so the correction above only belongs to the slant the browser fakes. A fake slant
-   keeps every upright advance width, so a string that measures the same upright and italic is faked. (A monospace
-   font with a real italic also measures the same and is treated as faked: it gets the ~1px nudge, which is harmless.) */
+/* A real italic face spaces itself, so the correction above only belongs to the slant the browser fakes. For a family
+   loaded from files this is known exactly (does it have an italic face?). For the rest a fake slant keeps every upright
+   advance width, so a string that measures the same upright and italic is faked. (A monospace font with a real italic
+   also measures the same and is treated as faked: it gets the ~1px nudge, which is harmless.) */
 function hasRealItalic(){
+  const loaded=faceReg.get(resolveFont(S.family));
+  if(loaded) return loaded.some(f=>f.italic);
   const w=f=>{ mctx.font=fontStr(f,100); return mctx.measureText('Titlecard affiliate').width; };
   return Math.abs(w(1)-w(0))>0.01;
 }

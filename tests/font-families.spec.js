@@ -187,6 +187,28 @@ test.describe('loading font files', () => {
     await context.close();
   });
 
+  test('whether a loaded family has a real italic is known from its files, not guessed from measuring (a measuring quirk cannot switch the correction off)', async ({ browser }) => {
+    // as if a machine measured a faked slant a little wider than the upright
+    const { context, page } = await openPlain(browser, () => {
+      const m = CanvasRenderingContext2D.prototype.measureText;
+      CanvasRenderingContext2D.prototype.measureText = function (t) {
+        const r = m.call(this, t);
+        if (t !== 'Titlecard affiliate' || !/^italic/.test(this.font)) return r;
+        return { width: r.width + 3, actualBoundingBoxLeft: r.actualBoundingBoxLeft, actualBoundingBoxRight: r.actualBoundingBoxRight, actualBoundingBoxAscent: r.actualBoundingBoxAscent, actualBoundingBoxDescent: r.actualBoundingBoxDescent };
+      };
+    });
+    await page.check('#align input[value="left"]');
+    await setText(page, 'Hello world');
+    await page.setInputFiles('#fontFile', [file(700, 'normal')]); // upright only
+    await page.waitForFunction(() => __tt.fonts.faces.length === 1);
+    const firstX = async () => (await settle(page)).lines[0].items[0].x;
+    const before = await firstX();
+    await page.evaluate(() => { const t = document.querySelector('#text'); t.focus(); t.setSelectionRange(0, 5); });
+    await page.click('#ital');
+    expect(await firstX(), 'still faked, still corrected').toBeLessThan(before - 0.5);
+    await context.close();
+  });
+
   test('a plain TTF is loaded like any other file', async ({ browser }) => {
     const { context, page } = await openPlain(browser);
     await page.setInputFiles('#fontFile', asFile('whatever.ttf', woffToSfnt(fs.readFileSync(file(700, 'normal')))));
