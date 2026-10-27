@@ -198,13 +198,32 @@ test.describe('Instagram Reels UI | iPhone 16 Pro', () => {
     expect(Math.max(...video.slice(0, 3)) - Math.min(...video.slice(0, 3))).toBeLessThan(8);
   });
 
+  test('the nav bar is solid black, framing a mock-up background, under its icons', async ({ app: { page } }) => {
+    await iphone(page);
+    const png = await page.evaluate(() => { const c = document.createElement('canvas'); c.width = 1080; c.height = 1920;
+      const x = c.getContext('2d'); x.fillStyle = '#ff8800'; x.fillRect(0, 0, 1080, 1920); return c.toDataURL('image/png').split(',')[1]; });
+    await page.setInputFiles('#mkFile', { name: 'footage.png', mimeType: 'image/png', buffer: Buffer.from(png, 'base64') });
+    await expect(page.locator('#mkImgName')).toHaveText('footage.png');
+    for (const [x, y] of [[20, 2400], [600, 2600], [1190, 2610]]) expect(await previewPx(page, x, y), `${x},${y}`).toEqual([0, 0, 0, 255]);
+    const above = await previewPx(page, 20, 2370);                     // just above the bar: the footage
+    expect(above[0]).toBeGreaterThan(200); expect(above[2]).toBeLessThan(80);
+    const pill = await previewPx(page, 290, 2466), dot = await previewPx(page, 637, 2490);
+    expect(pill.slice(0, 3)).not.toEqual([0, 0, 0]);                  // the Reels button and the red dot still show on it
+    expect(dot[0]).toBeGreaterThan(200);
+  });
+
+  test('the section and its toggle are named for the overlays too', async ({ app: { page } }) => {
+    await expect(page.locator('#szHead')).toHaveText('Safe zone & overlay');
+    await expect(page.locator('label:has(#szOn)')).toHaveText('Show safe zone/overlay');
+  });
+
   test('marks the 9:16 video area (top of the screen to the nav bar) without tinting the card', async ({ app: { page } }) => {
     await iphone(page);
     await setText(page, 'Hi');
     expect((await previewPx(page, 600, 10))[3]).toBeGreaterThan(40);   // from the very top, under the status bar
     expect((await previewPx(page, 5, 1200))[3]).toBeGreaterThan(40);   // edge to edge: the sides are cropped off-screen
     expect((await previewPx(page, 600, 2370))[3]).toBeGreaterThan(40); // right down to the nav bar (y = 2386)
-    expect(await previewPx(page, 600, 2400)).toEqual([0, 0, 0, 0]);    // the nav bar itself isn't video
+    expect(await previewPx(page, 600, 2400)).toEqual([0, 0, 0, 255]);  // the nav bar isn't video: it's solid black
     const pad = await page.evaluate(() => {                           // the card's box, in its left padding
       __tt.renderNow(); const g = __tt.exportGeometry(), l = __tt.L.lines[0];
       return [g.cx + (l.x0 + 8) * g.u, g.cy + ((l.y0 + l.y1) / 2) * g.u];
