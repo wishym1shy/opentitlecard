@@ -96,7 +96,7 @@ test.describe('floating panels', () => {
 test.describe('first open', () => {
   test.use({ expandUi: false });
   const OPEN = { cards: true, canvas: false, safezone: false, export: false };
-  const MOVED = ['Position', 'Scale', 'Text Position', 'Text Settings', 'Background', 'Emoji Slot'];
+  const MOVED = ['Position & Scale', 'Text Position', 'Text Settings', 'Background', 'Emoji Slot'];
 
   const expectFresh = async (page) => {
     for (const [k, open] of Object.entries(OPEN)) {
@@ -114,7 +114,7 @@ test.describe('first open', () => {
     expect(top).toEqual(['Text', 'Titlecard Properties', 'Presets']);
   });
 
-  test('Titlecard Properties holds Position, Scale, Text Position, Text Settings, Background and Emoji Slot', async ({ app: { page } }) => {
+  test('Titlecard Properties holds Position & Scale, Text Position, Text Settings, Background and Emoji Slot', async ({ app: { page } }) => {
     const inner = await page.evaluate(() => [...document.querySelectorAll('#tcProps > .body > details > summary')].map((s) => s.textContent.trim()));
     expect(inner).toEqual(MOVED);
     await expect(page.locator('#lh')).toBeHidden();
@@ -134,19 +134,24 @@ test.describe('first open', () => {
     expect(await page.evaluate(() => __tt.S.weight)).toBe(900);
   });
 
-  test('Scale (the font size) has its own section in Titlecard Properties, right under Position', async ({ app: { page } }) => {
+  test('X, Y and Scale sit together in Position & Scale; in tight crop only Scale stays', async ({ app: { page } }) => {
     await expect(page.locator('#size')).toBeHidden();   // Titlecard Properties starts closed
     await page.click('#tcProps > summary');
-    for (const id of ['#n_size', 'button[data-reset-key="size"]']) {
+    for (const id of ['#offX', '#offY', '#n_size', 'button[data-reset-key="size"]']) {
       await expect(page.locator(id), id).toBeVisible();
-      expect(await sectionOf(page, id), id).toBe('Scale');
+      expect(await sectionOf(page, id), id).toBe('Position & Scale');
     }
-    expect(await page.locator('#tcProps > .body > details > summary').allTextContents()).toEqual(
-      ['Position', 'Scale', 'Text Position', 'Text Settings', 'Background', 'Emoji Slot']);
+    const [x, y, sc] = await Promise.all(['#offX', '#offY', '#n_size'].map((id) => page.locator(id).boundingBox()));
+    expect(sc.y).toBeGreaterThan(x.y); expect(sc.y - x.y).toBeLessThan(80);   // Scale is the row right under X / Y
     await expect(page.locator('label[for="n_size"]')).toHaveText('Scale');
     await page.fill('#n_size', '150');
     await page.press('#n_size', 'Enter');
     expect(await page.evaluate(() => __tt.S.size)).toBe(150);
+    await page.evaluate(() => { const t = document.querySelector('#tight'); t.checked = true; t.dispatchEvent(new Event('change', { bubbles: true })); });
+    await expect(page.locator('#offX')).toBeHidden();
+    await expect(page.locator('#posHint')).toBeHidden();
+    await expect(page.locator('#posTight')).toBeVisible();
+    await expect(page.locator('#n_size')).toBeVisible();   // the card's size still matters in a tight crop
   });
 
   test('the Position fields move the card; with tight crop on they give way to a note', async ({ app: { page } }) => {

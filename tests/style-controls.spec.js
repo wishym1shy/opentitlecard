@@ -1,7 +1,7 @@
 const { test, expect, setText, settle, setRange, setSelection, addCard, exportPng, inspectPng } = require('./helpers');
 
 // Every slider in these panels must have a reset button, including any added later.
-const SECTIONS = ['Scale', 'Text Settings', 'Background'];
+const SECTIONS = ['Position & Scale', 'Text Settings', 'Background'];
 const sliderIds = (page) => page.evaluate((names) => [...document.querySelectorAll('details')]
   .filter((d) => names.includes(d.querySelector('summary').textContent.trim()))
   .flatMap((d) => [...d.querySelectorAll('input[type=range]')].map((r) => r.id)), SECTIONS);

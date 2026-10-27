@@ -4,6 +4,12 @@ What changed in OpenTitlecard, newest first. The version is shown next to the ap
 
 Versions are `vMAJOR.MINOR`. Each merged pull request that changes the app adds one to the minor number (v1.31 → v1.32 → …). The changelog started at v1.31: v1.27 stands for everything merged before the UI review that led to v1.28–v1.31 (pull requests up to #31), so the numbers line up with the work done.
 
+## v1.49
+
+### Changed
+- **Scale now sits with X and Y** in one section, **Position & Scale**, so the three handles you use most while laying out a mock-up are together. With tight crop on, X and Y step aside and Scale stays.
+- **"✓ The card is inside the safe zone" / "⚠ The card …"** now shows at the right end of the bottom bar, next to the line count and card size, so you can read it while you work. The Mock-up & safe zone panel keeps only notes about the overlay itself.
+
 ## v1.48
 
 ### Changed
