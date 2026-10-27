@@ -220,6 +220,17 @@ test.describe('Instagram Reels UI | iPhone 16 Pro', () => {
     expect(await white(1100, 78)).toBe(true);   // the battery's charge
   });
 
+  test('shows what the phone hides: rounded corners, the Dynamic Island and the home indicator', async ({ app: { page } }) => {
+    await iphone(page);
+    const black = [0, 0, 0, 255];
+    for (const [x, y] of [[4, 4], [1202, 4], [4, 2618], [1202, 2618]]) expect(await previewPx(page, x, y), `corner ${x},${y}`).toEqual(black);
+    expect(await previewPx(page, 603, 97)).toEqual(black);                  // the middle of the island
+    expect((await previewPx(page, 603, 20))[3]).toBeLessThan(200);          // above it: still the video, not black
+    expect((await previewPx(page, 120, 120))[3]).toBeLessThan(200);         // inside the rounded corner: the video too
+    const home = await previewPx(page, 603, 2590);
+    expect(Math.min(...home.slice(0, 3))).toBeGreaterThan(180);             // the white home indicator
+  });
+
   test('the section and its toggle are named for the overlays too', async ({ app: { page } }) => {
     await expect(page.locator('#szHead')).toHaveText('Safe zone & overlay');
     await expect(page.locator('label:has(#szOn)')).toHaveText('Show safe zone/overlay');
