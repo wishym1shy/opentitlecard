@@ -4,6 +4,11 @@ What changed in OpenTitlecard, newest first. The version is shown next to the ap
 
 Versions are `vMAJOR.MINOR`. Each merged pull request that changes the app adds one to the minor number (v1.31 → v1.32 → …). The changelog started at v1.31: v1.27 stands for everything merged before the UI review that led to v1.28–v1.31 (pull requests up to #31), so the numbers line up with the work done.
 
+## v1.57
+
+### Added
+- **Update available:** if a newer version of OpenTitlecard comes out while the app is open, a pulsing green **↻ Update available · Click to reload** pill appears next to the version number. Click it to reload and get the new version; if you have unsaved cards, the browser asks first. The app checks by re-reading its own page when it opens, when you come back to the tab, and every 30 minutes. It sends nothing about you or your work, and never checks when opened as a local file.
+
 ## v1.56
 
 ### Added
