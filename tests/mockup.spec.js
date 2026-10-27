@@ -74,9 +74,36 @@ test.describe('mock-up background', () => {
     await setRange(page, 'mkOpacity', 50);
     const px = await previewPx(page, 200, 500);                               // image, clear of the card
     expect(px[3]).toBeGreaterThan(100); expect(px[3]).toBeLessThan(160);
-    for (const k of ['x', 'y', 'scale', 'opacity']) await page.click(`[data-mk-reset="${k}"]`);
+    for (const k of ['X', 'Y']) await page.dblclick(`[data-view-scrub="mk${k}"]`);   // X / Y: double-click the icon, like the card's position
+    for (const k of ['scale', 'opacity']) await page.click(`[data-mk-reset="${k}"]`);
     expect(await mk(page)).toMatchObject({ x: 0, y: 0, scale: 100, opacity: 100 });
-    await expect(page.locator('[data-mk-reset="x"]')).toBeDisabled();
+    await expect(page.locator('[data-mk-reset="scale"]')).toBeDisabled();
+    await expect(page.locator('[data-mk-reset="x"]')).toHaveCount(0);
+  });
+
+  test('its fields work like Position & Scale in the sidebar: X | Y, then Scale, then Opacity', async ({ app: { page } }) => {
+    const box = (id) => page.locator(id).boundingBox();
+    const [x, y, sc, op] = await Promise.all(['#n_mkX', '#n_mkY', '#n_mkScale', '#n_mkOpacity'].map(box));
+    expect(Math.abs(x.y - y.y)).toBeLessThan(2); expect(y.x).toBeGreaterThan(x.x);   // X and Y side by side
+    expect(sc.y).toBeGreaterThan(x.y); expect(op.y).toBeGreaterThan(sc.y);           // then Scale, then Opacity
+    await page.fill('#n_mkScale', '150'); await page.press('#n_mkScale', 'Enter');    // typed
+    expect((await mk(page)).scale).toBe(150);
+    await page.fill('#n_mkScale', '9999'); await page.press('#n_mkScale', 'Enter');   // clamped to the range
+    expect((await mk(page)).scale).toBe(400);
+    await page.fill('#n_mkX', '25'); await page.press('#n_mkX', 'Enter');
+    await page.press('#n_mkX', 'ArrowUp'); await page.press('#n_mkX', 'Shift+ArrowUp'); // arrows step, Shift = 10
+    expect((await mk(page)).x).toBe(36);
+    // the panel stack scrolls, and the sticky Export panel covers its bottom edge: bring the icon to the middle
+    await page.locator('[data-view-scrub="mkY"]').evaluate((el) => el.scrollIntoView({ block: 'center' }));
+    const h = await box('[data-view-scrub="mkY"]');                                    // scrub: one step per pixel
+    await page.mouse.move(h.x + h.width / 2, h.y + h.height / 2); await page.mouse.down();
+    await page.mouse.move(h.x + h.width / 2 + 30, h.y + h.height / 2, { steps: 3 }); await page.mouse.up();
+    expect((await mk(page)).y).toBe(30);
+    await page.dblclick('[data-view-scrub="mkY"]');                                    // double-click: back to 0
+    expect((await mk(page)).y).toBe(0);
+    await expect(page.locator('[data-mk-reset]')).toHaveCount(2);                      // ↺ for Scale and Opacity only
+    await expect(page.locator('#mkX')).toBeHidden();                                   // no slider line on X / Y
+    await expect(page.locator('#mkScale')).toBeVisible();
   });
 
   test('the safe zone is drawn over the mock-up, and each can be on without the other', async ({ app: { page } }) => {
