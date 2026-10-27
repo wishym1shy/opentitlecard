@@ -283,7 +283,7 @@
 </head>
 <body>
 <header>
-  <h1>OpenTitlecard <a id="appVersion" href="https://github.com/wishym1shy/opentitlecard/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer" title="What's new in this version (changelog on GitHub)">v1.51</a></h1>
+  <h1>OpenTitlecard <a id="appVersion" href="https://github.com/wishym1shy/opentitlecard/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer" title="What's new in this version (changelog on GitHub)">v1.52</a></h1>
   <a class="gh" href="https://github.com/wishym1shy/opentitlecard" target="_blank" rel="noopener noreferrer" title="View the source on GitHub">
     <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
     <span>View on GitHub</span>
@@ -1343,7 +1343,9 @@ syncMKControls();
 // ui: [name, x, y, w, h] in the 1080 x 1920 frame; safe: the outline of the safe zone (one shape, so Reels has no seam)
 /* A mock-up of the Reels screen on an iPhone 16 Pro (1206 x 2622), drawn as plain shapes rather than shipped as
    artwork: generic icons, placeholder avatars and text, at the positions measured from the maintainer's reference
-   screenshot (taken at 914 px wide and scaled by 1206/914). x, y are in that 1206 x 2622 frame; s turns frame px into
+   screenshot (591 x 1280, x scaled by 1206/591). The status bar and tabs are scaled from the top; the side buttons,
+   creator, caption and nav icons keep their scaled distance from the nav bar (y = 2386), since the app lays them out
+   from the bottom. x, y are in that 1206 x 2622 frame; s turns frame px into
    bitmap px. White on the video like the real app, with a soft shadow so it reads on light footage too. */
 /* The 9:16 video inside that screen. On iPhone the app fills everything above the navigation bar with it: from the
    very top (under the status bar and the Dynamic Island) down to the bar (y = 2386). That area (1206 x 2386) is taller
@@ -1367,9 +1369,14 @@ function drawReelsUI(ctx,T,s){
     dot(x,y-r*.22,r*.3); ctx.fill(); dot(x,y+r*.78,r*.62); ctx.fill();
     ctx.restore();
   };
-  const plane=(x,y)=>{ line([[x-28,y-24],[x+28,y-24],[x+2,y+28],[x-6,y+2]]); ctx.closePath(); stroke(5); line([[x-6,y+2],[x+28,y-24]]); stroke(5); };
-  const heart=(x,y)=>{ const [a,b]=T(x,y), r=s; ctx.beginPath(); ctx.moveTo(a,b+24*r);
-    ctx.bezierCurveTo(a-44*r,b-4*r,a-26*r,b-38*r,a,b-16*r); ctx.bezierCurveTo(a+26*r,b-38*r,a+44*r,b-4*r,a,b+24*r); stroke(5); };
+  // the share / messages paper plane, f times its base size
+  const plane=(x,y,f=1)=>{ const P=(dx,dy)=>[x+dx*f,y+dy*f];
+    line([P(-28,-24),P(28,-24),P(2,28),P(-6,2)]); ctx.closePath(); stroke(5); line([P(-6,2),P(28,-24)]); stroke(5); };
+  const heart=(x,y,f)=>{ const [a,b]=T(x,y), r=s*f; ctx.beginPath(); ctx.moveTo(a,b+27*r);
+    ctx.bezierCurveTo(a-44*r,b-1*r,a-26*r,b-35*r,a,b-13*r); ctx.bezierCurveTo(a+26*r,b-35*r,a+44*r,b-1*r,a,b+27*r); stroke(5); };
+  const rrect=(x,y,w,h,r)=>{ const [a,b]=T(x,y); ctx.beginPath(); ctx.roundRect?ctx.roundRect(a,b,w*s,h*s,r*s):ctx.rect(a,b,w*s,h*s); };
+  const arc=(x,y,r,from,to,ccw)=>{ ctx.beginPath(); ctx.arc(...T(x,y),r*s,from,to,ccw); };
+  const fill=c=>{ ctx.fillStyle=c; ctx.fill(); };
   ctx.save();
   ctx.lineJoin=ctx.lineCap='round'; ctx.textBaseline='middle';
   // where a 9:16 video plays: a neutral tint painted behind what is already drawn (so the card keeps its true colours,
@@ -1381,53 +1388,64 @@ function drawReelsUI(ctx,T,s){
     ctx.setLineDash([14*s,10*s]); ctx.lineWidth=3*s; ctx.strokeStyle='rgba(255,255,255,.6)'; ctx.strokeRect(a,b,vw*s,vh*s);
     ctx.restore();
     // under the tabs
-    text('9x16 video',24,355,30,600,'left',.8);
-    text(`fills the screen down to the bar: ${crop} px of each side is cut off`,24,395,24,400,'left',.7); }
+    text('9x16 video',24,318,30,600,'left',.8);
+    text(`fills the screen down to the bar: ${crop} px of each side is cut off`,24,358,24,400,'left',.7); }
   ctx.shadowColor='rgba(0,0,0,.35)'; ctx.shadowBlur=8*s;
-  // top: "+" on the left, the Reels / Friends tabs with three friends, a camera on the right
-  line([[80,231],[80,279]]); stroke(5); line([[56,255],[104,255]]); stroke(5);
-  text('Reels',396,255,46,700,'center');
-  text('Friends',686,255,46,600,'center',.7);
-  [840,885,930].forEach(x=>avatar(x,255,29,4));
-  { const [a,b]=T(1094,258); ctx.beginPath(); ctx.roundRect?ctx.roundRect(a-30*s,b-22*s,60*s,46*s,10*s):ctx.rect(a-30*s,b-22*s,60*s,46*s); stroke(5); dot(1094,259,11); stroke(4); }
-  // right: like, comment, repost, share with counts, more, and the audio square
-  heart(1130,1610); text('12.3K',1130,1668,30,600,'center');
-  dot(1130,1760,26); stroke(5); line([[1112,1779],[1104,1792],[1120,1785]]); stroke(5); text('214',1130,1818,30,600,'center');
-  line([[1106,1900],[1106,1888],[1152,1888]]); stroke(5); line([[1142,1878],[1152,1888],[1142,1898]]); stroke(5);
-  line([[1154,1916],[1154,1928],[1108,1928]]); stroke(5); line([[1118,1918],[1108,1928],[1118,1938]]); stroke(5); text('89',1130,1968,30,600,'center');
-  plane(1130,2060); text('1,024',1130,2118,30,600,'center');
-  [1110,1130,1150].forEach(x=>{ dot(x,2190,5); ctx.fillStyle='#fff'; ctx.fill(); });
-  { const [a,b]=T(1100,2262); ctx.beginPath(); ctx.roundRect?ctx.roundRect(a,b,60*s,60*s,12*s):ctx.rect(a,b,60*s,60*s); ctx.fillStyle='#444'; ctx.fill(); stroke(4); }
-  // bottom left: the creator with a story ring, Follow, the caption and who follows them
-  { const [a,b]=T(115,2082), gr=ctx.createLinearGradient(a-66*s,b+66*s,a+66*s,b-66*s);
+  // status bar: the time on the left; signal, Wi-Fi and battery on the right
+  text('9:41',159,78,44,600,'center');
+  [10,16,23,31].forEach((h,i)=>{ rrect(933+i*8,92-h,6,h,2); fill('#fff'); });
+  arc(1035,92,10,-Math.PI*.75,-Math.PI*.25); ctx.lineTo(...T(1035,92)); ctx.closePath(); fill('#fff');
+  [19,29].forEach(r=>{ arc(1035,92,r,-Math.PI*.72,-Math.PI*.28); stroke(6); });
+  ctx.save(); ctx.globalAlpha*=.45; rrect(1071,63,61,31,9); stroke(2.5); rrect(1135,72,5,13,2); fill('#fff'); ctx.restore();
+  rrect(1075,67,53,23,6); fill('#fff');
+  // top: "+" on the left, then the Reels / Friends tabs with three friends (the leftmost on top)
+  line([[86,191],[86,253]]); stroke(5); line([[55,222],[117,222]]); stroke(5);
+  text('Reels',363,227,68,700,'center');
+  text('Friends',637,227,68,600,'center',.7);
+  [916,867,810].forEach(x=>avatar(x,224,30,4));
+  // right: like, comment, repost and share (counts under all but repost), more, and the audio square
+  heart(1112,1323,.92); text('12.3K',1112,1417,36,600,'center');
+  arc(1114,1545,35,Math.PI*.42,Math.PI*2.18); ctx.lineTo(...T(1150,1581)); ctx.closePath(); stroke(5);
+  text('214',1112,1643,36,600,'center');
+  line([[1082,1778],[1082,1746],[1140,1746]]); stroke(5); line([[1128,1734],[1140,1746],[1128,1758]]); stroke(5);
+  line([[1142,1770],[1142,1802],[1084,1802]]); stroke(5); line([[1096,1790],[1084,1802],[1096,1814]]); stroke(5);
+  plane(1114,1915,1.15); text('1,024',1112,2006,36,600,'center');
+  line([[1082,2123],[1143,2123]]); stroke(6); line([[1082,2145],[1122,2145]]); stroke(6);
+  rrect(1065,2231,90,90,18); fill('#444'); stroke(4);
+  // bottom left: the creator with a story ring, the audio line and Follow, then the caption
+  { const [a,b]=T(117,2170), gr=ctx.createLinearGradient(a-66*s,b+66*s,a+66*s,b-66*s);
     gr.addColorStop(0,'#ffd600'); gr.addColorStop(.5,'#ff2e7a'); gr.addColorStop(1,'#d300c5');
-    dot(115,2082,63); ctx.lineWidth=7*s; ctx.strokeStyle=gr; ctx.stroke(); }
-  avatar(115,2082,54,0);
-  text('username',200,2082,40,700);
-  { const [a,b]=T(410,2050); ctx.beginPath(); ctx.roundRect?ctx.roundRect(a,b,140*s,64*s,14*s):ctx.rect(a,b,140*s,64*s); stroke(3); }
-  text('Follow',480,2082,34,600,'center');
-  const cw=text('Your caption goes here ',66,2206,40,400);
-  text('#hashtag ...',66+cw,2206,40,400,'left',.75);
-  avatar(111,2283,23,4); avatar(75,2283,23,4);
-  text('Followed by username and 1 other',156,2283,32,400,'left',.85);
-  // navigation bar: solid black under the video, as in the app, so a mock-up background is framed by it; then home,
-  // Reels (selected), messages with a new-message dot, search, profile
+    dot(117,2170,63); ctx.lineWidth=7*s; ctx.strokeStyle=gr; ctx.stroke(); }
+  avatar(117,2170,56,0);
+  text('username',212,2139,41,700);
+  // a music note: two heads, their stems and a beam
+  dot(219,2207,7); fill('#fff'); dot(240,2203,7); fill('#fff');
+  line([[225,2207],[225,2183],[246,2179],[246,2203]]); stroke(5);
+  text('Artist · Song name',261,2196,38,400,'left',.85);
+  ctx.save(); ctx.globalAlpha*=.7; rrect(706,2133,200,73,18); stroke(3); ctx.restore();
+  text('Follow',806,2170,42,600,'center');
+  text('Your caption goes here ...',51,2298,41,400);
+  // navigation bar: solid black under the video, as in the app, so a mock-up background is framed by it; the video's
+  // progress along its top; then home, Reels (selected), messages, search, and the profile with a notification dot
   { const [a,b]=T(0,2386); ctx.save(); ctx.shadowColor='transparent'; ctx.fillStyle='#000'; ctx.fillRect(a,b,1206*s,(2622-2386)*s); ctx.restore(); }
-  ctx.save(); ctx.shadowColor='transparent'; ctx.globalAlpha*=.3; line([[0,2386],[1206,2386]]); stroke(2); ctx.restore();
-  line([[95,2496],[95,2462],[123,2438],[151,2462],[151,2496]]); ctx.closePath(); stroke(5);
-  { const [a,b]=T(264,2404); ctx.beginPath(); ctx.roundRect?ctx.roundRect(a,b,200*s,124*s,62*s):ctx.rect(a,b,200*s,124*s); ctx.fillStyle='#24262e'; ctx.fill();
-    const [c,d]=T(332,2434); ctx.beginPath(); ctx.roundRect?ctx.roundRect(c,d,64*s,64*s,16*s):ctx.rect(c,d,64*s,64*s); ctx.fillStyle='#fff'; ctx.fill();
-    line([[354,2452],[354,2480],[378,2466]]); ctx.closePath(); ctx.fillStyle='#24262e'; ctx.fill(); }
-  plane(600,2466); dot(637,2490,10); ctx.fillStyle='#ff3040'; ctx.fill();
-  dot(842,2460,22); stroke(5); line([[858,2476],[876,2494]]); stroke(5);
-  avatar(1093,2466,45,0);
+  ctx.save(); ctx.shadowColor='transparent'; ctx.lineCap='butt';
+  ctx.globalAlpha*=.3; line([[0,2386],[1206,2386]]); stroke(2);
+  ctx.globalAlpha/=.3; ctx.globalAlpha*=.8; line([[0,2386],[322,2386]]); stroke(5); ctx.restore();
+  line([[108,2499],[88,2499],[88,2460],[120,2433],[152,2460],[152,2499],[132,2499],[132,2480]]);
+  ctx.arc(...T(120,2480),12*s,0,Math.PI,true); ctx.closePath(); stroke(5);
+  rrect(326,2431,70,70,16); fill('#fff');
+  line([[352,2451],[352,2481],[377,2466]]); ctx.closePath(); fill('#000');
+  plane(602,2466,1.15);
+  dot(841,2459,27); stroke(5); line([[861,2479],[877,2496]]); stroke(5);
+  avatar(1086,2466,37,0);
+  dot(1120,2496,11); ctx.save(); ctx.shadowColor='transparent'; fill('#ff3040'); ctx.restore();
   ctx.restore();
 }
 const SAFE_ZONES={
   stories:{w:1080,h:1920,ui:[['top bar',0,0,1080,250],['bottom bar',0,1670,1080,250]],safe:[[0,250],[1080,250],[1080,1670],[0,1670]]},
   reels:{w:1080,h:1920,ui:[['top bar',0,0,1080,250],['bottom bar',0,1670,1080,250],['side buttons',880,1230,200,440]],safe:[[0,250],[1080,250],[1080,1230],[880,1230],[880,1670],[0,1670]]},
   // ui: what the card shouldn't sit under, for the status line; draw: paints the mock-up instead of the red/green zones
-  igReels16:{w:1206,h:2622,ui:[['top bar',0,0,1206,330],['side buttons',1050,1570,156,770],['caption',0,2010,1050,310],['navigation bar',0,2386,1206,236]],draw:drawReelsUI,frame:'1206x2622',frameName:'iPhone 16 Pro'},
+  igReels16:{w:1206,h:2622,ui:[['top bar',0,0,1206,290],['side buttons',1040,1285,166,1045],['caption',0,2090,1040,250],['navigation bar',0,2386,1206,236]],draw:drawReelsUI,frame:'1206x2622',frameName:'iPhone 16 Pro'},
 };
 const SZ_DEFAULTS={on:false,kind:'stories',x:0,y:0,scale:100,opacity:100};
 const SZ_RANGES={x:[-1920,1920],y:[-1920,1920],scale:[10,300],opacity:[10,100]};
