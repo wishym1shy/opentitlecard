@@ -96,7 +96,7 @@ test.describe('floating panels', () => {
 test.describe('first open', () => {
   test.use({ expandUi: false });
   const OPEN = { cards: true, canvas: false, safezone: false, export: false };
-  const MOVED = ['Position', 'Text Position', 'Text Settings', 'Background', 'Emoji Slot'];
+  const MOVED = ['Position', 'Scale', 'Text Position', 'Text Settings', 'Background', 'Emoji Slot'];
 
   const expectFresh = async (page) => {
     for (const [k, open] of Object.entries(OPEN)) {
@@ -114,7 +114,7 @@ test.describe('first open', () => {
     expect(top).toEqual(['Text', 'Titlecard Properties', 'Presets']);
   });
 
-  test('Titlecard Properties holds Position, Text Position, Text Settings, Background and Emoji Slot', async ({ app: { page } }) => {
+  test('Titlecard Properties holds Position, Scale, Text Position, Text Settings, Background and Emoji Slot', async ({ app: { page } }) => {
     const inner = await page.evaluate(() => [...document.querySelectorAll('#tcProps > .body > details > summary')].map((s) => s.textContent.trim()));
     expect(inner).toEqual(MOVED);
     await expect(page.locator('#lh')).toBeHidden();
@@ -123,14 +123,30 @@ test.describe('first open', () => {
     await expect(page.locator('#panels #offX')).toHaveCount(0); // the card position left the Canvas panel
   });
 
-  test('Font family, Weight and Size are in the Text section, ready on first open', async ({ app: { page } }) => {
-    for (const id of ['#family', '#loadInstalled', '#loadFile', '#weight', '#size', 'button[data-reset-key="size"]']) {
+  const sectionOf = (page, id) => page.locator(id).evaluate((el) => el.closest('details > .body').parentElement.querySelector('summary').textContent.trim());
+
+  test('Font family and Weight are in the Text section, ready on first open', async ({ app: { page } }) => {
+    for (const id of ['#family', '#loadInstalled', '#loadFile', '#weight']) {
       await expect(page.locator(id), id).toBeVisible();
-      expect(await page.locator(id).evaluate((el) => el.closest('details > .body').parentElement.querySelector('summary').textContent.trim()), id).toBe('Text');
+      expect(await sectionOf(page, id), id).toBe('Text');
     }
     await page.selectOption('#weight', '900');
-    await page.evaluate(() => { const r = document.querySelector('#size'); r.value = '150'; r.dispatchEvent(new Event('input', { bubbles: true })); });
-    expect(await page.evaluate(() => [__tt.S.weight, __tt.S.size])).toEqual([900, 150]);
+    expect(await page.evaluate(() => __tt.S.weight)).toBe(900);
+  });
+
+  test('Scale (the font size) has its own section in Titlecard Properties, right under Position', async ({ app: { page } }) => {
+    await expect(page.locator('#size')).toBeHidden();   // Titlecard Properties starts closed
+    await page.click('#tcProps > summary');
+    for (const id of ['#n_size', 'button[data-reset-key="size"]']) {
+      await expect(page.locator(id), id).toBeVisible();
+      expect(await sectionOf(page, id), id).toBe('Scale');
+    }
+    expect(await page.locator('#tcProps > .body > details > summary').allTextContents()).toEqual(
+      ['Position', 'Scale', 'Text Position', 'Text Settings', 'Background', 'Emoji Slot']);
+    await expect(page.locator('label[for="n_size"]')).toHaveText('Scale');
+    await page.fill('#n_size', '150');
+    await page.press('#n_size', 'Enter');
+    expect(await page.evaluate(() => __tt.S.size)).toBe(150);
   });
 
   test('the Position fields move the card; with tight crop on they give way to a note', async ({ app: { page } }) => {

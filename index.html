@@ -279,7 +279,7 @@
 </head>
 <body>
 <header>
-  <h1>OpenTitlecard <a id="appVersion" href="https://github.com/wishym1shy/opentitlecard/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer" title="What's new in this version (changelog on GitHub)">v1.47</a></h1>
+  <h1>OpenTitlecard <a id="appVersion" href="https://github.com/wishym1shy/opentitlecard/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer" title="What's new in this version (changelog on GitHub)">v1.48</a></h1>
   <a class="gh" href="https://github.com/wishym1shy/opentitlecard" target="_blank" rel="noopener noreferrer" title="View the source on GitHub">
     <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
     <span>View on GitHub</span>
@@ -324,9 +324,8 @@
           <input type="file" id="fontFile" accept=".ttf,.otf,.woff,.woff2" hidden>
         </div>
         <div class="hint" id="fontMem" hidden><span id="fontMemText"></span> · <button type="button" id="fontForget" class="linkish">Forget them</button></div>
-        <div class="g2"><div><label for="weight">Weight</label>
+        <div><label for="weight">Weight</label>
         <select id="weight"><option value="400">Regular 400</option><option value="500">Medium 500</option><option value="600">Semibold 600</option><option value="700">Bold 700</option><option value="800">Extra Bold 800</option><option value="900">Black 900</option></select></div>
-        <div><label for="n_size">Size</label><div class="fld" data-name="Size"><span class="scrub" data-scrub-for="size" title="Drag to change size (Shift = 10×). Double-click to reset."><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 4V3h7v1M5.5 3v10M4 13h3M10 8V7.5h4.5V8M12.2 7.5V13M11.2 13h2"/></svg></span><input type="number" id="n_size" step="1" aria-label="Size"><span class="unit">px</span><span class="sr" id="v_size" aria-hidden="true"></span><input type="range" id="size" min="30" max="260" step="1" aria-label="Size slider"></div></div></div>
       </div>
     </div>
   </details>
@@ -343,6 +342,15 @@
             <div class="hint">Moves the card inside the canvas, in px at 1080p (+Y is down). The same for every card.</div>
           </div>
           <div class="hint" id="posTight" style="margin:0" hidden>Tight crop is on (Canvas panel), so the PNG is just the card and its position doesn't apply.</div>
+        </div>
+      </details>
+
+      <!-- The font size, which sizes the whole card: box, padding and corners are all in em of it. -->
+      <details open>
+        <summary>Scale</summary>
+        <div class="body">
+          <label for="n_size">Scale</label><div class="fld" data-name="Scale"><span class="scrub" data-scrub-for="size" title="Drag to scale the card (Shift = 10×). Double-click to reset."><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 4V3h7v1M5.5 3v10M4 13h3M10 8V7.5h4.5V8M12.2 7.5V13M11.2 13h2"/></svg></span><input type="number" id="n_size" step="1" aria-label="Scale"><span class="unit">px</span><span class="sr" id="v_size" aria-hidden="true"></span><input type="range" id="size" min="30" max="260" step="1" aria-label="Scale slider"></div>
+          <div class="hint">The font size in px at 1080p. The box, padding and corners grow with it, so it scales the whole card.</div>
         </div>
       </details>
 
@@ -1771,7 +1779,7 @@ for(const id of ['fw','fh','x_fw','x_fh']) $('#'+id).addEventListener('change',(
   const k=id.replace('x_',''), v=clamp(Math.round(+S[k])||(k==='fw'?1920:1080),64,MAX_SIDE);
   if(v!==S[k]){ S[k]=v; persistStyle(); syncControls(); record(); render(); if(id.startsWith('x_')) fillBatchGrid(); }
 });
-/* Reset buttons: Size and every Text Settings and Background slider gets a ↺ that puts it back to the app's default (DEFAULTS, not a
+/* Reset buttons: Scale (the font size) and every Text Settings and Background slider gets a ↺ that puts it back to the app's default (DEFAULTS, not a
    preset: the default preset only applies on a first load). It goes through the slider's own input event, so saving,
    a card's own style and redrawing behave exactly as for a drag. Double-clicking the slider does the same, like the
    nudge sliders. syncControls() greys a button out while its slider is already at the default. */
