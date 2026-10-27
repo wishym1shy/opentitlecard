@@ -2,9 +2,9 @@
 
 ## Inter (bundled font)
 
-`index.html` embeds **Inter** (variable font, weight axis, Latin subset, from the `@fontsource-variable/inter` package,
+`index.html` embeds **Inter** and **Inter Italic** (variable fonts, weight axis, Latin subset, from the `@fontsource-variable/inter` package,
 version 5.3.0) as base64, so the app has a good default font on every computer. Inter is licensed under the SIL Open
-Font License 1.1. The font is not modified beyond the Latin subsetting done by that package, and it is not sold by itself.
+Font License 1.1. The fonts are not modified beyond the Latin subsetting done by that package, and it is not sold by itself.
 
 The license text below is also kept inside `index.html`, next to the embedded font.
 
