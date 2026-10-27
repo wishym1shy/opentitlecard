@@ -49,7 +49,9 @@
   /* Export sits alone at the bottom right, the last step after the text (left) and the cards (top right). When the
      stack is taller than the view it stays pinned there while the panels above scroll under it. */
   #fp_export{margin-top:auto;position:sticky;bottom:0}
-  #szStatus.ok{color:var(--ok)} #szStatus.bad{color:#ffb3a8}
+  #szStatus.bad{color:#ffb3a8}
+  #infoStats{display:flex;gap:16px;flex-wrap:wrap}
+  #szFit{margin-left:auto} #szFit.ok{color:var(--ok)} #szFit.bad{color:#ffb3a8}
   .stagebody.with-panels .view{padding-right:330px}
   #panelsToggle[aria-pressed="true"]{background:var(--accent2);border-color:var(--accent)}
   label{display:block;color:var(--mute);font-size:11.5px;margin:8px 0 3px}
@@ -279,7 +281,7 @@
 </head>
 <body>
 <header>
-  <h1>OpenTitlecard <a id="appVersion" href="https://github.com/wishym1shy/opentitlecard/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer" title="What's new in this version (changelog on GitHub)">v1.48</a></h1>
+  <h1>OpenTitlecard <a id="appVersion" href="https://github.com/wishym1shy/opentitlecard/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer" title="What's new in this version (changelog on GitHub)">v1.49</a></h1>
   <a class="gh" href="https://github.com/wishym1shy/opentitlecard" target="_blank" rel="noopener noreferrer" title="View the source on GitHub">
     <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
     <span>View on GitHub</span>
@@ -335,22 +337,16 @@
     <summary>Titlecard Properties</summary>
     <div class="body">
       <details open>
-        <summary>Position</summary>
+        <summary>Position &amp; Scale</summary>
         <div class="body">
           <div id="frameOpts">
             <div class="g2"><div><label for="offX">X offset</label><div class="fld"><span class="scrub" data-scrub-for="offX" title="Drag to move (Shift = 10×). Double-click for 0.">X</span><input type="number" id="offX"><span class="unit">px</span></div></div><div><label for="offY">Y offset</label><div class="fld"><span class="scrub" data-scrub-for="offY" title="Drag to move (Shift = 10×). Double-click for 0.">Y</span><input type="number" id="offY"><span class="unit">px</span></div></div></div>
-            <div class="hint">Moves the card inside the canvas, in px at 1080p (+Y is down). The same for every card.</div>
           </div>
-          <div class="hint" id="posTight" style="margin:0" hidden>Tight crop is on (Canvas panel), so the PNG is just the card and its position doesn't apply.</div>
-        </div>
-      </details>
-
-      <!-- The font size, which sizes the whole card: box, padding and corners are all in em of it. -->
-      <details open>
-        <summary>Scale</summary>
-        <div class="body">
+          <!-- Scale (the font size, which sizes the whole card: box, padding and corners are in em of it) sits with X / Y so
+               the three handles used most while laying out a mock-up are together. Outside #frameOpts: it applies in tight crop too. -->
           <label for="n_size">Scale</label><div class="fld" data-name="Scale"><span class="scrub" data-scrub-for="size" title="Drag to scale the card (Shift = 10×). Double-click to reset."><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 4V3h7v1M5.5 3v10M4 13h3M10 8V7.5h4.5V8M12.2 7.5V13M11.2 13h2"/></svg></span><input type="number" id="n_size" step="1" aria-label="Scale"><span class="unit">px</span><span class="sr" id="v_size" aria-hidden="true"></span><input type="range" id="size" min="30" max="260" step="1" aria-label="Scale slider"></div>
-          <div class="hint">The font size in px at 1080p. The box, padding and corners grow with it, so it scales the whole card.</div>
+          <div class="hint" id="posHint">X / Y move the card inside the canvas, in px at 1080p (+Y is down), the same for every card. Scale is the font size in px at 1080p: the box, padding and corners grow with it.</div>
+          <div class="hint" id="posTight" style="margin:0" hidden>Tight crop is on (Canvas panel), so the PNG is just the card and its X / Y position doesn't apply. Scale still does.</div>
         </div>
       </details>
 
@@ -539,7 +535,8 @@
       </section>
     </div>
   </div>
-  <div id="info"></div>
+  <!-- the bottom bar: the card's numbers on the left, whether it clears the safe zone on the right -->
+  <div id="info"><span id="infoStats"></span><span id="szFit" role="status"></span></div>
 </section>
 </div>
 
@@ -1142,7 +1139,7 @@ function renderNow(){
   mockupStatus(); safeZoneStatus(g);
   $('#dims').textContent = `${g.W} × ${g.H} px${S.tight?' (tight crop)':''}`;
   updateSlotInfo(g);
-  $('#info').innerHTML = `<span>${L.lines.length} line${L.lines.length===1?'':'s'}</span><span>card ${Math.round(L.cardW*g.u)} × ${Math.round(L.cardH*g.u)} px</span>`;
+  $('#infoStats').innerHTML = `<span>${L.lines.length} line${L.lines.length===1?'':'s'}</span><span>card ${Math.round(L.cardW*g.u)} × ${Math.round(L.cardH*g.u)} px</span>`;
 }
 function wordAt(pos){
   const t=S.text; if(pos==null) return null;
@@ -1459,14 +1456,16 @@ function drawSafeZone(ctx,g,k){
   label(`Safe zone · ${z.safe[z.safe.length-1][1]-sy} px`,[sx,sy,z.w,100],'#9ff0b4');
   ctx.restore();
 }
-/* Says whether the card in front sits inside the safe zone, and if not, what it runs into. Built-in zones only: an
-   image can't be read for where its safe area is. */
+/* Says whether the card in front sits inside the safe zone, and if not, what it runs into: in the bottom bar (#szFit),
+   next to the card's size, where it can be read while working on the card. Built-in zones only: an image can't be read
+   for where its safe area is. Notes about the overlay itself (load an image, turn off tight crop) stay in the panel. */
 function safeZoneStatus(g){
-  const el=$('#szStatus'); el.className='hint';
+  const el=$('#szStatus'), fit=$('#szFit'); el.className='hint'; fit.className=''; fit.textContent='';
   if(!SZ.on){ el.textContent=''; return; }
   if(S.tight){ el.textContent='A safe zone needs the full canvas: turn off Tight crop to see it.'; return; }
   if(SZ.kind==='image'){ el.textContent=szImage?'Your image is drawn over the preview.':'Load an image to see it. Images aren\'t saved, so load it again after a reload.'; return; }
-  const b=szBox; if(!b || !L.lines.length){ el.textContent=''; return; }
+  el.textContent='';
+  const b=szBox; if(!b || !L.lines.length) return;
   const z=SAFE_ZONES[SZ.kind];
   // the card's box (with nudges, which move only the text) in zone coordinates
   let x0=Infinity,x1=-Infinity,y0=Infinity,y1=-Infinity;
@@ -1475,9 +1474,9 @@ function safeZoneStatus(g){
   const c=[zx(x0),zy(y0),zx(x1),zy(y1)];
   const hits=z.ui.filter(r=>c[0]<r[1]+r[3] && c[2]>r[1] && c[1]<r[2]+r[4] && c[3]>r[2]).map(r=>r[0]);
   const out=c[0]<0||c[2]>z.w||c[1]<0||c[3]>z.h;
-  if(!hits.length && !out){ el.textContent='✓ The card is inside the safe zone.'; el.classList.add('ok'); return; }
-  el.textContent='⚠ The card '+[hits.length?'overlaps the '+hits.join(' and the '):'', out?'goes past the edge of the frame':''].filter(Boolean).join(', and ')+'.';
-  el.classList.add('bad');
+  if(!hits.length && !out){ fit.textContent='✓ The card is inside the safe zone.'; fit.classList.add('ok'); return; }
+  fit.textContent='⚠ The card '+[hits.length?'overlaps the '+hits.join(' and the '):'', out?'goes past the edge of the frame':''].filter(Boolean).join(', and ')+'.';
+  fit.classList.add('bad');
 }
 function saveSZ(){ store.set('opentitlecard.safezone',SZ); }
 function syncSZControls(){
@@ -1749,7 +1748,7 @@ function syncControls(){
     $('#'+pre+'tightOpts').style.display=S.tight?'block':'none';
     $('#'+pre+'frameOpts').style.display=S.tight?'none':'block';
   }
-  $('#posTight').hidden=!S.tight;
+  $('#posTight').hidden=!S.tight; $('#posHint').hidden=S.tight;
 }
 for(const [k,t] of bindings){
   for(const id of DIALOG_KEYS.includes(k)?[k,'x_'+k]:[k]){
@@ -2595,7 +2594,7 @@ render();
 // Panels animate open from now on, not at page load (their @starting-style rule needs .anim): two frames, so it is
 // added after the first paint.
 requestAnimationFrame(()=>requestAnimationFrame(()=>document.documentElement.classList.add('anim')));
-window.__tt={S,render,renderNow,get L(){return L},exportGeometry,draw,get cards(){return cards},get sharedStyle(){return sharedStyle},get active(){return active},batchNames,zipStem,crc32,buildZip,undo:undoStep,redo:redoStep,unsavedWork,get history(){return {length:hist.length,at:histAt}},get view(){return {...viewState}},get safezone(){return {...SZ,box:szBox&&{...szBox},status:$('#szStatus').textContent}},get mockup(){return {...MK,box:mkBox&&{...mkBox},image:mkImage&&mkImage.name,status:$('#mkStatus').textContent}}};
+window.__tt={S,render,renderNow,get L(){return L},exportGeometry,draw,get cards(){return cards},get sharedStyle(){return sharedStyle},get active(){return active},batchNames,zipStem,crc32,buildZip,undo:undoStep,redo:redoStep,unsavedWork,get history(){return {length:hist.length,at:histAt}},get view(){return {...viewState}},get safezone(){return {...SZ,box:szBox&&{...szBox},status:$('#szStatus').textContent,fit:$('#szFit').textContent}},get mockup(){return {...MK,box:mkBox&&{...mkBox},image:mkImage&&mkImage.name,status:$('#mkStatus').textContent}}};
 </script>
 </body>
 </html>

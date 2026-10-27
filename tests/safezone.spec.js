@@ -71,20 +71,39 @@ test.describe('safe zone overlay', () => {
     await expect(page.locator('[data-sz-reset="x"]')).toBeDisabled();
   });
 
+  test('the verdict sits at the right end of the bottom bar; the panel keeps only notes about the overlay', async ({ app: { page } }) => {
+    await vertical(page);
+    await setText(page, 'Hi');
+    await page.check('#szOn');
+    const fit = page.locator('#info #szFit');
+    await expect(fit).toHaveText('✓ The card is inside the safe zone.');
+    await expect(page.locator('#szStatus')).toHaveText('');
+    const [bar, f, stats] = await Promise.all(['#info', '#szFit', '#infoStats'].map((s) => page.locator(s).boundingBox()));
+    expect(bar.x + bar.width - (f.x + f.width)).toBeLessThan(20);   // flush right, inside the bar's padding
+    expect(Math.abs(f.y - stats.y)).toBeLessThan(4);                 // on the same line as "1 line · card … px"
+    await expect(page.locator('#infoStats')).toContainText('1 line');
+    await page.fill('#offY', '-850');
+    await expect(fit).toHaveText(/^⚠ The card overlaps the top bar/);
+    await expect(fit).toHaveClass(/bad/);
+    await page.uncheck('#szOn');
+    await expect(fit).toHaveText('');
+    await expect(page.locator('#infoStats')).toContainText('1 line');   // the card's numbers stay
+  });
+
   test('the panel says whether the card is clear of the interface', async ({ app: { page } }) => {
     await vertical(page);
     await setText(page, 'Hi');
     await page.check('#szOn');
-    expect((await sz(page)).status).toContain('inside the safe zone');
+    expect((await sz(page)).fit).toContain('inside the safe zone');
     await page.fill('#offY', '-850'); // up into the top bar
-    expect((await sz(page)).status).toContain('overlaps the top bar');
+    expect((await sz(page)).fit).toContain('overlaps the top bar');
     await page.fill('#offY', '500');
     await page.fill('#offX', '350');
     await page.selectOption('#szKind', 'reels');
-    expect((await sz(page)).status).toContain('side buttons');
+    expect((await sz(page)).fit).toContain('side buttons');
     await page.fill('#offX', '0'); await page.fill('#offY', '0');
     await setText(page, 'A line far too wide for a vertical frame');
-    expect((await sz(page)).status).toContain('goes past the edge');
+    expect((await sz(page)).fit).toContain('goes past the edge');
   });
 
   test('your own image is drawn in its place, fitted, moved and scaled the same way', async ({ app: { page } }) => {
@@ -175,11 +194,11 @@ test.describe('Instagram Reels UI | iPhone 16 Pro', () => {
   test('says whether the card is clear of the interface', async ({ app: { page } }) => {
     await iphone(page);
     await setText(page, 'Hi');
-    expect((await sz(page)).status).toContain('inside the safe zone');
+    expect((await sz(page)).fit).toContain('inside the safe zone');
     await page.fill('#offY', '820'); // down into the bottom of the screen
-    expect((await sz(page)).status).toContain('navigation bar');
+    expect((await sz(page)).fit).toContain('navigation bar');
     await page.fill('#offY', '-850'); // up into the tabs
-    expect((await sz(page)).status).toContain('top bar');
+    expect((await sz(page)).fit).toContain('top bar');
   });
 
   test('is never exported, and the choice is remembered', async ({ app: { page } }) => {
