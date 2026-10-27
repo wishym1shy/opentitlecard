@@ -4,6 +4,11 @@ What changed in OpenTitlecard, newest first. The version is shown next to the ap
 
 Versions are `vMAJOR.MINOR`. Each merged pull request that changes the app adds one to the minor number (v1.31 → v1.32 → …). The changelog started at v1.31: v1.27 stands for everything merged before the UI review that led to v1.28–v1.31 (pull requests up to #31), so the numbers line up with the work done.
 
+## v1.47
+
+### Added
+- Sidebar sections, the floating panels, the ⋮ menu and the dialogs now animate when they open and close: a quick slide or fade (under a fifth of a second), eased at the start and end, so it's easy to see what just opened or closed. If your system is set to reduce motion, they open and close at once, as before.
+
 ## v1.46
 
 ### Added

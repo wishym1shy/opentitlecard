@@ -15,6 +15,9 @@ module.exports = defineConfig({
     viewport: { width: 1440, height: 900 },
     acceptDownloads: true,
     trace: 'retain-on-failure',
+    // Panels, sections, menus and dialogs animate open and closed, except for reduced motion. Tests measure layout right
+    // after a click, so they run with reduced motion; animations.spec.js turns it back on to test the animations.
+    contextOptions: { reducedMotion: 'reduce' },
   },
   projects: [{ name: 'chromium', use: { browserName: 'chromium' } }],
 });
