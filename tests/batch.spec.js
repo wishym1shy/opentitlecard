@@ -203,6 +203,38 @@ test.describe('batch export dialog', () => {
     expect(await t.evaluate((el) => getComputedStyle(el.parentElement).backgroundImage)).toBe('none');
   });
 
+  test('clicking a thumbnail opens a preview at export size that flips through the cards to export, skipping empty ones', async ({ app: { page } }) => {
+    await threeCards(page);
+    await addCard(page, '');   // empty: not exported, not previewed
+    await page.selectOption('#frame', '1080x1920');
+    await page.click('#batchOpen');
+    await expect(page.locator('#bGrid button.thumb')).toHaveCount(3);
+    await page.click('#bGrid button.thumb >> nth=1');
+    const pv = page.locator('#pvDlg');
+    await expect(pv).toBeVisible();
+    await expect(page.locator('#pvTitle')).toHaveText('titlecard-2.png');
+    await expect(page.locator('#pvCount')).toHaveText('2 of 3');
+    expect(await page.locator('#pvStage canvas').evaluate((c) => [c.width, c.height])).toEqual([1080, 1920]);   // the real PNG size
+    await expect(page.locator('#pvInfo')).toContainText('1080 × 1920 px');
+    await page.keyboard.press('ArrowRight');
+    await expect(page.locator('#pvCount')).toHaveText('3 of 3');
+    await expect(page.locator('#pvNext')).toBeDisabled();
+    await page.keyboard.press('ArrowRight');   // stops at the end
+    await expect(page.locator('#pvCount')).toHaveText('3 of 3');
+    await page.keyboard.press('Home');
+    await expect(page.locator('#pvTitle')).toHaveText('titlecard-1.png');
+    await expect(page.locator('#pvPrev')).toBeDisabled();
+    await page.click('#pvNext');
+    await expect(page.locator('#pvCount')).toHaveText('2 of 3');
+    await page.keyboard.press('Escape');   // closes the preview only
+    await expect(pv).toBeHidden();
+    await expect(page.locator('#batchDlg')).toBeVisible();
+    await expect(page.locator('#bGrid button.thumb >> nth=1')).toBeFocused();
+    await page.keyboard.press('Enter');    // the keyboard opens it too
+    await expect(pv).toBeVisible();
+    await expect(page.locator('#pvCount')).toHaveText('2 of 3');
+  });
+
   test('opens as a dialog with a thumbnail and a live file name for every card', async ({ app: { page } }) => {
     await threeCards(page);
     await page.click('#batchOpen');
