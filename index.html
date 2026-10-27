@@ -52,6 +52,7 @@
   #szStatus.bad{color:#ffb3a8}
   #infoStats{display:flex;gap:16px;flex-wrap:wrap}
   #szFit{margin-left:auto} #szFit.ok{color:var(--ok)} #szFit.bad{color:#ffb3a8}
+  .usecanvas{margin-left:6px;padding:1px 8px;font-size:11.5px}
   .stagebody.with-panels .view{padding-right:330px}
   #panelsToggle[aria-pressed="true"]{background:var(--accent2);border-color:var(--accent)}
   label{display:block;color:var(--mute);font-size:11.5px;margin:8px 0 3px}
@@ -212,7 +213,7 @@
   .fld .scrub{flex:none;display:flex;align-items:center;justify-content:center;width:26px;height:100%;color:var(--mute);cursor:ew-resize;user-select:none;touch-action:none;font-size:11px;font-weight:600}
   .fld .scrub:hover{color:var(--text)}
   .fld .scrub svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.3;stroke-linecap:round;stroke-linejoin:round}
-  aside .fld input[type=number],aside .fld input[type=text]{flex:1;min-width:0;height:100%;padding:0 2px;border:0;background:none;font-variant-numeric:tabular-nums;-moz-appearance:textfield}
+  .fld input[type=number],.fld input[type=text]{flex:1;min-width:0;height:100%;padding:0 2px;border:0;background:none;font-variant-numeric:tabular-nums;-moz-appearance:textfield}
   .fld input[type=number]::-webkit-inner-spin-button,.fld input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
   .fld .unit{flex:none;padding-right:7px;color:var(--mute);font-size:11px}
   .fld button.rs{float:none;flex:none;margin:0 3px 0 -3px;width:18px;height:18px;padding:0;border:0;background:none;color:var(--mute);font-size:12px;line-height:18px}
@@ -227,6 +228,7 @@
   .fld input[type=range]::-moz-range-progress{height:2px;background:var(--accent)}
   .fld input[type=range]::-moz-range-thumb{width:9px;height:9px;border:0;border-radius:50%;background:var(--text)}
   .fld input[type=range]:focus-visible{outline:0}
+  .fld input[type=range].noline{display:none}   /* X / Y: no slider line, like the card's position (scrub or type instead) */
   .fld:has(input[type=range]:focus-visible){border-color:var(--accent)}
   /* Colour fields: a swatch, then the hex code you can type. */
   .fld input[type=color]{flex:none;width:16px;height:16px;margin:0 6px 0 7px;border:0;border-radius:3px;padding:0;background:none}
@@ -281,7 +283,7 @@
 </head>
 <body>
 <header>
-  <h1>OpenTitlecard <a id="appVersion" href="https://github.com/wishym1shy/opentitlecard/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer" title="What's new in this version (changelog on GitHub)">v1.49</a></h1>
+  <h1>OpenTitlecard <a id="appVersion" href="https://github.com/wishym1shy/opentitlecard/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer" title="What's new in this version (changelog on GitHub)">v1.50</a></h1>
   <a class="gh" href="https://github.com/wishym1shy/opentitlecard" target="_blank" rel="noopener noreferrer" title="View the source on GitHub">
     <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
     <span>View on GitHub</span>
@@ -345,6 +347,7 @@
           <!-- Scale (the font size, which sizes the whole card: box, padding and corners are in em of it) sits with X / Y so
                the three handles used most while laying out a mock-up are together. Outside #frameOpts: it applies in tight crop too. -->
           <label for="n_size">Scale</label><div class="fld" data-name="Scale"><span class="scrub" data-scrub-for="size" title="Drag to scale the card (Shift = 10×). Double-click to reset."><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 4V3h7v1M5.5 3v10M4 13h3M10 8V7.5h4.5V8M12.2 7.5V13M11.2 13h2"/></svg></span><input type="number" id="n_size" step="1" aria-label="Scale"><span class="unit">px</span><span class="sr" id="v_size" aria-hidden="true"></span><input type="range" id="size" min="30" max="260" step="1" aria-label="Scale slider"></div>
+          <label class="chk" style="margin-top:6px"><input type="checkbox" id="autoScale"> Auto-scale to fit when the canvas size changes</label>
           <div class="hint" id="posHint">X / Y move the card inside the canvas, in px at 1080p (+Y is down), the same for every card. Scale is the font size in px at 1080p: the box, padding and corners grow with it.</div>
           <div class="hint" id="posTight" style="margin:0" hidden>Tight crop is on (Canvas panel), so the PNG is just the card and its X / Y position doesn't apply. Scale still does.</div>
         </div>
@@ -501,10 +504,10 @@
             <button id="mkLoad" class="sm">Load image…</button><span class="hint" id="mkImgName" style="margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
             <input type="file" id="mkFile" accept="image/png,image/jpeg,image/webp,image/svg+xml" hidden>
           </div>
-          <label for="mkX">Position X <span class="val" id="v_mkX"></span></label><input type="range" id="mkX" min="-3840" max="3840" step="1">
-          <label for="mkY">Position Y <span class="val" id="v_mkY"></span></label><input type="range" id="mkY" min="-3840" max="3840" step="1">
-          <label for="mkScale">Scale <span class="val" id="v_mkScale"></span></label><input type="range" id="mkScale" min="10" max="400" step="1">
-          <label for="mkOpacity">Opacity <span class="val" id="v_mkOpacity"></span></label><input type="range" id="mkOpacity" min="0" max="100" step="1">
+          <!-- the same fields as Position & Scale in the sidebar: X | Y, then Scale, then Opacity -->
+          <div class="g2"><div><label for="n_mkX">X offset</label><div class="fld" data-name="X offset"><span class="scrub" data-view-scrub="mkX" title="Drag to move the mock-up (Shift = 10×). Double-click for 0.">X</span><input type="number" id="n_mkX" step="1" aria-label="X offset"><span class="unit">px</span><span class="sr" id="v_mkX" aria-hidden="true"></span><input type="range" class="noline" id="mkX" min="-3840" max="3840" step="1" aria-label="X offset slider"></div></div><div><label for="n_mkY">Y offset</label><div class="fld" data-name="Y offset"><span class="scrub" data-view-scrub="mkY" title="Drag to move the mock-up (Shift = 10×). Double-click for 0.">Y</span><input type="number" id="n_mkY" step="1" aria-label="Y offset"><span class="unit">px</span><span class="sr" id="v_mkY" aria-hidden="true"></span><input type="range" class="noline" id="mkY" min="-3840" max="3840" step="1" aria-label="Y offset slider"></div></div></div>
+          <label for="n_mkScale">Scale</label><div class="fld" data-name="Scale"><span class="scrub" data-view-scrub="mkScale" title="Drag to scale the mock-up (Shift = 10×). Double-click to reset."><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 4V3h7v1M5.5 3v10M4 13h3M10 8V7.5h4.5V8M12.2 7.5V13M11.2 13h2"/></svg></span><input type="number" id="n_mkScale" step="1" aria-label="Scale"><span class="unit">%</span><span class="sr" id="v_mkScale" aria-hidden="true"></span><input type="range" id="mkScale" min="10" max="400" step="1" aria-label="Scale slider"></div>
+          <label for="n_mkOpacity">Opacity</label><div class="fld" data-name="Opacity"><span class="scrub" data-view-scrub="mkOpacity" title="Drag to change the mock-up&#39;s opacity (Shift = 10×). Double-click to reset."><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="5.5"/><path d="M8 2.5v11A5.5 5.5 0 0 0 8 2.5z" fill="currentColor"/></svg></span><input type="number" id="n_mkOpacity" step="1" aria-label="Opacity"><span class="unit">%</span><span class="sr" id="v_mkOpacity" aria-hidden="true"></span><input type="range" id="mkOpacity" min="0" max="100" step="1" aria-label="Opacity slider"></div>
           <div class="hint" id="mkStatus" role="status"></div>
           <h3 class="fpsub sep" id="szHead">Safe zone</h3>
           <div class="row tight"><label style="margin:0"><input type="checkbox" id="szOn"> Show safe zone</label></div>
@@ -519,10 +522,10 @@
             <button id="szLoad" class="sm">Load image…</button><span class="hint" id="szImgName" style="margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
             <input type="file" id="szFile" accept="image/png,image/jpeg,image/webp,image/svg+xml" hidden>
           </div>
-          <label for="szX">Position X <span class="val" id="v_szX"></span></label><input type="range" id="szX" min="-1920" max="1920" step="1">
-          <label for="szY">Position Y <span class="val" id="v_szY"></span></label><input type="range" id="szY" min="-1920" max="1920" step="1">
-          <label for="szScale">Scale <span class="val" id="v_szScale"></span></label><input type="range" id="szScale" min="10" max="300" step="1">
-          <label for="szOpacity">Opacity <span class="val" id="v_szOpacity"></span></label><input type="range" id="szOpacity" min="10" max="100" step="1">
+          <!-- the same fields as Position & Scale in the sidebar: X | Y, then Scale, then Opacity -->
+          <div class="g2"><div><label for="n_szX">X offset</label><div class="fld" data-name="X offset"><span class="scrub" data-view-scrub="szX" title="Drag to move the overlay (Shift = 10×). Double-click for 0.">X</span><input type="number" id="n_szX" step="1" aria-label="X offset"><span class="unit">px</span><span class="sr" id="v_szX" aria-hidden="true"></span><input type="range" class="noline" id="szX" min="-1920" max="1920" step="1" aria-label="X offset slider"></div></div><div><label for="n_szY">Y offset</label><div class="fld" data-name="Y offset"><span class="scrub" data-view-scrub="szY" title="Drag to move the overlay (Shift = 10×). Double-click for 0.">Y</span><input type="number" id="n_szY" step="1" aria-label="Y offset"><span class="unit">px</span><span class="sr" id="v_szY" aria-hidden="true"></span><input type="range" class="noline" id="szY" min="-1920" max="1920" step="1" aria-label="Y offset slider"></div></div></div>
+          <label for="n_szScale">Scale</label><div class="fld" data-name="Scale"><span class="scrub" data-view-scrub="szScale" title="Drag to scale the overlay (Shift = 10×). Double-click to reset."><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 4V3h7v1M5.5 3v10M4 13h3M10 8V7.5h4.5V8M12.2 7.5V13M11.2 13h2"/></svg></span><input type="number" id="n_szScale" step="1" aria-label="Scale"><span class="unit">%</span><span class="sr" id="v_szScale" aria-hidden="true"></span><input type="range" id="szScale" min="10" max="300" step="1" aria-label="Scale slider"></div>
+          <label for="n_szOpacity">Opacity</label><div class="fld" data-name="Opacity"><span class="scrub" data-view-scrub="szOpacity" title="Drag to change the overlay&#39;s opacity (Shift = 10×). Double-click to reset."><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="5.5"/><path d="M8 2.5v11A5.5 5.5 0 0 0 8 2.5z" fill="currentColor"/></svg></span><input type="number" id="n_szOpacity" step="1" aria-label="Opacity"><span class="unit">%</span><span class="sr" id="v_szOpacity" aria-hidden="true"></span><input type="range" id="szOpacity" min="10" max="100" step="1" aria-label="Opacity slider"></div>
           <div class="hint" id="szStatus" role="status"></div>
         </div>
       </section>
@@ -1243,20 +1246,35 @@ function loadView(key,D,R){
 const sliderId=(p,k)=>p+k[0].toUpperCase()+k.slice(1);   // ('sz','scale') -> 'szScale'
 function syncViewSliders(p,st,D,R){
   for(const k in R){
-    const id=sliderId(p,k); $('#'+id).value=st[k]; $('#v_'+id).textContent=VIEW_FMT[k](st[k]);
+    const id=sliderId(p,k), el=$('#'+id);
+    el.value=st[k]; el.style.setProperty('--p',(st[k]-el.min)/(el.max-el.min)*100+'%');   // the field's line fills to here
+    $('#n_'+id).value=st[k]; $('#v_'+id).textContent=VIEW_FMT[k](st[k]);
     const r=$(`[data-${p}-reset="${k}"]`); if(r) r.disabled=st[k]===D[k];
   }
 }
-// Wires each slider and gives it the same ↺ as the style sliders (double-clicking the slider does the same).
+/* Wires each field like the sidebar's (see "Sidebar fields"): the thin slider, a typed value (applies on Enter or blur;
+   arrow keys step, Shift = 10), and the icon to scrub sideways, one step per pixel. Double-clicking the icon resets.
+   Scale and Opacity also get the ↺ of the style fields; X / Y don't, like the card's position (double-click sets 0). */
 function bindViewSliders(p,st,D,R,changed){
   for(const k in R){
-    const el=$('#'+sliderId(p,k)), v=$('#v_'+sliderId(p,k));
-    el.addEventListener('input',()=>{ st[k]=+el.value; changed(); });
+    const id=sliderId(p,k), el=$('#'+id), n=$('#n_'+id), v=$('#v_'+id), h=$(`[data-view-scrub="${id}"]`);
+    const set=val=>{ if(!Number.isFinite(val)) return syncViewSliders(p,st,D,R); st[k]=clamp(Math.round(val),...R[k]); changed(); };
+    el.addEventListener('input',()=>set(+el.value));
+    n.addEventListener('change',()=>set(n.value.trim()===''?NaN:+n.value));
+    n.addEventListener('keydown',e=>{
+      if(e.key!=='ArrowUp'&&e.key!=='ArrowDown') return;
+      e.preventDefault(); set(st[k]+(e.key==='ArrowUp'?1:-1)*(e.shiftKey?10:1));
+    });
+    let drag=null;   // accumulates per move, so pressing Shift mid-drag changes speed without a jump
+    h.addEventListener('pointerdown',e=>{ if(e.button!==0) return; e.preventDefault(); h.setPointerCapture(e.pointerId); drag={x:e.clientX,v:st[k]}; });
+    h.addEventListener('pointermove',e=>{ if(!drag) return; drag.v+=(e.clientX-drag.x)*(e.shiftKey?10:1); drag.x=e.clientX; if(Math.round(drag.v)!==st[k]) set(drag.v); });
+    for(const t of ['pointerup','pointercancel']) h.addEventListener(t,()=>{ drag=null; });
+    h.addEventListener('dblclick',()=>set(D[k]));
+    if(k==='x'||k==='y') continue;
     const b=document.createElement('button');
     b.type='button'; b.className='sm rs'; b.dataset[p+'Reset']=k; b.textContent='↺';
-    b.setAttribute('aria-label',`Reset ${v.parentElement.firstChild.textContent.trim()}`); b.title=`Reset to default (${VIEW_FMT[k](D[k])})`;
-    b.addEventListener('click',()=>{ st[k]=D[k]; changed(); });
-    el.addEventListener('dblclick',()=>b.click());
+    b.setAttribute('aria-label',`Reset ${el.closest('[data-name]').dataset.name}`); b.title=`Reset to default (${VIEW_FMT[k](D[k])})`;
+    b.addEventListener('click',()=>set(D[k]));
     v.before(b);
   }
 }
@@ -1407,7 +1425,7 @@ const SAFE_ZONES={
   stories:{w:1080,h:1920,ui:[['top bar',0,0,1080,250],['bottom bar',0,1670,1080,250]],safe:[[0,250],[1080,250],[1080,1670],[0,1670]]},
   reels:{w:1080,h:1920,ui:[['top bar',0,0,1080,250],['bottom bar',0,1670,1080,250],['side buttons',880,1230,200,440]],safe:[[0,250],[1080,250],[1080,1230],[880,1230],[880,1670],[0,1670]]},
   // ui: what the card shouldn't sit under, for the status line; draw: paints the mock-up instead of the red/green zones
-  igReels16:{w:1206,h:2622,ui:[['top bar',0,0,1206,330],['side buttons',1050,1570,156,770],['caption',0,2010,1050,310],['navigation bar',0,2386,1206,236]],draw:drawReelsUI},
+  igReels16:{w:1206,h:2622,ui:[['top bar',0,0,1206,330],['side buttons',1050,1570,156,770],['caption',0,2010,1050,310],['navigation bar',0,2386,1206,236]],draw:drawReelsUI,frame:'1206x2622',frameName:'iPhone 16 Pro'},
 };
 const SZ_DEFAULTS={on:false,kind:'stories',x:0,y:0,scale:100,opacity:100};
 const SZ_RANGES={x:[-1920,1920],y:[-1920,1920],scale:[10,300],opacity:[10,100]};
@@ -1460,13 +1478,19 @@ function drawSafeZone(ctx,g,k){
    next to the card's size, where it can be read while working on the card. Built-in zones only: an image can't be read
    for where its safe area is. Notes about the overlay itself (load an image, turn off tight crop) stay in the panel. */
 function safeZoneStatus(g){
-  const el=$('#szStatus'), fit=$('#szFit'); el.className='hint'; fit.className=''; fit.textContent='';
+  const el=$('#szStatus'), fit=$('#szFit'), z=SAFE_ZONES[SZ.kind];
+  // An overlay drawn for one canvas (a phone screen) says nothing useful about another: on a mismatched canvas the card
+  // would be laid out against a shrunken phone and exported at the wrong size. Say so, with a one-click fix, instead of
+  // a verdict.
+  const wrongCanvas=SZ.on && !S.tight && !!z && !!z.frame && frameDims().join('x')!==z.frame;
+  if(!wrongCanvas){ delete el.dataset.msg; delete fit.dataset.msg; }
+  el.className='hint'; fit.className=''; if(!fit.dataset.msg) fit.textContent='';   // a warning kept as it is (frameWarning) keeps its button
   if(!SZ.on){ el.textContent=''; return; }
   if(S.tight){ el.textContent='A safe zone needs the full canvas: turn off Tight crop to see it.'; return; }
   if(SZ.kind==='image'){ el.textContent=szImage?'Your image is drawn over the preview.':'Load an image to see it. Images aren\'t saved, so load it again after a reload.'; return; }
+  if(wrongCanvas){ frameWarning(fit,z); frameWarning(el,z); return; }
   el.textContent='';
   const b=szBox; if(!b || !L.lines.length) return;
-  const z=SAFE_ZONES[SZ.kind];
   // the card's box (with nudges, which move only the text) in zone coordinates
   let x0=Infinity,x1=-Infinity,y0=Infinity,y1=-Infinity;
   for(const l of L.lines){ x0=Math.min(x0,l.x0,l.tx+l.nx); x1=Math.max(x1,l.x1,l.tx+l.nx+l.w); y0=Math.min(y0,l.y0,l.y0+l.ny); y1=Math.max(y1,l.y1,l.y1+l.ny); }
@@ -1477,6 +1501,19 @@ function safeZoneStatus(g){
   if(!hits.length && !out){ fit.textContent='✓ The card is inside the safe zone.'; fit.classList.add('ok'); return; }
   fit.textContent='⚠ The card '+[hits.length?'overlaps the '+hits.join(' and the '):'', out?'goes past the edge of the frame':''].filter(Boolean).join(', and ')+'.';
   fit.classList.add('bad');
+}
+// "⚠ … canvas … [Use … canvas]": built as nodes (no HTML strings) and kept while the message is the same, so a redraw
+// doesn't replace the button under the pointer. The button picks the canvas like the size menu does, so it saves, can be
+// undone, and auto-scale fits the card.
+function frameWarning(el,z){
+  const [w,h]=frameDims(), [zw,zh]=z.frame.split('x'), msg=`⚠ This overlay is the ${z.frameName} screen (${zw} × ${zh}) but the canvas is ${w} × ${h}: the PNG won't match it.`;
+  el.classList.add('bad');
+  if(el.dataset.msg===msg) return;
+  el.dataset.msg=msg; el.textContent=msg+' ';
+  const b=document.createElement('button');
+  b.type='button'; b.className='sm usecanvas'; b.textContent=`Use ${z.frameName} canvas`;
+  b.addEventListener('click',()=>{ const f=$('#frame'); f.value=z.frame; f.dispatchEvent(new Event('change')); });
+  el.append(b);
 }
 function saveSZ(){ store.set('opentitlecard.safezone',SZ); }
 function syncSZControls(){
@@ -1754,9 +1791,11 @@ for(const [k,t] of bindings){
   for(const id of DIALOG_KEYS.includes(k)?[k,'x_'+k]:[k]){
     const el=$('#'+id); if(!el) continue;
     el.addEventListener(t==='chk'||t==='sel'||t==='col'||t==='rad'?'change':'input',()=>{
+      const dims=frameDims();   // the canvas size before this change, for auto-scale
       S[k]= t==='chk'?el.checked : t==='num'?+el.value : t==='rad'?el.querySelector('input:checked').value : el.value;
       if(k==='frame' && S.frame!=='custom'){ const [w,h]=S.frame.split('x').map(Number); S.fw=w; S.fh=h; }
       if(k==='size'||k==='weight'||k==='family') nudgeSig='';
+      if(k==='frame'||k==='fw'||k==='fh') autoFit(dims);   // a new canvas size: fit the card to it (see auto-scale)
       record(t==='num'||t==='text'?'style:'+k:'');   // a slider drag or typing a family name is one step
       persistStyle(); syncControls(); render();
       if(id.startsWith('x_')) fillBatchGrid();   // the dialog's thumbnails follow the canvas settings
@@ -1770,14 +1809,61 @@ function setOrientation(o){
   if(w===h || (o==='v')===(h>w)) return;
   const key=`${h}x${w}`;
   S.frame=CHOICES.frame.includes(key)?key:'custom'; S.fw=h; S.fh=w;
-  persistStyle(); syncControls(); record(); render();
+  autoFit([w,h]); persistStyle(); syncControls(); record(); render();
 }
 $('#orient').addEventListener('click',e=>{ const b=e.target.closest('[data-orient]'); if(b) setOrientation(b.dataset.orient); });
 // A custom size is clamped once you leave the field (clamping while you type would fight every keystroke).
 for(const id of ['fw','fh','x_fw','x_fh']) $('#'+id).addEventListener('change',()=>{
   const k=id.replace('x_',''), v=clamp(Math.round(+S[k])||(k==='fw'?1920:1080),64,MAX_SIDE);
-  if(v!==S[k]){ S[k]=v; persistStyle(); syncControls(); record(); render(); if(id.startsWith('x_')) fillBatchGrid(); }
+  if(v!==S[k]){ const dims=frameDims(); S[k]=v; autoFit(dims); persistStyle(); syncControls(); record(); render(); if(id.startsWith('x_')) fillBatchGrid(); }
 });
+/* ============ auto-scale ============ */
+/* When the canvas size changes (size menu, Landscape/Vertical, a custom size, or the same in the export dialog), Scale is
+   set so the card fits the new canvas with AUTO_MARGIN px (at 1080p) of room on each side. Only then (maintainer
+   decision): not when the app opens, so a saved Scale is never changed behind the user's back, and not when the same
+   size is picked again. The field stays the user's to change at any time, and the toggle (#autoScale, a saved
+   preference, not part of the design) turns it off.
+   It fits down to the canvas and back up, but never past the Scale the user chose: autoMemo remembers, per style, the
+   Scale it set and the one it started from. If Scale still equals what auto-scale set, the user hasn't changed it, so
+   the remembered choice is the target again (shrink for a narrow canvas, grow back on a wide one); any other value is a
+   new choice. A style is the shared one (every card without its own style, fitted together) or a card's own. */
+const AUTO_MARGIN=20;
+let autoScale=store.get('opentitlecard.autoScale',true)!==false;
+const autoMemo=new Map();   // style key ('shared' or a card's name) -> {size, base}
+// Does the card in S/L fit the canvas, AUTO_MARGIN px clear of every edge? Measured around its centre, offset included.
+function cardFits(){
+  const g=exportGeometry(), m=AUTO_MARGIN*g.u;
+  return L.cardW*g.u/2<=Math.min(g.cx,g.W-g.cx)-m && L.cardH*g.u/2<=Math.min(g.cy,g.H-g.cy)-m;
+}
+// The largest whole Scale up to `base` at which every card in `list` fits with `style`. Text widths don't grow exactly
+// in proportion (wrapping, emoji slots, rounding), so it searches rather than divides. The slider's minimum if nothing fits.
+function fitSize(list,style,base){
+  const min=+$('#size').min, fits=sz=>list.every(c=>withCard({...c,style:{...style,size:sz}},cardFits));
+  if(fits(base)) return base;
+  let lo=min, hi=base;
+  while(hi-lo>1){ const mid=(lo+hi)>>1; if(fits(mid)) lo=mid; else hi=mid; }
+  return lo;
+}
+// Fits every style to the canvas in S, if its size differs from `before` (frameDims() as it was). Returns true if any
+// Scale changed. The caller saves, records and redraws.
+function autoFit(before){
+  if(!autoScale || S.tight || frameDims().join()===before.join()) return false;
+  stash();
+  let changed=false;
+  const fitStyle=(key,list,style)=>{
+    if(!list.length) return;
+    const m=autoMemo.get(key), base=m&&m.size===style.size?m.base:style.size, size=fitSize(list,style,base);
+    autoMemo.set(key,{size,base});
+    if(size!==style.size){ style.size=size; changed=true; }
+  };
+  fitStyle('shared',cards.filter(c=>!c.style),sharedStyle);
+  cards.forEach(c=>{ if(c.style) fitStyle('card:'+c.name,[c],c.style); });
+  if(changed){ S.size=(cards[active].style||sharedStyle).size; nudgeSig=''; }
+  return changed;
+}
+$('#autoScale').checked=autoScale;
+$('#autoScale').addEventListener('change',e=>{ autoScale=e.target.checked; store.set('opentitlecard.autoScale',autoScale); });
+
 /* Reset buttons: Scale (the font size) and every Text Settings and Background slider gets a ↺ that puts it back to the app's default (DEFAULTS, not a
    preset: the default preset only applies on a first load). It goes through the slider's own input event, so saving,
    a card's own style and redrawing behave exactly as for a drag. Double-clicking the slider does the same, like the
@@ -2590,6 +2676,7 @@ buildSwatches(); refreshPresets(); syncControls();
 window.addEventListener('resize',render);   // Fit follows the window
 loadBundledInter();
 (document.fonts&&document.fonts.ready?document.fonts.ready:Promise.resolve()).then(render);
+
 render();
 // Panels animate open from now on, not at page load (their @starting-style rule needs .anim): two frames, so it is
 // added after the first paint.

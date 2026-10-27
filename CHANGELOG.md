@@ -4,6 +4,15 @@ What changed in OpenTitlecard, newest first. The version is shown next to the ap
 
 Versions are `vMAJOR.MINOR`. Each merged pull request that changes the app adds one to the minor number (v1.31 → v1.32 → …). The changelog started at v1.31: v1.27 stands for everything merged before the UI review that led to v1.28–v1.31 (pull requests up to #31), so the numbers line up with the work done.
 
+## v1.50
+
+### Added
+- **Auto-scale:** when you change the canvas size (size menu, Landscape / Vertical, a custom size, or the export dialog), Scale is set so the card fits with at least 20 px of room on each side. It shrinks the card for a narrow canvas and grows it back on a wider one, never past the Scale you chose; if you change Scale yourself, that becomes the size it keeps. It works for every card (cards sharing a style are fitted together, a card with its own style on its own), it's one undo step with the canvas change, and it never changes anything when the app opens. Turn it off under Scale in **Position & Scale**.
+- **Wrong canvas warning:** with the **Instagram Reels UI | iPhone 16 Pro** overlay on and a canvas that isn't 1206 × 2622, the bottom bar and the panel say so, with a **Use iPhone 16 Pro canvas** button, so you don't lay out a card against a shrunken phone and export it at the wrong size.
+
+### Changed
+- The mock-up and safe zone **X / Y offset, Scale and Opacity** settings now look and work like Position & Scale in the sidebar: X and Y side by side, then Scale, then Opacity, each with a typed value, a drag-to-scrub icon (double-click to reset) and ↺ on Scale and Opacity.
+
 ## v1.49
 
 ### Changed
