@@ -139,10 +139,12 @@ test.describe('how bold and underline are drawn', () => {
         const ctx = c.getContext('2d');
         __tt.draw(ctx, c.width, c.height, { u, cx: g.cx * k, cy: g.cy * k, guides: false, sel: null });
         const run = l.items.find((i) => i.text.trim() === 'bbbb'), other = l.items.find((i) => i.text.includes('aaaa'));
-        const y = Math.round(g.cy * k + (l.base + l.ny + __tt.S.size * 0.15) * u);   // inside the bar (0.12em down, 0.065em thick)
+        // The bar is thin and, at a small zoom, antialiased over a pixel or two, so look at the band it can fall in (0.09em to
+        // 0.21em below the baseline; these letters have no descenders) for a dark pixel, not at one pixel that might be a lighter row.
+        const top = Math.floor(g.cy * k + (l.base + l.ny + __tt.S.size * 0.09) * u), bottom = Math.ceil(g.cy * k + (l.base + l.ny + __tt.S.size * 0.21) * u);
         const x = (it, f) => Math.round(g.cx * k + (l.tx + l.nx + it.x + it.w * f) * u);
-        const dark = (px) => { const d = ctx.getImageData(px, y, 1, 1).data; return d[3] > 200 && d[0] < 80; };
-        return { under: dark(x(run, 0.5)), startsAt: dark(x(run, 0.05)), endsAt: dark(x(run, 0.95)), before: dark(x(other, 0.5)), after: dark(x(run, 1.15)), insideBox: y < g.cy * k + l.y1 * u - 1 };
+        const dark = (px) => { const d = ctx.getImageData(px, top, 1, bottom - top + 1).data; for (let i = 0; i < d.length; i += 4) if (d[i + 3] > 100 && d[i] < 140) return true; return false; };
+        return { under: dark(x(run, 0.5)), startsAt: dark(x(run, 0.05)), endsAt: dark(x(run, 0.95)), before: dark(x(other, 0.5)), after: dark(x(run, 1.15)), insideBox: bottom < g.cy * k + l.y1 * u + 1 };
       }, k);
       expect(r, `at ${k}x`).toEqual({ under: true, startsAt: true, endsAt: true, before: false, after: false, insideBox: true });
     }
@@ -159,9 +161,9 @@ test.describe('underline across spaces', () => {
       __tt.renderNow(); const g = __tt.exportGeometry(), l = __tt.L.lines[0];
       const c = document.createElement('canvas'); c.width = g.W; c.height = g.H; const ctx = c.getContext('2d');
       __tt.draw(ctx, g.W, g.H, { u: g.u, cx: g.cx, cy: g.cy, guides: false, sel: null });
-      const y = Math.round(g.cy + (l.base + l.ny + __tt.S.size * 0.15) * g.u);
+      const top = Math.floor(g.cy + (l.base + l.ny + __tt.S.size * 0.09) * g.u), bottom = Math.ceil(g.cy + (l.base + l.ny + __tt.S.size * 0.21) * g.u);
       const left = g.cx + (l.tx + l.nx) * g.u, total = l.w * g.u;
-      return fr.map((f) => { const d = ctx.getImageData(Math.round(left + total * f), y, 1, 1).data; return d[3] > 200 && d[0] < 80; });
+      return fr.map((f) => { const d = ctx.getImageData(Math.round(left + total * f), top, 1, bottom - top + 1).data; for (let i = 0; i < d.length; i += 4) if (d[i + 3] > 100 && d[i] < 140) return true; return false; });
     }, xs);
     // "aa bb cc": the space after "aa" is at about 0.25-0.33 of the line, and the line ends in "cc" (not underlined)
     expect(await dark([0.1, 0.3, 0.5, 0.9])).toEqual([true, true, true, false]);
