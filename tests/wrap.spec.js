@@ -70,7 +70,7 @@ test.describe('auto-wrap (max card width)', () => {
     });
     const full = (await settle(page)).lines[0];
     await setWrap(page, boxW(full) * 0.4);
-    const runs = await page.evaluate(() => __tt.L.lines.flatMap((l) => l.items.filter((i) => i.k === 't').map((i) => [i.text.trim(), i.c, i.it])));
+    const runs = await page.evaluate(() => __tt.L.lines.flatMap((l) => l.items.filter((i) => i.k === 't').map((i) => [i.text.trim(), i.c, i.f])));
     expect(runs).toContainEqual(['lazy', '#ff2d2d', 1]);
     expect(runs.filter((r) => r[1] === '#ff2d2d')).toHaveLength(1); // nothing else picked it up
   });

@@ -4,6 +4,18 @@ What changed in OpenTitlecard, newest first. The version is shown next to the ap
 
 Versions are `vMAJOR.MINOR`. Each merged pull request that changes the app adds one to the minor number (v1.31 → v1.32 → …). The changelog started at v1.31: v1.27 stands for everything merged before the UI review that led to v1.28–v1.31 (pull requests up to #31), so the numbers line up with the work done.
 
+## v1.62
+
+### Added
+- **A text style bar: Bold, Italic and Underline,** right above the **Font family** menu. Like colors, each works on the selected letters or the word at the caret, and is pressed while the whole selection has it. Shortcuts: **Ctrl+B**, **Ctrl+I**, **Ctrl+U** (**⌘** on a Mac). The Italic button moved here from under the colors.
+  - **Bold** uses the next weight up (Regular 400 becomes Bold 700, Bold 700 becomes Black 900), so a family's own Bold face is used where it has one, and the card grows with the wider letters.
+  - **Underline** draws a bar under the letters in their color, and runs on across the space between two underlined words.
+  - Bold and underline are part of each card: they are saved in set files, go through undo and redo, and typing at the end of a bold or underlined word continues it. Older set files open as before.
+- **A warning for faux italic and faux bold.** When a font has no italic face, italic words are only slanted by the browser, and when a loaded font has no bolder face than the one in use, Bold is faked or changes nothing. A ⚠ **Faux italic** / **Faux bold** label appears by the style buttons while the card uses one (hover or focus it to read why and what to do), and a note slides up at the bottom the first time it happens for a font, and fades after 5 seconds (click it to dismiss). The card still draws as before.
+
+### Changed
+- The Italic button now sits in the style bar above **Font family** and shows an icon, like Bold and Underline.
+
 ## v1.61
 
 ### Added
