@@ -95,7 +95,7 @@ test.describe('bundled default font (Inter)', () => {
     await context.close();
   });
 
-  test('the app draws with a stack that puts the bundled face right after "Inter" (an installed Inter wins; otherwise the bundled one)', async ({ browser }) => {
+  test('the app draws with a stack that puts the bundled face first, before "Inter" (an installed Inter is only a fallback for characters the bundle lacks)', async ({ browser }) => {
     const { context, page } = await openPlain(browser);
     await bundledLoaded(page);
     // draw() restores the canvas state, so record every font string it sets instead of reading the final one
@@ -109,8 +109,8 @@ test.describe('bundled default font (Inter)', () => {
     }, family);
     const inter = await fontsUsed('Inter');
     expect(inter.length).toBeGreaterThan(0);
-    for (const f of inter) expect(f).toMatch(/Inter, "?OpenTitlecard Inter"?, /);
-    for (const f of await fontsUsed('inter')) expect(f).toMatch(/inter, "?OpenTitlecard Inter"?, /i);
+    for (const f of inter) expect(f).toMatch(/"?OpenTitlecard Inter"?, "?Inter"?, /);
+    for (const f of await fontsUsed('inter')) expect(f).toMatch(/"?OpenTitlecard Inter"?, "?inter"?, /i);
     const other = await fontsUsed('Courier New');
     expect(other.length).toBeGreaterThan(0);
     for (const f of other) expect(f).not.toContain('OpenTitlecard Inter'); // other families keep the plain fallback

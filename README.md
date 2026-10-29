@@ -75,7 +75,7 @@ Turn on **Show safe zone/overlay** (under **Safe zone & overlay**) in the **Mock
 
 ## Fonts
 
-The default font is **Inter** (Bold), a free, open-source typeface (SIL Open Font License 1.1) that works well for this style. Four more open-source families ship with it: **Montserrat** (a geometric sans), **Linik Sans** (a wide, friendly sans based on Inter), **Source Serif 4** and **Playfair Display** (two serifs). Each comes with real upright and italic faces and every weight, and they are embedded in `index.html` (Latin alphabet), so the app looks right on any computer with nothing to install and nothing downloaded. If you have one of them installed, your own copy is used instead (it may cover more languages).
+The default font is **Inter** (Bold), a free, open-source typeface (SIL Open Font License 1.1) that works well for this style. Four more open-source families ship with it: **Montserrat** (a geometric sans), **Linik Sans** (a wide, friendly sans based on Inter), **Source Serif 4** and **Playfair Display** (two serifs). Each comes with real upright and italic faces and every weight, and they are embedded in `index.html` (Latin alphabet), so the app looks right on any computer with nothing to install and nothing downloaded. The app always uses its own copy of these for the Latin alphabet, so a card looks and exports the same on every computer, and an installed copy of the same font only fills in characters the bundled one doesn't have (other alphabets).
 
 To use another font:
 
