@@ -4,6 +4,12 @@ What changed in OpenTitlecard, newest first. The version is shown next to the ap
 
 Versions are `vMAJOR.MINOR`. Each merged pull request that changes the app adds one to the minor number (v1.31 → v1.32 → …). The changelog started at v1.31: v1.27 stands for everything merged before the UI review that led to v1.28–v1.31 (pull requests up to #31), so the numbers line up with the work done.
 
+## v1.63
+
+### Fixed
+- **The included fonts no longer show "Faux italic" (or get a slanted italic) when a copy of the same font is installed on your computer.** An installed copy of, say, Linik Sans without its italic files used to be picked instead of the italic that comes with the app, so italic words were only slanted and the ⚠ rightly said so. The app's own copy of Inter, Montserrat, Source Serif 4, Playfair Display and Linik Sans is now always used for the Latin alphabet, so a card looks and exports the same on every computer, with the real italic and every weight. An installed copy is still used for any character the included font doesn't have (other alphabets), one character at a time.
+- The ⚠ no longer flashes for a moment while an included font's italic is still loading.
+
 ## v1.62
 
 ### Added

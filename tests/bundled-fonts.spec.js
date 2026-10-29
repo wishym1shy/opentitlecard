@@ -1,4 +1,4 @@
-const { test, expect, expandUi, APP_URL, setText, settle } = require('./helpers');
+const { test, expect, expandUi, APP_URL, setText, settle, setSelection } = require('./helpers');
 
 // The families that ship inside index.html (Inter, Montserrat, Source Serif 4, Playfair Display, Linik Sans), and the font picker
 // that lists them. Like default-font.spec.js these tests never load the test font: they use what a first-time visitor
@@ -81,7 +81,7 @@ test.describe('bundled font families', () => {
       expect(stack.length).toBeGreaterThan(0);
       for (const f of stack) {
         expect(f).toContain(`OpenTitlecard ${name}`);
-        expect(f, 'the plain name comes first, so an installed copy wins').toMatch(new RegExp(`${name}"?, "?OpenTitlecard ${name}"?, `));
+        expect(f, 'the bundled face comes first, so an installed copy can never shadow it').toMatch(new RegExp(`"?OpenTitlecard ${name}"?, "?${name}"?, `));
         expect(/serif/.test(f.replace(/sans-serif/g, ''))).toBe(serif);
       }
     }
@@ -105,6 +105,70 @@ test.describe('bundled font families', () => {
       expect(L.lines[0].items[0].x, name).toBeCloseTo(before, 3);
       await page.click('#ital'); // back to upright for the next family
     }
+    await context.close();
+  });
+
+  test('a bundled family is never judged by measuring: even where an installed copy would make the italic measure like the upright, there is no faux warning', async ({ browser }) => {
+    // as on a computer with a static, italic-less copy of the family installed, which used to shadow the bundled italic
+    const { context, page } = await openPlain(browser, () => {
+      const m = CanvasRenderingContext2D.prototype.measureText;
+      CanvasRenderingContext2D.prototype.measureText = function (t) {
+        if (t !== 'Titlecard affiliate' || !/^italic/.test(this.font)) return m.call(this, t);
+        const c = document.createElement('canvas').getContext('2d'); c.font = this.font.replace(/^italic /, '');
+        return m.call(c, t);   // the upright width, as a slant would measure
+      };
+    });
+    await allLoaded(page);
+    for (const { name } of FAMILIES) {
+      await setFamily(page, name);
+      await setText(page, 'Hello brave world');
+      await setSelection(page, 0, 5);
+      await page.click('#ital');
+      await page.evaluate(() => __tt.renderNow());   // the click's own render is on the next frame: look after it has happened
+      await expect(page.locator('#fauxWarn'), name).toBeHidden();
+      await expect(page.locator('#toast')).not.toHaveClass(/on/);
+      await page.click('#ital');
+    }
+    await context.close();
+  });
+
+  test('while the italic of a bundled family is still loading there is no warning and no toast; once it has loaded, still none', async ({ browser }) => {
+    const { context, page } = await openPlain(browser, () => {
+      const load = FontFace.prototype.load;
+      FontFace.prototype.load = function () { return this.style === 'italic' ? new Promise((r) => setTimeout(r, 1500)).then(() => load.call(this)) : load.call(this); };
+    });
+    await page.waitForFunction(() => [...document.fonts].filter((f) => f.family.includes('OpenTitlecard') && f.style === 'normal' && f.status === 'loaded').length === 5);
+    await setFamily(page, 'Linik Sans');
+    await setText(page, 'Hello brave world');
+    await setSelection(page, 0, 5);
+    await page.click('#ital'); // the upright is ready, the italic is not yet
+    await page.evaluate(() => __tt.renderNow());
+    expect(await page.evaluate(() => [...document.fonts].filter((f) => f.family.includes('Linik Sans') && f.style === 'italic').length), 'the italic really is still loading').toBe(0);
+    // checked at once, not retried: an auto-waiting expect would simply wait for the italic to finish loading
+    expect(await page.locator('#fauxWarn').isHidden(), 'no warning yet').toBe(true);
+    expect(await page.locator('#toast').evaluate((t) => t.classList.contains('on')), 'no toast yet').toBe(false);
+    await allLoaded(page);
+    await page.waitForTimeout(300);
+    await expect(page.locator('#fauxWarn')).toBeHidden();
+    await expect(page.locator('#toast')).not.toHaveClass(/on/);
+    await context.close();
+  });
+
+  test('a bundled family whose italic failed to load is flagged, since its italic really is a slant', async ({ browser }) => {
+    const { context, page } = await openPlain(browser, () => {
+      const Orig = window.FontFace;
+      window.FontFace = function (name, src, desc) { if (String(name).includes('OpenTitlecard Linik Sans') && desc && desc.style === 'italic') throw new Error('blocked'); return new Orig(name, src, desc); };
+      window.FontFace.prototype = Orig.prototype;
+    });
+    await page.waitForFunction(() => [...document.fonts].filter((f) => f.family.includes('OpenTitlecard') && f.status === 'loaded').length === 9);
+    await setFamily(page, 'Linik Sans');
+    await setText(page, 'Hello brave world');
+    await setSelection(page, 0, 5);
+    await page.click('#ital');
+    await page.evaluate(() => __tt.renderNow());
+    await expect(page.locator('#fauxWarn')).toContainText('Faux italic');
+    await setFamily(page, 'Montserrat');
+    await expect(page.locator('#fauxWarn')).toBeHidden();
     await context.close();
   });
 
