@@ -1266,7 +1266,7 @@ function hasRealItalic(){
   const loaded=faceReg.get(resolveFont(S.family));
   if(loaded) return loaded.some(f=>f.italic);
   const bd=bundledOf(resolveFont(S.family));   // a bundled family comes first in the stack, so its own italic face is what is asked for
-  if(bd && bundledState[bd.name]==='ready' && bundledItalic[bd.name]==='ok') return true;
+  if(bd && bundledState[bd.name]==='ready'){ if(bundledItalic[bd.name]==='ok') return true; if(bundledItalic[bd.name]==='failed') return false; }   // known exactly, not measured
   const w=f=>{ mctx.font=fontStr(f,100); return mctx.measureText('Titlecard affiliate').width; };
   return Math.abs(w(1)-w(0))>0.01;
 }

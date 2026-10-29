@@ -159,6 +159,13 @@ test.describe('bundled font families', () => {
       const Orig = window.FontFace;
       window.FontFace = function (name, src, desc) { if (String(name).includes('OpenTitlecard Linik Sans') && desc && desc.style === 'italic') throw new Error('blocked'); return new Orig(name, src, desc); };
       window.FontFace.prototype = Orig.prototype;
+      // some machines (CI's headless Chromium) measure a faked slant a little wider than the upright: the answer must not depend on it
+      const m = CanvasRenderingContext2D.prototype.measureText;
+      CanvasRenderingContext2D.prototype.measureText = function (t) {
+        const r = m.call(this, t);
+        if (t !== 'Titlecard affiliate' || !/^italic/.test(this.font)) return r;
+        return { width: r.width + 3, actualBoundingBoxLeft: r.actualBoundingBoxLeft, actualBoundingBoxRight: r.actualBoundingBoxRight, actualBoundingBoxAscent: r.actualBoundingBoxAscent, actualBoundingBoxDescent: r.actualBoundingBoxDescent };
+      };
     });
     await page.waitForFunction(() => [...document.fonts].filter((f) => f.family.includes('OpenTitlecard') && f.status === 'loaded').length === 9);
     await setFamily(page, 'Linik Sans');
