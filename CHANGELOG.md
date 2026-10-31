@@ -4,6 +4,18 @@ What changed in OpenTitlecard, newest first. The version is shown next to the ap
 
 Versions are `vMAJOR.MINOR`. Each merged pull request that changes the app adds one to the minor number (v1.31 → v1.32 → …). The changelog started at v1.31: v1.27 stands for everything merged before the UI review that led to v1.28–v1.31 (pull requests up to #31), so the numbers line up with the work done.
 
+## v1.66
+
+### Added
+- **Place the picture in its slot.** Select an emoji slot that shows an image and the **Emoji** panel shows its placement: **X**, **Y** (percent of the slot's width) and **Size** (percent of the picture fitted to the slot), with the same controls as the rest of the app: type a number, drag the label, use the slider, **↺** or a double-click on the label to reset. Every slot has its own placement, so two slots with the same image can differ, and it follows the slot when you reword the text, break lines or change Scale.
+  - **Match cap height** makes the image as tall as the capital letters, centred on them. **Sit on baseline** moves it down so its bottom edge sits on the baseline, at whatever size it is.
+  - **Use for every slot with this image** gives all the slots that show that image, on every card, the same X, Y and Size, in one undo step. Handy when a whole emoji set has the same padding.
+  - While a slot is selected, pink **guides** on the preview mark its centre, the capital height and the baseline, and the edge of the picture. They are preview only, never in the PNG.
+  - The placement is saved with the slot in set files, also for slots that use the default image for an emoji.
+
+### Fixed
+- A number typed into the mock-up and safe-zone fields is no longer put back to its old value if the preview redraws before you press Enter (it could happen when something else changed in between).
+
 ## v1.65
 
 ### Added

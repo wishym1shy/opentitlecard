@@ -20,6 +20,8 @@ const slots = (page) => page.evaluate(() => {
   return out;
 });
 const centre = (b) => [Math.round(b.x + b.w / 2), Math.round(b.y + b.w / 2)];
+// a point inside the slot that the preview's alignment guides (centre, capital height, baseline) never cross
+const offGuides = (b) => [Math.round(b.x + b.w * 0.35), Math.round(b.y + b.w * 0.35)];
 async function pixelAt(page, [x, y]) {
   const { buffer } = await exportPng(page);
   return (await inspectPng(page, buffer, [{ type: 'px', x, y }])).results[0];
@@ -53,7 +55,7 @@ test.describe('emoji images on slots', () => {
     expect(await layoutKey(page)).toBe(before);   // the slot was already that size: an image changes nothing about the card
     // the preview canvas shows it (not just the export)
     const [b] = await slots(page);
-    const px = await page.evaluate(([x, y]) => { __tt.renderNow(); const c = document.querySelector('#cv'), g = __tt.exportGeometry(), k = c.width / g.W; return [...c.getContext('2d').getImageData(Math.round(x * k), Math.round(y * k), 1, 1).data]; }, centre(b));
+    const px = await page.evaluate(([x, y]) => { __tt.renderNow(); const c = document.querySelector('#cv'), g = __tt.exportGeometry(), k = c.width / g.W; return [...c.getContext('2d').getImageData(Math.round(x * k), Math.round(y * k), 1, 1).data]; }, offGuides(b));
     expect(near(px, RED)).toBe(true);
   });
 
@@ -113,7 +115,7 @@ test.describe('emoji images on slots', () => {
     expect(near(await pixelAt(page, centre(b)), RED)).toBe(true);
     await page.check('#emptySlots');
     expect(near(await pixelAt(page, centre(b)), [255, 255, 255])).toBe(true);
-    const px = await page.evaluate(([x, y]) => { __tt.renderNow(); const c = document.querySelector('#cv'), g = __tt.exportGeometry(), k = c.width / g.W; return [...c.getContext('2d').getImageData(Math.round(x * k), Math.round(y * k), 1, 1).data]; }, centre(b));
+    const px = await page.evaluate(([x, y]) => { __tt.renderNow(); const c = document.querySelector('#cv'), g = __tt.exportGeometry(), k = c.width / g.W; return [...c.getContext('2d').getImageData(Math.round(x * k), Math.round(y * k), 1, 1).data]; }, offGuides(b));
     expect(near(px, RED)).toBe(true);   // the preview still shows it
     await page.click('#batchOpen');
     expect(await page.locator('#x_emptySlots').isChecked()).toBe(true);   // the dialog shows the same choice
