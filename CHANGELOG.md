@@ -6,6 +6,9 @@ Versions are `vMAJOR.MINOR`. Each merged pull request that changes the app adds 
 
 ## v1.69
 
+### Added
+- **A built-in Help & guide.** A **?** button to the right of **File** (or press **?** when you are not typing in a field) opens a guide in the same style as the export dialog. Its chapters walk through the app step by step: getting started, text, colors and fonts, the card's look, emoji, cards and sets, the canvas / preview / zoom and pan, exporting, presets and your data, and what each warning means. A separate **Keys and mouse** chapter lists every shortcut and mouse combination, such as Space + drag or the middle button to pan and Ctrl/⌘ + scroll to zoom, with the right keys for your computer (⌘, ⌥ and ⇧ on a Mac). It also keeps the tips that used to sit as small notes in the panels. Text only for now; screenshots can be added later.
+
 ### Changed
 - **Tight crop and Leave emoji slots empty are now in the Export panel,** above Download PNG, because they only matter when you export. Tight crop's **Export scale** slider appears there too. The Canvas panel keeps just the canvas size and orientation.
 - **Less helper text.** Short explanations that only repeated what a control already shows are gone, so panels are shorter and calmer:

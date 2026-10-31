@@ -242,6 +242,34 @@
   dialog .dh{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line)}
   dialog .dh h2{font-size:14px;margin:0;font-weight:650}
   dialog .db{padding:4px 16px 12px;overflow-y:auto;max-height:calc(90vh - 130px)}
+  /* Help & guide: chapters on the left, the page on the right; stacks on a narrow screen */
+  #helpBtn{width:32px;height:30px;border:1px solid var(--line);background:var(--panel2);color:var(--text);border-radius:7px}
+  #helpBtn:hover{border-color:#4a5066}
+  #helpBtn svg{width:16px;height:16px}
+  dialog.help{width:min(980px,95vw)}
+  .help .hbody{display:grid;grid-template-columns:212px 1fr;height:min(74vh,680px)}
+  .help .hnav{display:flex;flex-direction:column;gap:2px;padding:8px;overflow-y:auto;border-right:1px solid var(--line);background:var(--panel2)}
+  .help .hnav button{text-align:left;border:0;background:none;padding:7px 10px;border-radius:6px;font-size:12.5px;color:var(--mute)}
+  .help .hnav button:hover{background:#1c1f26;color:var(--text)}
+  .help .hnav button[aria-current="true"]{background:#22304f;color:var(--text);box-shadow:inset 2px 0 var(--accent)}
+  .help .hnav button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+  .help .hpage{overflow-y:auto;padding:16px 24px 28px;line-height:1.6;font-size:13px;outline:0}
+  .help .hpage h3{font-size:18px;margin:0 0 10px;font-weight:650}
+  .help .hpage h4{font-size:13.5px;margin:20px 0 6px;font-weight:650}
+  .help .hpage p{margin:0 0 10px}
+  .help .hpage ul,.help .hpage ol{margin:0 0 12px;padding-left:20px}
+  .help .hpage li{margin:3px 0}
+  .help .hpage .note{margin:0 0 12px;padding:8px 12px;border-left:3px solid var(--accent);background:var(--panel2);border-radius:0 6px 6px 0;color:var(--mute)}
+  .help .hpage kbd{display:inline-block;min-width:18px;text-align:center;padding:1px 6px;margin:0 1px;font-size:11.5px;line-height:1.5;border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;background:var(--panel2)}
+  .help table.keys{width:100%;border-collapse:collapse;margin:0 0 8px}
+  .help table.keys td{padding:6px 8px;border-bottom:1px solid #22252d;vertical-align:top}
+  .help table.keys td:first-child{white-space:nowrap;width:1%;padding-right:18px}
+  .help .kw{color:var(--mute);margin:0 2px}
+  @media (max-width:720px){
+    .help .hbody{grid-template-columns:1fr;grid-template-rows:auto 1fr}
+    .help .hnav{flex-direction:row;overflow-x:auto;border-right:0;border-bottom:1px solid var(--line)}
+    .help .hnav button{white-space:nowrap}
+  }
   dialog .df{display:flex;gap:8px;align-items:center;padding:12px 16px;border-top:1px solid var(--line)}
   dialog .df .status{flex:1;color:var(--mute);font-size:12px}
   .bgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;margin-top:12px}
@@ -515,6 +543,7 @@
     <span id="scope" role="status"></span>
     <input id="setName" type="text" value="Untitled set" maxlength="120" spellcheck="false" aria-label="Set name" title="This set's name: it becomes the file name when you save">
     <button id="fileMenuBtn" popovertarget="fileMenu" aria-haspopup="menu" aria-expanded="false" aria-controls="fileMenu" title="Save, open, presets and reset"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 4h11M2.5 8h11M2.5 12h11"/></svg>File</button>
+    <button id="helpBtn" class="icon" aria-haspopup="dialog" aria-label="Help and guide" title="Help and guide (?)"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.2"/><path d="M6.1 6.3a2 2 0 1 1 2.8 1.8c-.6.3-.9.7-.9 1.3M8 11.6v.1"/></svg></button>
   </div>
   <!-- The File menu: the set's file, preset files, and the two resets (each says what it clears). -->
   <div id="fileMenu" class="menu" role="menu" aria-label="File" popover>
@@ -718,6 +747,14 @@
 </dialog>
 
 <!-- The export preview: one card at a time, exactly as it will be exported, flipped with the arrows. -->
+<dialog id="helpDlg" class="help" aria-labelledby="helpTitle">
+  <div class="dh"><h2 id="helpTitle">Help &amp; guide</h2><button id="helpClose" class="sm" style="margin-left:auto" aria-label="Close help">✕</button></div>
+  <div class="hbody">
+    <nav class="hnav" id="helpNav" aria-label="Chapters"></nav>
+    <article class="hpage" id="helpPage" tabindex="-1" aria-live="polite"></article>
+  </div>
+</dialog>
+
 <dialog id="pvDlg" class="pv" aria-labelledby="pvTitle">
   <div class="dh"><h2 id="pvTitle"></h2><span id="pvCount"></span><button id="pvClose" class="sm" style="margin-left:auto" aria-label="Close preview">✕</button></div>
   <div class="pvbody">
@@ -3412,6 +3449,224 @@ fileMenu.addEventListener('click',e=>{ if(e.target.closest('[role=menuitem]')) c
 // Shortcut hints follow the computer: ⌘ on a Mac, Ctrl elsewhere.
 const IS_MAC=/Mac|iPhone|iPad/.test(navigator.platform||navigator.userAgent);
 document.querySelectorAll('kbd[data-keys]').forEach(k=>{ k.textContent=(IS_MAC?'⌘':'Ctrl+')+(IS_MAC?k.dataset.keys.replace('Shift+','⇧'):k.dataset.keys); });
+/* ============ help & guide ============ */
+/* A built-in guide: chapters in HELP, shown by openHelp() in #helpDlg. It is meant to grow: add a chapter (or a block in
+   one) to HELP and it appears. A chapter is {id, title, blocks}; a block is a string (a paragraph) or one of
+   ['h', heading], ['ul', [items]], ['ol', [items]], ['note', text], ['keys', [[combo, what it does], …]]. Text may use
+   **bold**, {{a control's name}} (bold too, and checked against the app by a test, so the guide can't drift) and [[Mod+Z]] (a key, shown as ⌘ or Ctrl for Mod, and with the Mac names for Alt and Shift on a Mac). Text only for
+   now; a block ['img', src, alt] can be added when there are screenshots. Everything is put in with textContent, never HTML. */
+const HELP=[
+{id:'start',title:'Getting started',blocks:[
+ 'OpenTitlecard makes TikTok-style titlecards: a white rounded box with bold text, one box per line, exported as a transparent PNG that you lay over your video in Premiere Pro, After Effects, DaVinci Resolve, CapCut or any editor that reads PNGs. Everything runs in your browser and nothing is uploaded.',
+ ['h','The screen'],
+ ['ul',[
+  '**Left:** the {{Text}} box with colors, styles and fonts, then {{Titlecard Properties}} (the card\'s look) and {{Presets}}.',
+  '**Middle:** the live preview. What you see is what exports (the slot outlines and guides are preview only).',
+  '**Right:** floating panels: {{Cards}}, {{Emoji}}, {{Canvas}}, {{Mock-up & safe zone}} and {{Export}}. Click a panel\'s title to fold it; the {{Panels}} button hides them all.',
+  '**Top:** {{Undo}} and {{Redo}}, the preview background, the set\'s name, the {{File}} menu and this guide.']],
+ ['h','Your first card'],
+ ['ol',[
+  'Type your text in the {{Text}} box. Each line gets its own box.',
+  'Select a word and click a color. Use **B**, **I**, **U** for bold, italic and underline.',
+  'Pick a {{Font family}} and {{Weight}}.',
+  'Open {{Export}} and press {{Download PNG}}. Place the PNG over your video.']],
+ ['note','The output is a still image: no animation. Come back to the app to change a card; nothing in the PNG stays editable.']]},
+{id:'text',title:'Text, colors and fonts',blocks:[
+ ['h','Writing'],
+ 'Press Enter for a new line: every line is drawn in its own box, and the boxes join where they overlap. With {{Max card width}} (Text Settings) long lines wrap at spaces to fit; your own line breaks always stay.',
+ ['h','Coloring words'],
+ ['ul',[
+  'Put the caret in a word, or select some letters, then click a swatch. You can also click a word in the **preview** to select it.',
+  'Click that word again to narrow to the part you clicked (for example just the “!”), and click again to get the whole word back.',
+  '{{＋ Palette}} adds the color in the picker to your swatches; right-click one of your own swatches to remove it. {{Apply}} applies the picker\'s color, {{Eyedropper}} picks a color from anywhere on the screen (Chrome and Edge), and {{Reset color}} goes back to the default text color.',
+  'The first nine swatches have shortcuts: [[Alt+1]] to [[Alt+9]].']],
+ ['h','Bold, italic and underline'],
+ 'Like colors, they work on the selected letters or the word at the caret. Press again to take the style off. Bold uses the next weight up of the font. Underline runs on between two underlined words.',
+ ['h','Fonts'],
+ ['ul',[
+  'Type a name in {{Font family}} or open the list: it groups the fonts that **come with the app** (they work offline), the ones you **loaded from files**, and the ones **installed on this computer** once you press {{Installed fonts…}} (Chrome and Edge).',
+  '{{Load font file…}} takes TTF, OTF and WOFF files (several at once). The faces of one family are grouped, and the font is remembered in this browser, so it is there next time. {{Forget them}} clears them.',
+  'The {{Weight}} menu lists the weights the font really has.',
+  'A client\'s font is never part of the app: load it from your own files.']]]},
+{id:'look',title:'The card\'s look',blocks:[
+ 'Everything about how the card looks is under {{Titlecard Properties}} in the sidebar. It starts folded; open it once and it stays as you leave it until you reload.',
+ ['h','Position & Scale'],
+ 'X and Y move the whole card inside the canvas (px at 1080p, +Y is down). {{Scale}} is the font size: the box, padding and corners grow with it. {{Auto-scale}} refits the card when you change the canvas size.',
+ ['h','Text Position'],
+ 'One row per line: X and Y move that line\'s text, and its emoji, without moving the box. You can also hold [[Alt]] and drag a line of text in the preview.',
+ ['h','Text Settings'],
+ ['ul',['{{Alignment}}, {{Line height}}, {{Letter spacing}}.','{{Stretch width}} and {{Stretch height}} (50 to 200%) make the letters wider, narrower, taller or squatter; the box follows and the padding stays the same.','{{Max card width}} wraps long lines (Off = only your own breaks).','{{Default text color}}, {{Outline}} (color and width) and a soft **text shadow**.']],
+ ['h','Background'],
+ 'The box behind the lines: on or off, {{Color}}, {{Opacity}}, {{Side padding}}, {{Corner radius}}, {{Top margin}}, {{Bottom margin}}, {{Descender clearance}} (keeps the box clear of g, y, p and emoji) and a soft **box shadow**.',
+ ['h','Working with the fields'],
+ ['ul',['Type a number and press Enter, or use [[↑]] and [[↓]] (hold [[Shift]] for steps of 10).','Drag the little icon or letter in front of a field sideways to scrub the value ([[Shift]] = 10 per step).','Double-click that icon to reset the value, or use the ↺ button.']]]},
+{id:'emoji',title:'Emoji',blocks:[
+ ['h','Emoji slots'],
+ 'Type or paste an emoji (or press {{＋ Emoji slot}}) and it becomes a **slot**: room reserved in the line, with the box wrapping around it. The slot is outlined in the preview only. Editors that can\'t draw color emoji can have your own emoji pasted on top of an empty slot; {{Emoji Slot}} in the sidebar lists each slot\'s size and the Position to type in the editor.',
+ ['h','Your own emoji images'],
+ ['ul',[
+  'OpenTitlecard comes with **no emoji images**. Open the {{Emoji}} panel and add your own PNG, WebP or SVG images: drop them on the panel, choose them, or paste an image. You are responsible for having the right to use them.',
+  'Images are trimmed to their artwork, shrunk to at most 512 px, and kept **in this browser** (up to 200 images, 50 MB). They are never uploaded.',
+  'Double-click a name or press [[F2]] to rename. **×** or [[Delete]] removes an image, after asking.']],
+ ['h','Putting an image on a slot'],
+ ['ol',[
+  'Click the slot in the preview (or select the emoji in the text box).',
+  'Click an image in the Emoji panel.']],
+ 'A slot can also use a **default**: **Use it for every** 🙂 makes the image the one for every slot of that emoji, on every card. A slot\'s own image wins over the default; **Remove image** takes it off.',
+ ['h','Placement'],
+ 'With a slot that shows an image selected, the Emoji panel shows **X**, **Y** and {{Size}} for the picture (percent of the standard slot). {{Match cap height}} makes it as tall as the capitals, {{Sit on baseline}} rests its bottom edge on the baseline, and {{Use for every slot with this image}} copies the placement to all of them. Pink guides on the preview show the slot\'s centre, the capital height and the baseline.',
+ ['h','Room a slot takes'],
+ 'Under {{Titlecard Properties}} › {{Emoji Slot}}, every slot has {{Scale X}} and {{Scale Y}} (percent of the standard slot): they set how much room the slot takes sideways and up and down. The picture\'s own size is separate, so emoji can be sized alike and spaced differently.',
+ ['h','Exporting'],
+ 'Tick {{Leave emoji slots empty}} in the {{Export}} panel to keep the images out of the PNG, for when you paste your own emoji in the editor. The preview still shows them.']},
+{id:'cards',title:'Cards and sets',blocks:[
+ 'A **set** is a list of cards that share one look: handy for a whole video\'s worth of titlecards. The {{Cards}} panel lists them.',
+ ['ul',[
+  'Add, duplicate, move or delete cards with the buttons under the list. New cards are called Titlecard 1, 2, 3… Double-click a name or press [[F2]] to rename.',
+  '{{Add from list}} (the first icon above the list) turns pasted lines into cards; paste two columns from a spreadsheet to name them too.',
+  'Cards share one style. Tick {{This card has its own style}} to give a card its own look; {{Apply preset to all cards}} puts everyone back on one.']],
+ ['h','Saving'],
+ 'Cards are **not kept in the browser**. Save the set with {{File}} › {{Save set}} ([[Mod+S]]); it makes a `.opntcd` file. Open one with {{File}} › {{Open set…}} ([[Mod+O]]) or by dropping it on the page. The set\'s name (next to {{File}}) becomes the file name. The browser warns you before you close the tab with unsaved cards.',
+ ['h','Undo'],
+ '{{Undo}} and {{Redo}} (top left, [[Mod+Z]] and [[Mod+Shift+Z]]) cover text, colors, styles, nudges, emoji and canvas changes on every card.']},
+{id:'view',title:'Canvas, preview and view',blocks:[
+ ['h','Canvas'],
+ 'The {{Canvas}} panel sets the size of the PNG: landscape or vertical presets (including 4K, square, 4:5 and an iPhone 16 Pro size), or {{Custom…}} up to 3840 px on each side. {{Landscape}} / {{Vertical}} flips the current size. The PNG is the whole canvas, transparent, with the card at its X / Y position.',
+ ['h','Preview background'],
+ '{{Checker}}, {{White}}, {{Black}} and {{Gray}} (top bar) only change what sits behind the card in the preview.',
+ ['h','Zoom and pan'],
+ ['ul',[
+  'The zoom bar (bottom left) has **−**, **+**, {{Fit}} and {{100%}} (actual size). Zoom ranges from 5% to 400%.',
+  'Hold [[Mod]] and scroll (or pinch on a trackpad) to zoom at the cursor. Scroll to move around; [[Shift]] and scroll moves sideways.',
+  'Hold [[Space]] and drag, or drag with the middle mouse button, to pan. Space works when no field or button has the focus.',
+  '[[Mod+=]], [[Mod+−]] and [[Mod+0]] zoom in, out and back to Fit.']],
+ ['h','Mock-up and safe zone'],
+ 'The {{Mock-up & safe zone}} panel helps you judge the card in place, in the preview only: load a frame of your footage to sit **behind the card** (with X, Y, Scale and Opacity), and show a **safe zone overlay** for Stories, Reels, the Reels screen of an iPhone 16 Pro, or your own image. The bar at the bottom tells you whether the card clears the safe zone.']},
+{id:'export',title:'Exporting',blocks:[
+ ['h','One card'],
+ '{{Download PNG}} in the {{Export}} panel saves the card you are looking at, at the canvas size, with a transparent background. Its file name comes from the first words of the text.',
+ ['h','All cards'],
+ '{{Export as ZIP…}} (it reads “Export all N as ZIP…” with several cards) opens a dialog: the **file name pattern** (`{set}` is the set\'s name, `{n}` the card number, `{name}` the card\'s name), the first number and digits, copies of the canvas controls, and a preset you can apply to every card. Click a thumbnail to see the card at full size and flip through them with [[←]] and [[→]]. Empty cards are skipped.',
+ ['h','Options'],
+ ['ul',['{{Tight crop}} exports just the card with no empty canvas around it; {{Export scale}} (1× to 4×) then sets how large that is.','{{Leave emoji slots empty}} keeps your emoji images out of the PNG.','Exports are limited to 3840 px on each side; a canvas too large to export is flagged and the button is disabled.']],
+ ['h','In your editor'],
+ 'Place the PNG on the timeline above your video. With the canvas the same size as your sequence it lines up exactly; with {{Tight crop}}, scale the PNG in the editor instead. The {{Emoji Slot}} list gives the Position values for pasting your own emoji on top.']},
+{id:'data',title:'Presets, settings and your data',blocks:[
+ ['h','Presets'],
+ 'A preset saves the card\'s **look** (fonts, colors, sizes, box) but never the text. Type a name and {{Save}}; {{Load}} applies one. {{Set as default}} (★) makes a preset the starting look the first time the app opens. {{File}} › {{Import preset}} and {{Export current style as a preset}} move presets between computers as `.json` files.',
+ ['h','What the browser remembers'],
+ ['ul',['The last look and canvas size, your presets, palette colors and the fonts you loaded.','Your emoji library.','Panel and overlay settings.','**Never** the text of your cards: save a set for that.']],
+ 'None of it leaves your computer. The only thing the app fetches is its own page, now and then, to see whether a newer version is out; a green **Update available** button appears when there is one.',
+ ['h','Resets'],
+ '{{File}} › {{Soft reset…}} puts the settings back to how the app first opens and keeps your presets, palette, fonts and emoji. {{Reset all…}} deletes everything the app keeps. Both say what they will do before you confirm.']},
+{id:'keys',title:'Keys and mouse',blocks:[
+ ['h','Anywhere'],
+ ['keys',[['Mod+S','Save the set'],['Mod+Shift+S','Save the set as…'],['Mod+O','Open a set'],['Mod+Z','Undo'],['Mod+Shift+Z','Redo (also Ctrl+Y)'],['?','Open this guide (when you are not typing in a field)'],['Esc','Close a dialog or a menu']]],
+ ['h','In the text box'],
+ ['keys',[['Mod+B','Bold the selection or the word at the caret'],['Mod+I','Italic'],['Mod+U','Underline'],['Alt+1 … 9','Apply the 1st to 9th swatch color']]],
+ ['h','In the preview'],
+ ['keys',[['Click','Select the word (click again: just the part; again: the whole word). Click an emoji slot to select it.'],['Alt+drag','Nudge the line of text you drag']]],
+ ['h','View'],
+ ['keys',[['Mod+scroll','Zoom at the cursor (or pinch on a trackpad)'],['Scroll','Pan up and down'],['Shift+scroll','Pan sideways'],['Space+drag','Pan'],['Middle button+drag','Pan'],['Mod+=','Zoom in'],['Mod+−','Zoom out'],['Mod+0','Fit the canvas in the view']]],
+ ['h','Number fields'],
+ ['keys',[['Enter','Apply a typed value'],['↑ / ↓','Step by 1'],['Shift+↑ / ↓','Step by 10'],['Drag the icon or letter','Scrub the value (Shift: 10 per step)'],['Double-click the icon','Reset the value']]],
+ ['h','Lists and menus'],
+ ['keys',[['↑ / ↓','Cards list: select the previous or next card. Font list and File menu: move through the choices'],['F2','Rename the selected card or emoji image'],['Enter / Esc','Keep or cancel a rename; pick or close a choice in the font list'],['Delete','Delete the selected emoji image (asks first)'],['← / →','Export preview: previous or next card'],['Home / End','Export preview: first or last card'],['Right-click','Remove one of your own color swatches']]],
+ ['h','Files'],
+ ['keys',[['Drop a .opntcd file','Anywhere on the page: open that set'],['Drop images','On the Emoji panel: add them to your library'],['Paste an image','Anywhere (not in a field): add it to your emoji library']]]]},
+{id:'warnings',title:'Warnings, explained',blocks:[
+ ['ul',[
+  '**⚠ in the Font family box:** that font is not on this computer, so the preview would use another one. Pick another font, {{Load font file…}}, or use {{Reset to Inter}} in the pop-up. The warning also shows in the header and before an export.',
+  '**Faux italic / Faux bold:** the font has no real italic (or no heavier weight), so the app slants or thickens the letters. Load the font\'s italic or bold file for the real thing.',
+  '**A red slot with ⚠ on the preview:** the card names an emoji image that is not in this browser\'s library (for example a set saved on another computer). The slot stays empty in the PNG. Add an image with that name, or pick another one.',
+  '**Download PNG is greyed out:** a tight crop at that Export scale would be bigger than 3840 px on a side. Lower the scale.',
+  '**The card leaves the safe zone** (bottom bar, when a safe zone is shown): move or shrink the card, or turn the overlay off.',
+  '**Update available:** a newer version of the app is out. Click it to reload; unsaved cards are protected by the browser\'s usual prompt.']]]}
+];
+const HELP_KEY_WORDS=new Set(['Mod','Ctrl','Alt','Shift','Space','Enter','Esc','Delete','Tab','Home','End']);
+function helpKey(k){
+  if(k==='Mod') return IS_MAC?'⌘':'Ctrl';
+  if(k==='Alt') return IS_MAC?'⌥':'Alt';
+  if(k==='Shift') return IS_MAC?'⇧':'Shift';
+  return k;
+}
+// "Mod+Shift+Z" -> keys; a word that is not a key ("scroll", "drag") stays plain text
+function helpCombo(str){
+  const out=document.createDocumentFragment();
+  str.split('+').forEach((part,i)=>{
+    if(i) out.append('+');
+    part.split(' / ').forEach((alt,j)=>{   // "↑ / ↓": two keys, either one
+      if(j) out.append(' / ');
+      const t=alt.trim(), isKey=HELP_KEY_WORDS.has(t)||t.length<=1||/^F\d+$/.test(t)||/^\d(\s|$)/.test(t);
+      if(isKey){ const k=document.createElement('kbd'); k.textContent=helpKey(t); out.append(k); }
+      else { const w=document.createElement('span'); w.className='kw'; w.textContent=t; out.append(w); }
+    });
+  });
+  return out;
+}
+// **bold**, `code` and [[keys]] inside a string, built with text nodes
+function helpRich(str){
+  const out=document.createDocumentFragment();
+  for(const piece of str.split(/(\*\*[^*]+\*\*|\{\{[^}]+\}\}|\[\[[^\]]+\]\]|`[^`]+`)/)){
+    if(!piece) continue;
+    if(piece.startsWith('**')){ const b=document.createElement('b'); b.textContent=piece.slice(2,-2); out.append(b); }
+    else if(piece.startsWith('{{')){ const b=document.createElement('b'); b.className='ui'; b.textContent=piece.slice(2,-2); out.append(b); }   // the name of a control, panel or menu item in the app
+    else if(piece.startsWith('[[')) out.append(helpCombo(piece.slice(2,-2)));
+    else if(piece.startsWith('`')){ const c=document.createElement('code'); c.textContent=piece.slice(1,-1); out.append(c); }
+    else out.append(piece);
+  }
+  return out;
+}
+function helpBlock(b){
+  const el=(tag,cls)=>{ const e=document.createElement(tag); if(cls) e.className=cls; return e; };
+  if(typeof b==='string'){ const p=el('p'); p.append(helpRich(b)); return p; }
+  const [kind,body]=b;
+  if(kind==='h'){ const h=el('h4'); h.append(helpRich(body)); return h; }
+  if(kind==='note'){ const n=el('div','note'); n.append(helpRich(body)); return n; }
+  if(kind==='ul'||kind==='ol'){ const l=el(kind); for(const t of body){ const li=el('li'); li.append(helpRich(t)); l.append(li); } return l; }
+  if(kind==='keys'){
+    const t=el('table','keys'); t.setAttribute('role','table');
+    for(const [combo,what] of body){ const r=t.insertRow(), a=r.insertCell(), d=r.insertCell(); a.append(helpCombo(combo)); d.append(helpRich(what)); }
+    return t;
+  }
+  return el('span');
+}
+let helpAt=HELP[0].id;
+function showHelpChapter(id,focus){
+  const ch=HELP.find(c=>c.id===id)||HELP[0]; helpAt=ch.id;
+  $('#helpNav').querySelectorAll('button').forEach(b=>b.setAttribute('aria-current',String(b.dataset.ch===ch.id)));
+  const page=$('#helpPage'); page.textContent='';
+  const h=document.createElement('h3'); h.textContent=ch.title; page.append(h);
+  for(const b of ch.blocks) page.append(helpBlock(b));
+  page.scrollTop=0;
+  if(focus) $('#helpNav').querySelector(`[data-ch="${ch.id}"]`).focus();
+}
+function buildHelpNav(){
+  const nav=$('#helpNav'); nav.textContent='';
+  for(const c of HELP){ const b=document.createElement('button'); b.type='button'; b.dataset.ch=c.id; b.textContent=c.title; nav.append(b); }
+}
+function openHelp(id){
+  closeFileMenu();
+  const d=$('#helpDlg'); if(d.open) return;
+  if(!$('#helpNav').children.length) buildHelpNav();
+  showHelpChapter(id||helpAt);
+  d.showModal(); $('#helpNav').querySelector(`[data-ch="${helpAt}"]`).focus();
+}
+$('#helpBtn').addEventListener('click',()=>openHelp());
+$('#helpClose').addEventListener('click',()=>$('#helpDlg').close());
+$('#helpNav').addEventListener('click',e=>{ const b=e.target.closest('button'); if(b) showHelpChapter(b.dataset.ch); });
+$('#helpNav').addEventListener('keydown',e=>{
+  const d={ArrowDown:1,ArrowUp:-1}[e.key]; if(!d) return;
+  e.preventDefault(); const i=HELP.findIndex(c=>c.id===helpAt); showHelpChapter(HELP[clamp(i+d,0,HELP.length-1)].id,true);
+});
+// "?" opens the guide, as long as you are not typing and nothing else is open
+document.addEventListener('keydown',e=>{
+  if(e.key!=='?'||e.ctrlKey||e.metaKey||e.altKey||e.defaultPrevented) return;
+  const a=document.activeElement, typing=a&&(/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)||a.isContentEditable);
+  if(typing||document.querySelector('dialog[open]')) return;
+  e.preventDefault(); openHelp();
+});
+
 function fileMsg(text,bad){ const m=$('#fileMsg'); m.textContent=text; m.classList.toggle('bad',!!bad); }
 
 /* ---- the set's name and file ----
@@ -4185,7 +4440,7 @@ render();
 // Panels animate open from now on, not at page load (their @starting-style rule needs .anim): two frames, so it is
 // added after the first paint.
 requestAnimationFrame(()=>requestAnimationFrame(()=>document.documentElement.classList.add('anim')));
-window.__tt={emoji:{get library(){ return emojiLib.map(e=>({id:e.id,name:e.name,w:e.w,h:e.h,bytes:e.bytes})); },ready:emojiReady,images:emojiImagesReady,add:addEmojiFiles,get idle(){ return emojiBusy; },limits:{side:EMOJI_MAX_SIDE,file:EMOJI_MAX_FILE,items:EMOJI_MAX_ITEMS,bytes:EMOJI_MAX_BYTES}},fonts:{read:readFontFile,guess:guessFromName,get faces(){ return [...faceReg].map(([family,l])=>({family,faces:l.map(f=>({w:f.w,italic:f.italic}))})); },get aliases(){ return [...loadedAlias].map(([name,a])=>({name,family:a.family,weight:a.weight})); }},update:{check:checkForUpdate,get offered(){return updateOffered},running:RUNNING_VERSION},S,render,renderNow,get L(){return L},exportGeometry,draw,get cards(){return cards},get sharedStyle(){return sharedStyle},get active(){return active},batchNames,zipStem,crc32,buildZip,undo:undoStep,redo:redoStep,unsavedWork,get history(){return {length:hist.length,at:histAt}},get view(){return {...viewState}},get safezone(){return {...SZ,box:szBox&&{...szBox},status:$('#szStatus').textContent,fit:$('#szFit').textContent}},get mockup(){return {...MK,box:mkBox&&{...mkBox},image:mkImage&&mkImage.name,status:$('#mkStatus').textContent}}};
+window.__tt={help:{get chapters(){ return HELP.map(c=>({id:c.id,title:c.title})); },open:openHelp},emoji:{get library(){ return emojiLib.map(e=>({id:e.id,name:e.name,w:e.w,h:e.h,bytes:e.bytes})); },ready:emojiReady,images:emojiImagesReady,add:addEmojiFiles,get idle(){ return emojiBusy; },limits:{side:EMOJI_MAX_SIDE,file:EMOJI_MAX_FILE,items:EMOJI_MAX_ITEMS,bytes:EMOJI_MAX_BYTES}},fonts:{read:readFontFile,guess:guessFromName,get faces(){ return [...faceReg].map(([family,l])=>({family,faces:l.map(f=>({w:f.w,italic:f.italic}))})); },get aliases(){ return [...loadedAlias].map(([name,a])=>({name,family:a.family,weight:a.weight})); }},update:{check:checkForUpdate,get offered(){return updateOffered},running:RUNNING_VERSION},S,render,renderNow,get L(){return L},exportGeometry,draw,get cards(){return cards},get sharedStyle(){return sharedStyle},get active(){return active},batchNames,zipStem,crc32,buildZip,undo:undoStep,redo:redoStep,unsavedWork,get history(){return {length:hist.length,at:histAt}},get view(){return {...viewState}},get safezone(){return {...SZ,box:szBox&&{...szBox},status:$('#szStatus').textContent,fit:$('#szFit').textContent}},get mockup(){return {...MK,box:mkBox&&{...mkBox},image:mkImage&&mkImage.name,status:$('#mkStatus').textContent}}};
 </script>
 </body>
 </html>
