@@ -4,6 +4,16 @@ What changed in OpenTitlecard, newest first. The version is shown next to the ap
 
 Versions are `vMAJOR.MINOR`. Each merged pull request that changes the app adds one to the minor number (v1.31 → v1.32 → …). The changelog started at v1.31: v1.27 stands for everything merged before the UI review that led to v1.28–v1.31 (pull requests up to #31), so the numbers line up with the work done.
 
+## v1.64
+
+### Added
+- **An Emoji panel: your own emoji images, kept in the browser.** This is the first step of bringing your own emoji into a card. Drop PNG, WebP or SVG images on the panel (even while it is minimized), pick them with **Choose files…**, or paste an image. Each one is shrunk to at most 512 px on its long side and, unless you untick **Trim transparent edges**, cropped to its visible artwork, so the empty padding some emoji sets carry doesn't throw off the placement later. The library is saved in this browser on this computer and is still there after a reload; nothing is uploaded.
+  - Search by name, rename (double-click a name or press **F2**), delete one (× or **Delete**) or **Clear library…** (it asks first).
+  - The library is capped at 200 images and 50 MB in total, files over 5 MB are refused, and the panel says what it used and why anything was turned away.
+  - OpenTitlecard comes with no emoji images, and you are responsible for having the right to use the ones you add.
+  - Emoji slots on a card are still empty for now: placing a library image into a slot comes in a following update.
+- **Reset all** also clears the emoji library; **Soft reset** keeps it.
+
 ## v1.63
 
 ### Fixed

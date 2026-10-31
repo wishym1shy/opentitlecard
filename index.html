@@ -64,7 +64,7 @@
   .row{display:flex;gap:8px;align-items:center}
   .row>*{flex:1;min-width:0}
   .row.tight>*{flex:none}
-  textarea,input[type=text],input[type=number],select{width:100%;background:#14161b;color:var(--text);border:1px solid var(--line);border-radius:6px;padding:6px 8px;font:inherit}
+  textarea,input[type=text],input[type=number],input[type=search],select{width:100%;background:#14161b;color:var(--text);border:1px solid var(--line);border-radius:6px;padding:6px 8px;font:inherit}
   textarea{height:96px;resize:vertical;font-size:14px;line-height:1.35}
   input[type=range]{width:100%;accent-color:var(--accent)}
   input[type=color]{width:34px;height:28px;padding:0;border:1px solid var(--line);border-radius:6px;background:none;cursor:pointer;flex:none}
@@ -177,7 +177,7 @@
   button.icon svg.fill{fill:currentColor;stroke:none}
   .layerbar{display:flex;align-items:center;gap:2px;margin-bottom:6px}
   #cardCount{flex:1;color:var(--mute);font-size:11.5px;font-variant-numeric:tabular-nums}
-  .layers{border:1px solid var(--line);border-radius:6px;background:#14161b;overflow:hidden}
+  .layers,.emlib{border:1px solid var(--line);border-radius:6px;background:#14161b;overflow:hidden}
   .layerfoot{display:flex;gap:2px;padding:2px 4px;border-top:1px solid var(--line);background:var(--panel2)}
   .menu{inset:auto;margin:0;padding:4px;min-width:250px;background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:8px;box-shadow:0 10px 30px #0008}
   .menu button{display:block;width:100%;text-align:left;border:0;background:none;padding:6px 10px;font-size:12px}
@@ -210,6 +210,23 @@
   .cardlist .nm{color:var(--mute);font-size:11px}
   .cardlist button.empty .nm{font-style:italic}
   .cardlist input.rename{width:100%;padding:4px 7px;font-size:12px;border-radius:0;border-color:var(--accent)}
+  /* Emoji library: a drop zone, a search box, and a grid of the user's own images on a checkerboard */
+  .emdrop{border:1px dashed var(--line);border-radius:8px;padding:10px;text-align:center;color:var(--mute);font-size:12px}
+  .emdrop .row{justify-content:center;margin-top:6px}
+  #fp_emoji.drop .emdrop{border-color:var(--accent);background:#22304f55;color:var(--text)}
+  .emgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(62px,1fr));gap:8px 6px;max-height:210px;overflow-y:auto;padding:6px}
+  .emgrid .emnone{grid-column:1/-1;color:var(--mute);font-size:11.5px;text-align:center;padding:10px 0}
+  .emitem{position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;min-width:0}
+  .emthumb{width:100%;aspect-ratio:1;padding:4px;display:grid;place-items:center;border-radius:6px;background:repeating-conic-gradient(#2a2e38 0 25%,#20232b 0 50%) 0 0/12px 12px}
+  .emthumb img{max-width:100%;max-height:100%;object-fit:contain;display:block}
+  .emthumb:focus-visible,.emdel:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+  .emname{max-width:100%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:11px;color:var(--mute)}
+  .emdel{position:absolute;top:1px;right:1px;width:20px;height:20px;padding:0;display:grid;place-items:center;border-radius:50%;background:#000b;opacity:0}
+  .emitem:hover .emdel,.emitem:focus-within .emdel{opacity:1}
+  .emitem input.emren{width:100%;padding:2px 4px;font-size:11px;border-color:var(--accent)}
+  #emMsg.bad{color:#ffb3a8}
+  .emfoot{display:flex;align-items:center;gap:8px;padding:4px 8px;border-top:1px solid var(--line);background:var(--panel2);font-size:11.5px;color:var(--mute)}
+  .emfoot #emUsage{flex:1;font-variant-numeric:tabular-nums}
   dialog{background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:12px;padding:0;width:min(920px,94vw);max-height:90vh;box-shadow:0 20px 80px #000a}
   dialog::backdrop{background:#000a}
   dialog .dh{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line)}
@@ -343,7 +360,7 @@
 </head>
 <body>
 <header>
-  <h1>OpenTitlecard <a id="appVersion" href="https://github.com/wishym1shy/opentitlecard/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer" title="What's new in this version (changelog on GitHub)">v1.63</a></h1>
+  <h1>OpenTitlecard <a id="appVersion" href="https://github.com/wishym1shy/opentitlecard/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer" title="What's new in this version (changelog on GitHub)">v1.64</a></h1>
   <button id="updateBtn" type="button" hidden title="A newer version of OpenTitlecard is out. Click to reload the page and get it (save your set first)."></button>
   <a class="gh" href="https://github.com/wishym1shy/opentitlecard" target="_blank" rel="noopener noreferrer" title="View the source on GitHub">
     <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
@@ -505,7 +522,7 @@
     <button id="presetExport" role="menuitem">Export current style as a preset (.json)</button>
     <hr>
     <button id="softReset" role="menuitem">Soft reset…<small>Settings back to default. Keeps presets, palette and fonts.</small></button>
-    <button id="resetAll" role="menuitem" class="danger">Reset all…<small>Deletes presets, palette, fonts and every setting.</small></button>
+    <button id="resetAll" role="menuitem" class="danger">Reset all…<small>Deletes presets, palette, fonts, emoji and every setting.</small></button>
   </div>
   <input type="file" id="batchFile" accept=".opntcd,.json,application/json" hidden>
   <input type="file" id="presetFile" accept=".json" hidden>
@@ -547,6 +564,27 @@
           </div>
           <div class="row tight" style="margin-top:8px"><label style="margin:0"><input type="checkbox" id="cardOwn"> This card has its own style</label></div>
           <div class="hint">Cards share one style unless you tick <b>own style</b> (◆). Text, colors, italics and nudges belong to each card. Cards aren't kept in the browser: save the set with <b>File › Save set</b> (<kbd data-keys="S"></kbd>), or drop a <b>.opntcd</b> file here to open one.</div>
+        </div>
+      </section>
+      <section class="fp min" id="fp_emoji" data-panel="emoji" aria-labelledby="fph_emoji">
+        <h2 class="fph"><button type="button" id="fph_emoji" aria-expanded="false" aria-controls="fpb_emoji" title="Minimize or expand this panel">Emoji<span class="chev" aria-hidden="true"></span></button></h2>
+        <div class="fpb" id="fpb_emoji">
+          <div class="emdrop" id="emDrop" role="group" aria-label="Add emoji images">
+            Drop PNG, WebP or SVG images here
+            <div class="row">
+              <button id="emChoose" class="sm" type="button" style="flex:none">Choose files…</button>
+              <label style="margin:0;font-size:11.5px"><input type="checkbox" id="emTrim" checked> Trim transparent edges</label>
+            </div>
+            <input type="file" id="emFile" accept="image/png,image/webp,image/svg+xml,.png,.webp,.svg" multiple hidden>
+          </div>
+          <div class="hint" id="emMsg" role="status" aria-live="polite">Your own emoji images. You can also paste an image.</div>
+          <label for="emSearch" class="sr">Search emoji by name</label>
+          <input type="search" id="emSearch" placeholder="Search by name" autocomplete="off" style="margin:6px 0">
+          <div class="emlib">
+            <div class="emgrid" id="emGrid" role="list" aria-label="Emoji library"></div>
+            <div class="emfoot"><span id="emUsage">No emoji yet</span><button id="emClear" class="sm" type="button" style="flex:none" disabled>Clear library…</button></div>
+          </div>
+          <div class="hint">OpenTitlecard comes with no emoji images. Use only images you have the right to use: that is up to you. They are stored in this browser on this computer, and never uploaded. Double-click a name or press F2 to rename; Delete removes it.</div>
         </div>
       </section>
       <section class="fp min" id="fp_canvas" data-panel="canvas" aria-labelledby="fph_canvas">
@@ -2428,7 +2466,7 @@ $('#pbg').addEventListener('click',e=>{
    "Panels" in the toolbar hides the whole stack. Every load starts with only Cards open (PANELS_MIN), so a fresh session
    is uncluttered; minimizing is not remembered. Hiding the stack is: it is a layout preference, not part of the design
    (so it is not in undo or presets either). */
-const PANELS_KEY='opentitlecard.panels', PANELS_MIN={canvas:true,safezone:true,export:true};
+const PANELS_KEY='opentitlecard.panels', PANELS_MIN={emoji:true,canvas:true,safezone:true,export:true};
 const panelState=(()=>{ const raw=store.get(PANELS_KEY,{});
   return {hidden:!!raw&&typeof raw==='object'&&raw.hidden===true, min:{...PANELS_MIN}}; })();
 function syncPanels(){
@@ -3285,7 +3323,7 @@ document.addEventListener('drop',async e=>{
   const item=[...e.dataTransfer.items].find(i=>i.kind==='file'); if(!item) return;
   // the handle (Chromium) has to be asked for during the drop event itself; it lets Save write back to the dropped file
   const handle=item.getAsFileSystemHandle?item.getAsFileSystemHandle().catch(()=>null):Promise.resolve(null), f=item.getAsFile();
-  if(!f||!/\.(opntcd|json)$/i.test(f.name)){ fileMsg('Drop an OpenTitlecard set (.opntcd) to open it. Fonts and images have their own Load buttons.',true); return; }
+  if(!f||!/\.(opntcd|json)$/i.test(f.name)){ fileMsg('Drop an OpenTitlecard set (.opntcd) to open it. Fonts and images have their own Load buttons; emoji images go on the Emoji panel.',true); return; }
   const h=await handle;
   openSetFile(f,h&&h.kind==='file'?h:null);
 });
@@ -3331,12 +3369,13 @@ const RESETS={
 • the card's look (font, size, colors, box and text settings) and the canvas size; your default preset applies again, if you set one
 • the overlay, mock-up and export file name settings
 • the panels and auto-scale
-Kept: your presets, your default preset, your palette colors and your remembered fonts.
+Kept: your presets, your default preset, your palette colors, your remembered fonts and your emoji library.
 The cards on the page are cleared too. Save the set first if you want to keep them.`},
   all:{title:'Reset everything?',ok:'Reset everything',message:`Deletes everything the app keeps in this browser and starts fresh, as on a first visit:
 • all your presets and the default preset
 • your palette colors
 • your remembered fonts
+• your emoji library
 • every setting (card look, canvas size, overlay, mock-up, export file names, panels, auto-scale)
 • the cards on the page
 This can't be undone. Save the set first, and export any preset you want to keep.`},
@@ -3344,11 +3383,204 @@ This can't be undone. Save the set first, and export any preset you want to keep
 async function resetApp(kind){
   if(!await confirmAction(RESETS[kind])) return;
   try{ Object.keys(localStorage).filter(k=>kind==='all'?isAppKey(k):SOFT_RESET_KEYS.includes(k)).forEach(k=>localStorage.removeItem(k)); }catch(e){}
-  if(kind==='all'){ for(const n of [FACE_STORE,LEGACY_STORE]){ try{ await fontStore('readwrite',st=>st.clear(),n); }catch(e){} } }
+  if(kind==='all'){ for(const n of [FACE_STORE,LEGACY_STORE]){ try{ await fontStore('readwrite',st=>st.clear(),n); }catch(e){} } try{ await emojiStore('readwrite',st=>st.clear()); }catch(e){} }
   resetting=true; location.reload();
 }
 $('#softReset').addEventListener('click',()=>resetApp('soft'));
 $('#resetAll').addEventListener('click',()=>resetApp('all'));
+
+/* ============ emoji library ============ */
+/* The user's own emoji images, kept in this browser (IndexedDB, its own small database next to the fonts') and never
+   uploaded. The app ships with none and draws none yet: this is the library they will be placed from. Each image is
+   decoded and redrawn through a canvas on the way in, which fixes what is stored: a PNG no larger than EMOJI_MAX_SIDE on
+   its long side, optionally cropped to its visible artwork (trimmed, so the padding some sets carry never shifts it in a
+   slot). An SVG is only ever rendered by <img>, which runs no script and loads nothing. The library is capped (items and
+   bytes) so nobody fills their browser's storage by accident. Names are unique, case-insensitively, because a saved
+   card will refer to an emoji by its name. The library is a tool like presets and fonts: not part of undo. */
+const EMOJI_DB='opentitlecard-emoji', EMOJI_STORE='emoji';
+const EMOJI_MAX_SIDE=512, EMOJI_MAX_FILE=5e6, EMOJI_MAX_PIXELS=50e6, EMOJI_MAX_ITEMS=200, EMOJI_MAX_BYTES=50e6, EMOJI_PER_DROP=50, EMOJI_ALPHA=8;
+const EMOJI_EXT={png:'image/png',webp:'image/webp',svg:'image/svg+xml'};
+let emojiLib=[];       // {id, name, w, h, bytes, added, blob, url}
+let emojiFilter='', emojiBusy=Promise.resolve();
+function emojiStore(mode,fn){
+  return new Promise((res,rej)=>{
+    if(!idb) throw new Error('no IndexedDB');
+    const open=idb.open(EMOJI_DB,1);
+    open.onupgradeneeded=()=>{ if(!open.result.objectStoreNames.contains(EMOJI_STORE)) open.result.createObjectStore(EMOJI_STORE,{keyPath:'id'}); };
+    open.onerror=()=>rej(open.error); open.onblocked=()=>rej(new Error('blocked'));
+    open.onsuccess=()=>{
+      const db=open.result;
+      try{
+        const tx=db.transaction(EMOJI_STORE,mode), req=fn(tx.objectStore(EMOJI_STORE));
+        tx.oncomplete=()=>{ db.close(); res(req&&req.result); };
+        tx.onerror=tx.onabort=()=>{ db.close(); rej(tx.error); };
+      }catch(e){ db.close(); rej(e); }
+    };
+  });
+}
+const emojiBytes=()=>emojiLib.reduce((n,e)=>n+e.bytes,0);
+const fmtBytes=n=>n<1e6?Math.max(1,Math.round(n/1e3))+' KB':(n/1e6).toFixed(1)+' MB';
+function emojiKind(f){ return EMOJI_EXT[(f.name.split('.').pop()||'').toLowerCase()]||(Object.values(EMOJI_EXT).includes(f.type)?f.type:''); }
+function uniqueEmojiName(base,exceptId){
+  base=cleanName(base)||'Emoji';
+  const taken=new Set(emojiLib.filter(e=>e.id!==exceptId).map(e=>e.name.toLowerCase()));
+  if(!taken.has(base.toLowerCase())) return base;
+  for(let n=2;;n++){ const t=` ${n}`, c=base.slice(0,MAX_NAME-t.length)+t; if(!taken.has(c.toLowerCase())) return c; }
+}
+// Decode, scale down (an SVG is drawn at EMOJI_MAX_SIDE), optionally trim, and re-encode as PNG. Throws a short reason.
+async function emojiFromFile(f,trim){
+  const type=emojiKind(f);
+  if(!type) throw new Error('is not a PNG, WebP or SVG image');
+  if(f.size>EMOJI_MAX_FILE) throw new Error(`is over ${EMOJI_MAX_FILE/1e6} MB`);
+  const url=URL.createObjectURL(f), img=new Image();
+  let c;
+  try{
+    try{ img.src=url; await img.decode(); }catch(e){ throw new Error("can't be read as an image"); }
+    const vector=type==='image/svg+xml', iw=img.naturalWidth||EMOJI_MAX_SIDE, ih=img.naturalHeight||EMOJI_MAX_SIDE;
+    if(!vector&&iw*ih>EMOJI_MAX_PIXELS) throw new Error('is too large in pixels');
+    const k=vector?EMOJI_MAX_SIDE/Math.max(iw,ih):Math.min(1,EMOJI_MAX_SIDE/Math.max(iw,ih));
+    c=document.createElement('canvas'); c.width=Math.max(1,Math.round(iw*k)); c.height=Math.max(1,Math.round(ih*k));
+    c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+  }finally{ URL.revokeObjectURL(url); }
+  const ctx=c.getContext('2d'), d=ctx.getImageData(0,0,c.width,c.height).data;
+  let x0=c.width,y0=c.height,x1=-1,y1=-1;
+  for(let y=0;y<c.height;y++) for(let x=0;x<c.width;x++) if(d[(y*c.width+x)*4+3]>EMOJI_ALPHA){ if(x<x0)x0=x; if(x>x1)x1=x; if(y<y0)y0=y; if(y>y1)y1=y; }
+  if(x1<0) throw new Error('is fully transparent');
+  if(trim&&(x0>0||y0>0||x1<c.width-1||y1<c.height-1)){
+    const t=document.createElement('canvas'); t.width=x1-x0+1; t.height=y1-y0+1;
+    t.getContext('2d').drawImage(c,x0,y0,t.width,t.height,0,0,t.width,t.height); c=t;
+  }
+  const blob=await new Promise(r=>c.toBlob(r,'image/png'));
+  if(!blob) throw new Error("can't be converted");
+  return {blob,w:c.width,h:c.height};
+}
+const emojiNewId=()=>(crypto.randomUUID&&crypto.randomUUID())||`${Date.now().toString(36)}${Math.random().toString(36).slice(2)}`;
+const storable=e=>({id:e.id,name:e.name,w:e.w,h:e.h,bytes:e.bytes,added:e.added,blob:e.blob});
+function setEmojiMsg(text,bad){ const m=$('#emMsg'); m.textContent=text; m.classList.toggle('bad',!!bad); }
+// Adds the files one after another (one drop at a time, in order). Returns the sentence it also shows in the panel.
+function addEmojiFiles(files,trim=$('#emTrim').checked){
+  const run=async()=>{
+    const all=[...files], list=all.slice(0,EMOJI_PER_DROP), problems=[];
+    let added=0;
+    for(const f of list){
+      try{
+        if(emojiLib.length>=EMOJI_MAX_ITEMS){ problems.push(`The library is full (${EMOJI_MAX_ITEMS} emoji). Delete some to add more`); break; }
+        const r=await emojiFromFile(f,trim);
+        if(emojiBytes()+r.blob.size>EMOJI_MAX_BYTES){ problems.push(`The library is full (${fmtBytes(EMOJI_MAX_BYTES)}). Delete some to add more`); break; }
+        const rec={id:emojiNewId(),name:uniqueEmojiName(f.name.replace(/\.[a-z0-9]{1,5}$/i,'')),w:r.w,h:r.h,bytes:r.blob.size,added:Date.now(),blob:r.blob};
+        try{ await emojiStore('readwrite',st=>st.put(storable(rec))); }
+        catch(e){ throw new Error(e&&e.name==='QuotaExceededError'?"wasn't saved: the browser has no room left":"wasn't saved: this browser isn't letting the page keep files"); }
+        rec.url=URL.createObjectURL(rec.blob); emojiLib.push(rec); added++;
+      }catch(e){
+        if(!/^(is|can't|wasn't)/.test(e.message)){ problems.push(e.message); break; }
+        problems.push(`${cleanName(f.name).slice(0,40)} ${e.message}`);
+      }
+    }
+    if(all.length>list.length) problems.push(`Only the first ${EMOJI_PER_DROP} files are taken at a time`);
+    const shown=problems.slice(0,3).join('. ')+(problems.length>3?`. And ${problems.length-3} more`:'');
+    const msg=(added?`Added ${added} emoji.`:'Nothing added.')+(problems.length?` ${shown}.`:'');
+    renderEmojiLib(); setEmojiMsg(msg,!added);
+    return msg;
+  };
+  return emojiBusy=emojiBusy.then(run,run);
+}
+function renderEmojiLib(){
+  const q=emojiFilter.trim().toLowerCase(), grid=$('#emGrid'), keep=document.activeElement&&document.activeElement.closest&&document.activeElement.closest('.emitem');
+  const focusId=keep&&keep.dataset.id;
+  grid.textContent='';
+  const shown=emojiLib.filter(e=>!q||e.name.toLowerCase().includes(q)).sort((a,b)=>a.added-b.added);
+  for(const e of shown){
+    const it=document.createElement('div'); it.className='emitem'; it.setAttribute('role','listitem'); it.dataset.id=e.id;
+    const th=document.createElement('button'); th.type='button'; th.className='emthumb'; th.setAttribute('aria-label',e.name); th.title=`${e.name} (${e.w}×${e.h}). Double-click or press F2 to rename`;
+    const im=document.createElement('img'); im.alt=''; im.src=e.url; th.append(im);
+    const nm=document.createElement('span'); nm.className='emname'; nm.textContent=e.name;
+    const del=document.createElement('button'); del.type='button'; del.className='emdel icon'; del.setAttribute('aria-label',`Delete ${e.name}`); del.title='Delete';
+    del.innerHTML='<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4.5 4.5l7 7M11.5 4.5l-7 7"/></svg>';
+    it.append(th,nm,del); grid.append(it);
+  }
+  if(!shown.length){ const n=document.createElement('div'); n.className='emnone'; n.textContent=emojiLib.length?'No emoji match.':'No emoji yet.'; grid.append(n); }
+  $('#emUsage').textContent=emojiLib.length?`${emojiLib.length} emoji · ${fmtBytes(emojiBytes())} of ${fmtBytes(EMOJI_MAX_BYTES)}`:'No emoji yet';
+  $('#emClear').disabled=!emojiLib.length;
+  if(focusId){ const t=grid.querySelector(`.emitem[data-id="${CSS.escape(focusId)}"] .emthumb`); if(t) t.focus(); }
+}
+async function deleteEmoji(id){
+  const e=emojiLib.find(x=>x.id===id); if(!e) return;
+  try{ await emojiStore('readwrite',st=>st.delete(id)); }catch(err){ setEmojiMsg("Couldn't delete that emoji from this browser.",true); return; }
+  URL.revokeObjectURL(e.url); emojiLib=emojiLib.filter(x=>x.id!==id);
+  renderEmojiLib(); setEmojiMsg(`Deleted ${e.name}.`);
+}
+async function renameEmoji(id,v){
+  const e=emojiLib.find(x=>x.id===id); if(!e) return;
+  const name=cleanName(v); if(!name||name===e.name) return;
+  const next=uniqueEmojiName(name,id);
+  try{ await emojiStore('readwrite',st=>st.put(storable({...e,name:next}))); }catch(err){ setEmojiMsg("Couldn't save the new name.",true); return; }
+  e.name=next; renderEmojiLib();
+  setEmojiMsg(next===name?`Renamed to ${next}.`:`Renamed to ${next} (${name} was taken).`);
+}
+function startEmojiRename(item){
+  const e=emojiLib.find(x=>x.id===item.dataset.id), nm=item.querySelector('.emname'); if(!e||!nm||item.querySelector('input')) return;
+  const box=document.createElement('input'); box.type='text'; box.className='emren'; box.value=e.name; box.maxLength=MAX_NAME; box.setAttribute('aria-label',`Name of ${e.name}`);
+  let done=false;
+  const end=async keep=>{
+    if(done) return; done=true;
+    if(keep) await renameEmoji(e.id,box.value);
+    renderEmojiLib();
+    const t=$('#emGrid').querySelector(`.emitem[data-id="${CSS.escape(e.id)}"] .emthumb`); if(t&&document.activeElement===document.body) t.focus();
+  };
+  box.addEventListener('keydown',ev=>{
+    ev.stopPropagation();
+    if(ev.key==='Enter'&&!ev.isComposing){ ev.preventDefault(); end(true); }
+    else if(ev.key==='Escape'){ ev.preventDefault(); end(false); }
+  });
+  box.addEventListener('blur',()=>end(true));
+  nm.replaceWith(box); box.focus(); box.select();
+}
+const emGrid=$('#emGrid');
+emGrid.addEventListener('dblclick',e=>{ const it=e.target.closest('.emitem'); if(it&&!e.target.closest('.emdel')) startEmojiRename(it); });
+emGrid.addEventListener('click',e=>{ const b=e.target.closest('.emdel'); if(b) deleteEmoji(b.closest('.emitem').dataset.id); });
+emGrid.addEventListener('keydown',e=>{
+  const it=e.target.closest('.emitem'); if(!it||e.target.matches('input')) return;
+  if(e.key==='F2'){ e.preventDefault(); startEmojiRename(it); }
+  else if(e.key==='Delete'){ e.preventDefault(); deleteEmoji(it.dataset.id); }
+});
+$('#emSearch').addEventListener('input',e=>{ emojiFilter=e.target.value; renderEmojiLib(); });
+$('#emChoose').addEventListener('click',()=>$('#emFile').click());
+$('#emFile').addEventListener('change',e=>{ const fs=[...e.target.files]; e.target.value=''; if(fs.length) addEmojiFiles(fs); });
+$('#emClear').addEventListener('click',async()=>{
+  if(!emojiLib.length) return;
+  const ok=await confirmAction({title:'Clear the emoji library?',message:`All ${emojiLib.length} emoji images are removed from this browser. Cards that used them will show an empty slot until you add the images again.`,ok:'Clear library'});
+  if(!ok) return;
+  try{ await emojiStore('readwrite',st=>st.clear()); }catch(err){ setEmojiMsg("Couldn't clear the library.",true); return; }
+  emojiLib.forEach(x=>URL.revokeObjectURL(x.url)); emojiLib=[]; renderEmojiLib(); setEmojiMsg('The emoji library is empty.');
+});
+// Images dropped on the Emoji panel (even minimized) or pasted anywhere join the library. Elsewhere on the page a drop
+// still opens a set file, as before.
+const emPanel=$('#fp_emoji');
+emPanel.addEventListener('dragover',e=>{ if(isFileDrag(e)){ e.preventDefault(); e.stopPropagation(); e.dataTransfer.dropEffect='copy'; emPanel.classList.add('drop'); } });
+emPanel.addEventListener('dragleave',e=>{ if(!emPanel.contains(e.relatedTarget)) emPanel.classList.remove('drop'); });
+emPanel.addEventListener('drop',e=>{
+  if(!isFileDrag(e)) return;
+  e.preventDefault(); e.stopPropagation(); emPanel.classList.remove('drop');
+  const files=[...e.dataTransfer.files];   // read now: the list is emptied once the event is over
+  if(panelState.min.emoji){ panelState.min.emoji=false; syncPanels(); }
+  addEmojiFiles(files);
+});
+document.addEventListener('paste',e=>{
+  const files=[...(e.clipboardData&&e.clipboardData.files||[])].filter(f=>f.type.startsWith('image/'));
+  if(!files.length||document.querySelector('dialog[open]')) return;
+  e.preventDefault(); addEmojiFiles(files).then(toast);
+});
+const emojiReady=(async()=>{
+  try{
+    const recs=await emojiStore('readonly',st=>st.getAll())||[];
+    for(const r of recs.sort((a,b)=>(a.added||0)-(b.added||0))){
+      if(!r||typeof r.id!=='string'||!(r.blob instanceof Blob)||!(r.w>0)||!(r.h>0)||emojiLib.some(x=>x.id===r.id)) continue;   // a damaged entry is skipped, never fatal
+      emojiLib.push({id:r.id,name:uniqueEmojiName(r.name),w:r.w,h:r.h,bytes:r.blob.size,added:r.added||0,blob:r.blob,url:URL.createObjectURL(r.blob)});
+    }
+  }catch(e){}
+  renderEmojiLib();
+})();
+renderEmojiLib();
 
 /* ============ undo / redo ============ */
 /* A list of snapshots of the design: every card (text, colors, italics, nudges, own style), the shared style and the
@@ -3634,7 +3866,7 @@ render();
 // Panels animate open from now on, not at page load (their @starting-style rule needs .anim): two frames, so it is
 // added after the first paint.
 requestAnimationFrame(()=>requestAnimationFrame(()=>document.documentElement.classList.add('anim')));
-window.__tt={fonts:{read:readFontFile,guess:guessFromName,get faces(){ return [...faceReg].map(([family,l])=>({family,faces:l.map(f=>({w:f.w,italic:f.italic}))})); },get aliases(){ return [...loadedAlias].map(([name,a])=>({name,family:a.family,weight:a.weight})); }},update:{check:checkForUpdate,get offered(){return updateOffered},running:RUNNING_VERSION},S,render,renderNow,get L(){return L},exportGeometry,draw,get cards(){return cards},get sharedStyle(){return sharedStyle},get active(){return active},batchNames,zipStem,crc32,buildZip,undo:undoStep,redo:redoStep,unsavedWork,get history(){return {length:hist.length,at:histAt}},get view(){return {...viewState}},get safezone(){return {...SZ,box:szBox&&{...szBox},status:$('#szStatus').textContent,fit:$('#szFit').textContent}},get mockup(){return {...MK,box:mkBox&&{...mkBox},image:mkImage&&mkImage.name,status:$('#mkStatus').textContent}}};
+window.__tt={emoji:{get library(){ return emojiLib.map(e=>({id:e.id,name:e.name,w:e.w,h:e.h,bytes:e.bytes})); },ready:emojiReady,add:addEmojiFiles,get idle(){ return emojiBusy; },limits:{side:EMOJI_MAX_SIDE,file:EMOJI_MAX_FILE,items:EMOJI_MAX_ITEMS,bytes:EMOJI_MAX_BYTES}},fonts:{read:readFontFile,guess:guessFromName,get faces(){ return [...faceReg].map(([family,l])=>({family,faces:l.map(f=>({w:f.w,italic:f.italic}))})); },get aliases(){ return [...loadedAlias].map(([name,a])=>({name,family:a.family,weight:a.weight})); }},update:{check:checkForUpdate,get offered(){return updateOffered},running:RUNNING_VERSION},S,render,renderNow,get L(){return L},exportGeometry,draw,get cards(){return cards},get sharedStyle(){return sharedStyle},get active(){return active},batchNames,zipStem,crc32,buildZip,undo:undoStep,redo:redoStep,unsavedWork,get history(){return {length:hist.length,at:histAt}},get view(){return {...viewState}},get safezone(){return {...SZ,box:szBox&&{...szBox},status:$('#szStatus').textContent,fit:$('#szFit').textContent}},get mockup(){return {...MK,box:mkBox&&{...mkBox},image:mkImage&&mkImage.name,status:$('#mkStatus').textContent}}};
 </script>
 </body>
 </html>
