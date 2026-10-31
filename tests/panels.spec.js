@@ -15,6 +15,15 @@ test.describe('floating panels', () => {
     await expect(page.locator('aside #presetSel')).toBeVisible(); // presets stay with the style controls
   });
 
+  test('Tight crop and Leave emoji slots empty are export options, so they sit in the Export panel (Tight crop\'s scale too), not the Canvas panel', async ({ app: { page } }) => {
+    for (const id of ['#tight', '#emptySlots']) { await expect(page.locator(`#fp_export ${id}`), id).toBeVisible(); await expect(page.locator(`#fp_canvas ${id}`), id).toHaveCount(0); }
+    await expect(page.locator('#fp_export #exportScale')).toBeHidden();
+    await page.check('#tight');
+    await expect(page.locator('#fp_export #exportScale')).toBeVisible();
+    const y = async (sel) => (await page.locator(sel).boundingBox()).y;
+    expect(await y('#tight')).toBeLessThan(await y('#export'));         // the options come before the buttons they apply to
+  });
+
   test('Export all as ZIP… is in the Export panel, once, and opens the export dialog', async ({ app: { page } }) => {
     await expect(page.locator('#fp_export #batchOpen')).toHaveText('Export as ZIP…');
     await expect(page.locator('#fp_cards button', { hasText: /ZIP/ })).toHaveCount(0);
@@ -150,7 +159,6 @@ test.describe('first open', () => {
     expect(await page.evaluate(() => __tt.S.size)).toBe(150);
     await page.evaluate(() => { const t = document.querySelector('#tight'); t.checked = true; t.dispatchEvent(new Event('change', { bubbles: true })); });
     await expect(page.locator('#offX')).toBeHidden();
-    await expect(page.locator('#posHint')).toBeHidden();
     await expect(page.locator('#posTight')).toBeVisible();
     await expect(page.locator('#n_size')).toBeVisible();   // the card's size still matters in a tight crop
   });
@@ -160,7 +168,7 @@ test.describe('first open', () => {
     await page.fill('#offX', '120');
     expect(await page.evaluate(() => __tt.S.offX)).toBe(120);
     await expect(page.locator('#posTight')).toBeHidden();
-    await page.click('#fph_canvas');
+    await page.click('#fph_export');   // Tight crop is an export option
     await page.check('#tight');
     await expect(page.locator('#offX')).toBeHidden();
     await expect(page.locator('#posTight')).toBeVisible();

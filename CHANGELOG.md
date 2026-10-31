@@ -4,6 +4,16 @@ What changed in OpenTitlecard, newest first. The version is shown next to the ap
 
 Versions are `vMAJOR.MINOR`. Each merged pull request that changes the app adds one to the minor number (v1.31 → v1.32 → …). The changelog started at v1.31: v1.27 stands for everything merged before the UI review that led to v1.28–v1.31 (pull requests up to #31), so the numbers line up with the work done.
 
+## v1.69
+
+### Changed
+- **Tight crop and Leave emoji slots empty are now in the Export panel,** above Download PNG, because they only matter when you export. Tight crop's **Export scale** slider appears there too. The Canvas panel keeps just the canvas size and orientation.
+- **Less helper text.** Short explanations that only repeated what a control already shows are gone, so panels are shorter and calmer:
+  - the notes under Text Settings (stretch and squish, max card width), Background (margins), Position & Scale, and Emoji Slot, and the one above the presets;
+  - in the Emoji panel, the opening line, the note about Size and offsets, and the tips for renaming and deleting (they are in the tooltips);
+  - in the Canvas panel, the 4K note (it is now the tooltip of the width and height fields) and the note under Leave emoji slots empty (now a tooltip).
+  - Notes that carry something you cannot see are kept, in fewer words: the licensing and privacy line for emoji, that cards aren't kept in the browser (and how to save them), what the ★ default preset does, how a position relates to Premiere, that Alt-drag nudges a line, and the file-name patterns. The "Slots" list says "No emoji in the text." when there are none.
+
 ## v1.68
 
 ### Added

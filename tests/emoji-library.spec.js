@@ -25,7 +25,7 @@ test.describe('emoji library', () => {
     expect(await lib(page)).toEqual([]);
     await expect(page.locator('#emUsage')).toHaveText('No emoji yet');
     await expect(page.locator('#emClear')).toBeDisabled();
-    await expect(page.locator('#fp_emoji')).toContainText('Use only images you have the right to use');
+    await expect(page.locator('#fp_emoji')).toContainText('use only images you have the right to use');
     expect(await page.locator('#emGrid img').count()).toBe(0);
   });
 

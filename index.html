@@ -370,7 +370,7 @@
 </head>
 <body>
 <header>
-  <h1>OpenTitlecard <a id="appVersion" href="https://github.com/wishym1shy/opentitlecard/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer" title="What's new in this version (changelog on GitHub)">v1.68</a></h1>
+  <h1>OpenTitlecard <a id="appVersion" href="https://github.com/wishym1shy/opentitlecard/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer" title="What's new in this version (changelog on GitHub)">v1.69</a></h1>
   <button id="updateBtn" type="button" hidden title="A newer version of OpenTitlecard is out. Click to reload the page and get it (save your set first)."></button>
   <a class="gh" href="https://github.com/wishym1shy/opentitlecard" target="_blank" rel="noopener noreferrer" title="View the source on GitHub">
     <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
@@ -387,7 +387,7 @@
     <summary>Text</summary>
     <div class="body">
       <textarea id="text" spellcheck="false" placeholder="Type your titlecard. Enter = new line."></textarea>
-      <div class="hint">Select a word (or just put the caret in it) then click a color. Click a word in the preview to select it. Paste or type an emoji and it becomes an empty slot.</div>
+      <div class="hint">Select a word, then click a color.</div>
       <div class="swatches" id="swatches"></div>
       <div class="row tight" style="flex-wrap:wrap">
         <input type="color" id="pick" value="#ff3b30" title="Custom color">
@@ -445,8 +445,7 @@
                the three handles used most while laying out a mock-up are together. Outside #frameOpts: it applies in tight crop too. -->
           <label for="n_size">Scale</label><div class="fld" data-name="Scale"><span class="scrub" data-scrub-for="size" title="Drag to scale the card (Shift = 10×). Double-click to reset."><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 4V3h7v1M5.5 3v10M4 13h3M10 8V7.5h4.5V8M12.2 7.5V13M11.2 13h2"/></svg></span><input type="number" id="n_size" step="1" aria-label="Scale"><span class="unit">px</span><span class="sr" id="v_size" aria-hidden="true"></span><input type="range" id="size" min="30" max="260" step="1" aria-label="Scale slider"></div>
           <label class="chk" style="margin-top:6px"><input type="checkbox" id="autoScale"> Auto-scale to fit when the canvas size changes</label>
-          <div class="hint" id="posHint">X / Y move the card inside the canvas, in px at 1080p (+Y is down), the same for every card. Scale is the font size in px at 1080p: the box, padding and corners grow with it.</div>
-          <div class="hint" id="posTight" style="margin:0" hidden>Tight crop is on (Canvas panel), so the PNG is just the card and its X / Y position doesn't apply. Scale still does.</div>
+          <div class="hint" id="posTight" style="margin:0" hidden>Tight crop is on, so X / Y don't apply.</div>
         </div>
       </details>
 
@@ -454,7 +453,7 @@
         <summary>Text Position</summary>
         <div class="body">
           <div id="nudges"></div>
-          <div class="hint">Moves each line's text (and its emoji slot) without moving the box. Units are px at 1080p; sliders rest at 0 in the middle (right = +, and +Y is down). Drag the <b>X</b>/<b>Y</b> labels to scrub, type a value, or use the arrow keys (<kbd>Shift</kbd> = 10). Double-click to reset one axis, or Alt-drag text in the preview.</div>
+          <div class="hint">Alt-drag a line of text in the preview to nudge it too.</div>
         </div>
       </details>
 
@@ -465,9 +464,7 @@
           <div id="align" class="segi" role="radiogroup" aria-labelledby="alignLbl"><label title="Left"><input type="radio" name="align" value="left" aria-label="Align left"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 3.5h12M2 6.5h8M2 9.5h12M2 12.5h7"/></svg></label><label title="Center"><input type="radio" name="align" value="center" aria-label="Align center"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 3.5h12M4 6.5h8M2 9.5h12M4.5 12.5h7"/></svg></label><label title="Right"><input type="radio" name="align" value="right" aria-label="Align right"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 3.5h12M6 6.5h8M2 9.5h12M7 12.5h7"/></svg></label></div>
           <div class="g2"><div><label for="n_lh">Line height</label><div class="fld" data-name="Line height"><span class="scrub" data-scrub-for="lh" title="Drag to change line height (Shift = 10×). Double-click to reset."><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 2.5h12M2 13.5h12M5.5 11 8 5l2.5 6M6.4 9h3.2"/></svg></span><input type="number" id="n_lh" step="0.01" aria-label="Line height"><span class="unit">×</span><span class="sr" id="v_lh" aria-hidden="true"></span><input type="range" id="lh" min="0.9" max="1.8" step="0.01" aria-label="Line height slider"></div></div><div><label for="n_track">Letter spacing</label><div class="fld" data-name="Tracking"><span class="scrub" data-scrub-for="track" title="Drag to change letter spacing (Shift = 10×). Double-click to reset."><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 3v10M14 3v10M5.5 11 8 5l2.5 6M6.4 9h3.2"/></svg></span><input type="number" id="n_track" step="0.5" aria-label="Tracking"><span class="unit">px</span><span class="sr" id="v_track" aria-hidden="true"></span><input type="range" id="track" min="-6" max="20" step="0.5" aria-label="Tracking slider"></div></div></div>
           <div class="g2"><div><label for="n_stretchX">Stretch width</label><div class="fld" data-name="Stretch width"><span class="scrub" data-scrub-for="stretchX" title="Drag to change stretch width (Shift = 10×). Double-click to reset."><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 8h12M4.5 5.5 2 8l2.5 2.5M11.5 5.5 14 8l-2.5 2.5"/></svg></span><input type="number" id="n_stretchX" step="1" aria-label="Stretch width"><span class="unit">%</span><span class="sr" id="v_stretchX" aria-hidden="true"></span><input type="range" id="stretchX" min="50" max="200" step="1" aria-label="Stretch width slider"></div></div><div><label for="n_stretchY">Stretch height</label><div class="fld" data-name="Stretch height"><span class="scrub" data-scrub-for="stretchY" title="Drag to change stretch height (Shift = 10×). Double-click to reset."><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2v12M5.5 4.5 8 2l2.5 2.5M5.5 11.5 8 14l2.5-2.5"/></svg></span><input type="number" id="n_stretchY" step="1" aria-label="Stretch height"><span class="unit">%</span><span class="sr" id="v_stretchY" aria-hidden="true"></span><input type="range" id="stretchY" min="50" max="200" step="1" aria-label="Stretch height slider"></div></div></div>
-          <div class="hint">Below 100% squishes the letters, above stretches them. The box grows or shrinks around them; padding stays the same and emoji slots stay square.</div>
           <div><label for="n_wrap">Max card width</label><div class="fld" data-name="Max card width"><span class="scrub" data-scrub-for="wrap" title="Drag to change max card width (Shift = 10×). Double-click to reset."><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M14 2.5v11M2 4.5h7.5a2.5 2.5 0 0 1 0 5H6M7.5 7.5 5.5 9.5l2 2M2 12h2"/></svg></span><input type="number" id="n_wrap" step="10" aria-label="Max card width" placeholder="Off"><span class="unit">px</span><span class="sr" id="v_wrap" aria-hidden="true"></span><input type="range" id="wrap" min="0" max="1900" step="10" aria-label="Max card width slider"></div></div>
-          <div class="hint">Off = only your own line breaks. Otherwise long lines wrap at spaces to fit. Line nudges stay with line numbers.</div>
           <div class="g2"><div><label for="hx_textColor">Default text color</label><div class="fld"><input type="color" id="textColor" aria-label="Default text color picker"><input type="text" class="hex" id="hx_textColor" maxlength="7" spellcheck="false" autocomplete="off" aria-label="Default text color hex code"></div></div><div><label for="hx_outlineColor">Outline</label><div class="fld"><input type="color" id="outlineColor" aria-label="Outline picker"><input type="text" class="hex" id="hx_outlineColor" maxlength="7" spellcheck="false" autocomplete="off" aria-label="Outline hex code"></div></div></div>
           <div class="g2"><div><label for="n_outlineW">Outline width</label><div class="fld" data-name="Outline width"><span class="scrub" data-scrub-for="outlineW" title="Drag to change outline width (Shift = 10×). Double-click to reset."><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 4h12" stroke-width="1"/><path d="M2 8h12" stroke-width="2"/><path d="M2 12.5h12" stroke-width="3"/></svg></span><input type="number" id="n_outlineW" step="0.5" aria-label="Outline width"><span class="unit">px</span><span class="sr" id="v_outlineW" aria-hidden="true"></span><input type="range" id="outlineW" min="0" max="16" step="0.5" aria-label="Outline width slider"></div></div></div>
           <label class="chk"><input type="checkbox" id="textShadow"> Soft text shadow</label>
@@ -482,7 +479,6 @@
           <div class="g2"><div><label for="n_padX">Side padding</label><div class="fld" data-name="Side padding"><span class="scrub" data-scrub-for="padX" title="Drag to change side padding (Shift = 10×). Double-click to reset."><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 2.5v11M14 2.5v11"/><rect x="5" y="5.5" width="6" height="5" rx="1"/></svg></span><input type="number" id="n_padX" step="0.01" aria-label="Side padding"><span class="unit">em</span><span class="sr" id="v_padX" aria-hidden="true"></span><input type="range" id="padX" min="0.1" max="1" step="0.01" aria-label="Side padding slider"></div></div><div><label for="n_radius">Corner radius</label><div class="fld" data-name="Corner radius"><span class="scrub" data-scrub-for="radius" title="Drag to change corner radius (Shift = 10×). Double-click to reset."><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 13V7.5A4.5 4.5 0 0 1 7.5 3H13"/></svg></span><input type="number" id="n_radius" step="0.01" aria-label="Corner radius"><span class="unit">em</span><span class="sr" id="v_radius" aria-hidden="true"></span><input type="range" id="radius" min="0" max="0.5" step="0.01" aria-label="Corner radius slider"></div></div></div>
           <div class="g2"><div><label for="n_topPad">Top margin</label><div class="fld" data-name="Top margin (above caps)"><span class="scrub" data-scrub-for="topPad" title="Drag to change top margin (Shift = 10×). Double-click to reset."><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 2.5h12"/><rect x="4" y="6.5" width="8" height="6.5" rx="1"/><path d="M8 3.5v2" stroke-width="1"/></svg></span><input type="number" id="n_topPad" step="0.01" aria-label="Top margin (above caps)"><span class="unit">em</span><span class="sr" id="v_topPad" aria-hidden="true"></span><input type="range" id="topPad" min="0.1" max="1" step="0.01" aria-label="Top margin (above caps) slider"></div></div><div><label for="n_botPad">Bottom margin</label><div class="fld" data-name="Bottom margin (below baseline)"><span class="scrub" data-scrub-for="botPad" title="Drag to change bottom margin (Shift = 10×). Double-click to reset."><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 13.5h12"/><rect x="4" y="3" width="8" height="6.5" rx="1"/><path d="M8 10.5v2" stroke-width="1"/></svg></span><input type="number" id="n_botPad" step="0.01" aria-label="Bottom margin (below baseline)"><span class="unit">em</span><span class="sr" id="v_botPad" aria-hidden="true"></span><input type="range" id="botPad" min="0.1" max="1" step="0.01" aria-label="Bottom margin (below baseline) slider"></div></div></div>
           <div class="g2"><div><label for="n_clear">Descender clearance</label><div class="fld" data-name="Clearance below g, y, p, emoji…"><span class="scrub" data-scrub-for="clear" title="Drag to change descender clearance (Shift = 10×). Double-click to reset."><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M9.5 4.5v6a2.5 2.5 0 0 1-4.6 1.3M9.5 7a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0M2 14.5h12"/></svg></span><input type="number" id="n_clear" step="0.01" aria-label="Clearance below g, y, p, emoji…"><span class="unit">em</span><span class="sr" id="v_clear" aria-hidden="true"></span><input type="range" id="clear" min="0" max="0.6" step="0.01" aria-label="Clearance below g, y, p, emoji… slider"></div></div></div>
-          <div class="hint">Top is measured above the capitals, bottom below the baseline. Clearance keeps the box clear of g, y, p and emoji slots.</div>
           <label class="chk"><input type="checkbox" id="boxShadow"> Soft box shadow</label>
         </div>
       </details>
@@ -490,7 +486,6 @@
       <details open>
         <summary>Emoji Slot</summary>
         <div class="body">
-          <div class="hint" style="margin:0 0 6px">Scale X and Scale Y set the space each emoji slot takes, as a percent of the standard slot. Type an emoji (or use “＋ Emoji slot”) to add one.</div>
           <div id="slotRows"></div>
           <label class="chk"><input type="checkbox" id="showGuides"> Show slot outline in preview (never exported)</label>
           <div id="slotInfo" style="margin-top:8px"></div>
@@ -502,10 +497,9 @@
   <details open>
     <summary>Presets</summary>
     <div class="body">
-      <div class="hint" style="margin:0 0 6px">Font, colors and sizes per client. Never the text.</div>
       <div class="row"><select id="presetSel" aria-label="Saved presets"></select><button id="presetLoad" class="sm" style="flex:none">Load</button><button id="presetDefault" class="sm" style="flex:none" title="The default preset is applied the first time the app opens, before any settings are saved">Set as default</button></div>
       <div class="row" style="margin-top:6px"><button id="presetAll" class="sm" title="Use this preset for every card, replacing any card's own style (asks first)">Apply preset to all cards</button></div>
-      <div class="hint" id="presetHint">★ marks the default preset. It is applied the first time the app opens; after that your last-used settings come back. Use Load to return to a preset any time.</div>
+      <div class="hint" id="presetHint">★ marks the default preset, applied the first time the app opens.</div>
       <div class="row" style="margin-top:6px"><input type="text" id="presetName" placeholder="Preset name"><button id="presetSave" class="sm" style="flex:none">Save</button><button id="presetDel" class="sm" style="flex:none">Delete</button></div>
     </div>
   </details>
@@ -574,7 +568,7 @@
             </div>
           </div>
           <div class="row tight" style="margin-top:8px"><label style="margin:0"><input type="checkbox" id="cardOwn"> This card has its own style</label></div>
-          <div class="hint">Cards share one style unless you tick <b>own style</b> (◆). Text, colors, italics and nudges belong to each card. Cards aren't kept in the browser: save the set with <b>File › Save set</b> (<kbd data-keys="S"></kbd>), or drop a <b>.opntcd</b> file here to open one.</div>
+          <div class="hint">Cards aren't kept in the browser: save the set with <b>File › Save set</b> (<kbd data-keys="S"></kbd>).</div>
         </div>
       </section>
       <section class="fp min" id="fp_emoji" data-panel="emoji" aria-labelledby="fph_emoji">
@@ -588,14 +582,13 @@
             </div>
             <input type="file" id="emFile" accept="image/png,image/webp,image/svg+xml,.png,.webp,.svg" multiple hidden>
           </div>
-          <div class="hint" id="emMsg" role="status" aria-live="polite">Your own emoji images. You can also paste an image.</div>
+          <div class="hint" id="emMsg" role="status" aria-live="polite"></div>
           <div class="emslot" id="emSlot" aria-live="polite"></div>
           <div class="emanchor" id="emAnchor" role="group" aria-label="Where the image sits in the selected slot" hidden>
             <div class="g2"><div><label for="n_anX">X offset</label><div class="fld" data-name="Image X"><span class="scrub" data-view-scrub="anX" title="Drag to move the image sideways, in percent of the standard slot (Shift = 10×). Double-click for 0.">X</span><input type="number" id="n_anX" step="1" aria-label="Image X offset, percent of the standard slot"><span class="unit">%</span><span class="sr" id="v_anX" aria-hidden="true"></span><input type="range" id="anX" min="-100" max="100" step="1" aria-label="Image X offset slider"></div></div><div><label for="n_anY">Y offset</label><div class="fld" data-name="Image Y"><span class="scrub" data-view-scrub="anY" title="Drag to move the image up or down, in percent of the standard slot (Shift = 10×). Double-click for 0.">Y</span><input type="number" id="n_anY" step="1" aria-label="Image Y offset, percent of the standard slot"><span class="unit">%</span><span class="sr" id="v_anY" aria-hidden="true"></span><input type="range" id="anY" min="-100" max="100" step="1" aria-label="Image Y offset slider"></div></div></div>
             <label for="n_anScale">Size</label><div class="fld" data-name="Image size"><span class="scrub" data-view-scrub="anScale" title="Drag to resize the image (Shift = 10×). Double-click to reset."><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 4V3h7v1M5.5 3v10M4 13h3M10 8V7.5h4.5V8M12.2 7.5V13M11.2 13h2"/></svg></span><input type="number" id="n_anScale" step="1" aria-label="Image size, percent"><span class="unit">%</span><span class="sr" id="v_anScale" aria-hidden="true"></span><input type="range" id="anScale" min="10" max="400" step="1" aria-label="Image size slider"></div>
             <div class="row"><button type="button" class="sm" id="anCap" style="flex:none" title="Make the image as tall as the capital letters, centred on them">Match cap height</button><button type="button" class="sm" id="anBase" style="flex:none" title="Move the image down so its bottom edge sits on the text baseline">Sit on baseline</button></div>
             <div class="row"><button type="button" class="sm" id="anCopy" style="flex:none" title="Give every slot that shows this image, on every card, this offset and size">Use for every slot with this image</button></div>
-            <div class="hint">Size and offsets are measured from the standard slot, so Scale X and Scale Y (which set the room the slot takes) never change how big the picture is. The pink guides on the preview mark the slot's centre, the capital height and the baseline.</div>
           </div>
           <label for="emSearch" class="sr">Search emoji by name</label>
           <input type="search" id="emSearch" placeholder="Search by name" autocomplete="off" style="margin:6px 0">
@@ -603,7 +596,7 @@
             <div class="emgrid" id="emGrid" role="list" aria-label="Emoji library"></div>
             <div class="emfoot"><span id="emUsage">No emoji yet</span><button id="emClear" class="sm" type="button" style="flex:none" disabled>Clear library…</button></div>
           </div>
-          <div class="hint">OpenTitlecard comes with no emoji images. Use only images you have the right to use: that is up to you. They are stored in this browser on this computer, and never uploaded. Double-click a name or press F2 to rename; Delete removes it.</div>
+          <div class="hint">No emoji images are included: use only images you have the right to use. They stay in this browser and are never uploaded.</div>
         </div>
       </section>
       <section class="fp min" id="fp_canvas" data-panel="canvas" aria-labelledby="fph_canvas">
@@ -620,15 +613,10 @@
             <option value="1080x1350">1080 × 1350 (4:5)</option>
             <option value="custom">Custom…</option>
           </select>
-          <div class="row" id="customRow" style="display:none;margin-top:6px"><input type="number" id="fw" min="64" max="3840" aria-label="Canvas width"><input type="number" id="fh" min="64" max="3840" aria-label="Canvas height"></div>
+          <div class="row" id="customRow" style="display:none;margin-top:6px"><input type="number" id="fw" min="64" max="3840" aria-label="Canvas width" title="Width, up to 3840 px (4K)"><input type="number" id="fh" min="64" max="3840" aria-label="Canvas height" title="Height, up to 3840 px (4K)"></div>
           <div class="row tight" style="margin-top:8px;align-items:center">
             <span class="seg" id="orient" role="group" aria-label="Orientation"><button type="button" data-orient="h">Landscape</button><button type="button" data-orient="v">Vertical</button></span>
           </div>
-          <div class="hint">Up to 3840 px on each side (4K).</div>
-          <div class="row tight" style="margin-top:8px"><label style="margin:0"><input type="checkbox" id="tight"> Tight crop (just the card)</label></div>
-          <div id="tightOpts" style="display:none"><label>Export scale <span class="val" id="v_exportScale"></span></label><input type="range" id="exportScale" min="1" max="4" step="0.5"></div>
-          <div class="row tight" style="margin-top:6px"><label style="margin:0"><input type="checkbox" id="emptySlots"> Leave emoji slots empty</label></div>
-          <div class="hint">Tick it if you paste your own emoji on top in your editor. Images on slots then stay out of the PNG.</div>
         </div>
       </section>
       <section class="fp min" id="fp_safezone" data-panel="safezone" aria-labelledby="fph_safezone">
@@ -669,6 +657,9 @@
       <section class="fp min" id="fp_export" data-panel="export" aria-labelledby="fph_export">
         <h2 class="fph"><button type="button" id="fph_export" aria-expanded="false" aria-controls="fpb_export" title="Minimize or expand this panel">Export<span class="chev" aria-hidden="true"></span></button></h2>
         <div class="fpb" id="fpb_export">
+          <div class="row tight" style="margin:0 0 6px"><label style="margin:0" title="Export only the card, with no empty canvas around it"><input type="checkbox" id="tight"> Tight crop (just the card)</label></div>
+          <div id="tightOpts" style="display:none"><label>Export scale <span class="val" id="v_exportScale"></span></label><input type="range" id="exportScale" min="1" max="4" step="0.5"></div>
+          <div class="row tight" style="margin:0 0 8px"><label style="margin:0" title="For editors who paste their own emoji on top: images on slots stay out of the PNG"><input type="checkbox" id="emptySlots"> Leave emoji slots empty</label></div>
           <div class="exportpair"><button id="export" class="primary" title="This card as a PNG">Download PNG</button><button id="batchOpen" class="primary" title="Every card as a PNG in one ZIP, named by a pattern">Export all as ZIP…</button></div>
         </div>
       </section>
@@ -694,7 +685,7 @@
       <div><label for="bStart">First number</label><input type="number" id="bStart" min="0" max="99999" step="1"></div>
       <div><label for="bDigits">Digits</label><input type="number" id="bDigits" min="1" max="6" step="1"></div>
     </div>
-    <div class="hint"><code>{set}</code> becomes the set's name (the box next to ☰ File; <i>titlecard</i> while it's untitled) and <code>{n}</code> the card number: <code>{set}-{n}</code> in a set named <i>Promo</i> gives <code>Promo-1.png</code>, <code>Promo-2.png</code>… in <code>Promo.zip</code>. <code>{name}</code> becomes the card's name, as in the Cards list. With no <code>{n}</code> or <code>{name}</code>, the number is added after a dash. Empty cards are skipped and not numbered. <button type="button" id="bUseSet" class="linkish">Name files after the set</button> · <button type="button" id="bUseNames" class="linkish">Name files after the cards</button></div>
+    <div class="hint"><code>{set}</code> the set's name (<i>titlecard</i> while untitled) · <code>{n}</code> the card number · <code>{name}</code> the card's name. With neither <code>{n}</code> nor <code>{name}</code>, the number is added after a dash. <button type="button" id="bUseSet" class="linkish">Name files after the set</button> · <button type="button" id="bUseNames" class="linkish">Name files after the cards</button></div>
     <div class="hint" id="bInfo"></div>
     <div class="bsec">
       <div class="row">
@@ -2086,8 +2077,8 @@ function updateSlotInfo(g){
     else html+=`<div class="slotrow"><b>Slot ${n}</b> <code>${px}px</code> Premiere Position <code>${Math.round(g.cx+cx*g.u)}, ${Math.round(g.cy+cy*g.u)}</code></div>`;
     html+=lost;
   }
-  box.innerHTML = html || '<div class="hint">No emoji in the text yet. Type or paste one, or use “＋ Emoji slot”.</div>';
-  if(html && !S.tight) box.innerHTML += '<div class="hint">Position assumes this PNG sits at default position and 100% scale in a sequence of the same size.</div>';
+  box.innerHTML = html || '<div class="hint">No emoji in the text.</div>';
+  if(html && !S.tight) box.innerHTML += '<div class="hint">Positions assume the PNG at its default position and 100% scale in a same-size sequence.</div>';
 }
 
 /* ============ nudge rows ============ */
@@ -2458,7 +2449,7 @@ function syncControls(){
     $('#'+pre+'tightOpts').style.display=S.tight?'block':'none';
     $('#'+pre+'frameOpts').style.display=S.tight?'none':'block';
   }
-  $('#posTight').hidden=!S.tight; $('#posHint').hidden=S.tight;
+  $('#posTight').hidden=!S.tight;
 }
 for(const [k,t] of bindings){
   for(const id of DIALOG_KEYS.includes(k)?[k,'x_'+k]:[k]){
@@ -3840,7 +3831,7 @@ function updateEmojiSlotBar(){
   if(sig===slotBarSig) return; slotBarSig=sig;
   box.textContent='';
   const line=(t,cls)=>{ const x=document.createElement('div'); if(cls) x.className=cls; x.append(...t); box.append(x); return x; };
-  if(!sel){ line(['Click an emoji slot in the preview (or select the emoji in the text), then click an image below to put it there.']); return; }
+  if(!sel){ line(['Click an emoji slot in the preview, then an image below.']); return; }
   const b=t=>{ const x=document.createElement('b'); x.textContent=t; return x; };
   if(r.missing) line([`Slot ${sel.n} ${ch}: `,'⚠ the image ',b(d.n),' is not in your library, so the slot stays empty. Pick another below, or add the image again.'],'bad');
   else if(d&&d.n) line([`Slot ${sel.n} ${ch}: image `,b(r.e.name)]);
