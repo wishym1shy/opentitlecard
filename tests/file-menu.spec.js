@@ -36,7 +36,7 @@ test.describe('File menu', () => {
     expect(items).toEqual(['setNew', 'batchOpenFile', 'batchSave', 'setSaveAs', 'presetImport', 'presetExport', 'softReset', 'resetAll']);
     await page.click('#fileMenuBtn');
     await expect(page.locator('#softReset')).toContainText('Keeps presets, palette and fonts');
-    await expect(page.locator('#resetAll')).toContainText('Deletes presets, palette, fonts and every setting');
+    await expect(page.locator('#resetAll')).toContainText('Deletes presets, palette, fonts, emoji and every setting');
     await expect(page.locator('#batchSave kbd')).toHaveText(/^(Ctrl\+|⌘)S$/);
   });
 
@@ -210,7 +210,7 @@ test.describe('resets', () => {
   test('Soft reset clears the settings and keeps presets, palette and fonts; the default preset applies again', async ({ app: { page } }) => {
     await returningUser(page);
     await fileMenu(page, 'softReset');
-    for (const t of ['canvas size', 'overlay, mock-up', 'Kept: your presets, your default preset, your palette colors and your remembered fonts', 'cards on the page are cleared'])
+    for (const t of ['canvas size', 'overlay, mock-up', 'Kept: your presets, your default preset, your palette colors, your remembered fonts and your emoji library', 'cards on the page are cleared'])
       await expect(page.locator('#cMsg')).toContainText(t);
     await confirmDialog(page, false);   // Cancel changes nothing
     expect(await page.evaluate(() => __tt.S.size)).toBe(120);
