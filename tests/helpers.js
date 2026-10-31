@@ -1,5 +1,6 @@
 // Shared helpers for the opentitlecard tests.
 const path = require('path');
+const zlib = require('zlib');
 const { pathToFileURL } = require('url');
 const { test: base, expect } = require('@playwright/test');
 
@@ -207,4 +208,23 @@ async function fileMenu(page, id) {
   await page.click('#' + id);
 }
 
-module.exports = { fileMenu, expandUi, confirmDialog, addCard, readZip, crc32, pngSize, downloadZip, test, expect, APP_URL, FONT_FILE, FONT_FAMILY, loadTestFont, setText, settle, setRange, setSelection, exportPng, inspectPng };
+/** PNG encoder for tests that need an image without a binary fixture: w×h RGBA, px(x, y) gives [r, g, b, a]. */
+function crc(buf) {
+  let c, crcv = 0xffffffff;
+  for (let n = 0; n < buf.length; n++) { c = (crcv ^ buf[n]) & 0xff; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; crcv = (crcv >>> 8) ^ c; }
+  return (crcv ^ 0xffffffff) >>> 0;
+}
+function chunk(type, data) {
+  const len = Buffer.alloc(4); len.writeUInt32BE(data.length);
+  const td = Buffer.concat([Buffer.from(type), data]), c = Buffer.alloc(4); c.writeUInt32BE(crc(td));
+  return Buffer.concat([len, td, c]);
+}
+/** A w×h RGBA PNG; px(x, y) returns [r, g, b, a]. */
+function makePng(w, h, px) {
+  const raw = Buffer.alloc((w * 4 + 1) * h);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const o = y * (w * 4 + 1) + 1 + x * 4, p = px(x, y); raw[o] = p[0]; raw[o + 1] = p[1]; raw[o + 2] = p[2]; raw[o + 3] = p[3]; }
+  const ihdr = Buffer.alloc(13); ihdr.writeUInt32BE(w, 0); ihdr.writeUInt32BE(h, 4); ihdr[8] = 8; ihdr[9] = 6;
+  return Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk('IHDR', ihdr), chunk('IDAT', zlib.deflateSync(raw)), chunk('IEND', Buffer.alloc(0))]);
+}
+
+module.exports = { makePng, fileMenu, expandUi, confirmDialog, addCard, readZip, crc32, pngSize, downloadZip, test, expect, APP_URL, FONT_FILE, FONT_FAMILY, loadTestFont, setText, settle, setRange, setSelection, exportPng, inspectPng };

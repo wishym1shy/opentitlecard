@@ -20,13 +20,13 @@ Paid plugins and MOGRTs can make this style of caption, but:
 - **One color per card.** Most templates only let you color the whole text block, not a single word.
 - **Everyone needs the plugin.** Every editor has to install it, license it, and keep it updated.
 
-OpenTitlecard fixes each of those. Emoji are handled as an empty, correctly-sized **slot** so you can paste your own color emoji on top, and any word can have its own color.
+OpenTitlecard fixes each of those. Emoji get a correctly-sized **slot**: leave it empty to paste your own color emoji on top in your editor, or put an image of your own in it. Any word can have its own color.
 
 ## Features
 
 - **Per-word color, bold, italic and underline.** The **B / I / U** bar above **Font family** (or **Ctrl+B / I / U**, **⌘** on a Mac) formats the selected letters, or the word at the caret, just like a swatch colors them. Bold is the next weight up (Regular becomes Bold, Bold becomes Black), using the font's real Bold face where it has one. If a font has no italic face, or no bolder face, the app still fakes it but shows a ⚠ by the bar (hover it for why) and a short note at the bottom the first time. Put the caret in a word (or select a range) and click a swatch. Click any word in the preview to select it; click it again on its punctuation to select just that (say, a black "!" after a red word). Includes a palette, custom colors, and an eyedropper.
-- **Emoji slots.** Type or paste an emoji and it becomes a blank slot in the layout. The background box wraps around it exactly as it would around the real thing. The slot is outlined in the preview only, never in the export.
-- **Your own emoji library.** The **Emoji** panel keeps images you add (PNG, WebP or SVG: drop them, choose them or paste one), shrunk and trimmed, in your browser on your computer. OpenTitlecard comes with no emoji images and never uploads yours; use only images you have the right to use. Placing them in a card's emoji slots is coming next.
+- **Emoji slots.** Type or paste an emoji and it becomes a slot in the layout. The background box wraps around it exactly as it would around the real thing. The slot is outlined in the preview only, never in the export. It stays empty until you put an image on it.
+- **Your own emoji images.** The **Emoji** panel keeps images you add (PNG, WebP or SVG: drop them, choose them or paste one), shrunk and trimmed, in your browser on your computer. Click a slot in the preview, then an image, and it fills the slot in the preview and in the PNG, without changing the card's layout; make an image the default for an emoji to fill every slot of it. **Leave emoji slots empty** (in Export) keeps them out of the PNG if you paste your own on top instead. OpenTitlecard comes with no emoji images and never uploads yours; use only images you have the right to use.
 - **Smart background box.** Each line gets its own rounded box, with inverse corners where line widths differ, like TikTok's own captions. The box grows downward automatically when descenders (`g`, `y`, `p`, `q`, `j`) or an emoji would crowd the bottom edge.
 - **Optional auto-wrap.** Set a **Max card width** and long lines wrap at spaces to fit, with the padding included. Your own line breaks always win, and color, italic and emoji slots carry through the wrap.
 - **Stretch and squish.** Scale the letters wider or narrower, taller or shorter (50–200%) to play with the shape of any font. The box follows the letters with the same padding, and emoji slots stay square.
@@ -102,7 +102,7 @@ To clear what the app keeps, use the **☰ File** menu. **Soft reset…** puts t
 - Output is a **flat PNG**: the text is not live or editable once exported. Re-open the app to change it.
 - Auto-wrap breaks only at spaces (no hyphenation, no mid-word breaks), and a word wider than the limit keeps its own line. Line nudges are tied to line numbers, so changing the max width can change which text a nudge applies to.
 - Cards are not kept anywhere automatically: reloading the page starts over, so use **Save set** (**Ctrl+S**) first. A set file doesn't contain fonts; a font loaded with **Load font file…** has to be loaded again. Cards share one style unless you tick **This card has its own style**; canvas size and crop are always shared by the whole export. The ZIP uses plain (stored) entries, since PNGs are already compressed.
-- Emoji are never drawn by the app. They're intentionally left as empty slots so you can insert any emoji style (iOS, Android) you like in post. This app never bundles or distributes licensed emojis such as the Apple Emoji suite.
+- The app never draws emoji by itself and comes with no emoji images: a slot is empty until you put one of your own images on it, or you paste an emoji on top in your editor. Licensing of the images you add is up to you. A set file names the images a card uses but doesn't contain them, so the same images need to be in the library on the other computer; a missing one shows a warning and leaves the slot empty. An image's own offset and size (stored with each slot) have no controls yet.
 
 ## Development
 

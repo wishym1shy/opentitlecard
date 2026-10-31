@@ -4,6 +4,18 @@ What changed in OpenTitlecard, newest first. The version is shown next to the ap
 
 Versions are `vMAJOR.MINOR`. Each merged pull request that changes the app adds one to the minor number (v1.31 → v1.32 → …). The changelog started at v1.31: v1.27 stands for everything merged before the UI review that led to v1.28–v1.31 (pull requests up to #31), so the numbers line up with the work done.
 
+## v1.65
+
+### Added
+- **Your own emoji images on a card.** Click an emoji slot in the preview (or select the emoji in the text), then click an image in the **Emoji** panel: the image fills the slot, in the preview and in the exported PNG. The slot is exactly the size it always was, so the card's box never changes, and the image keeps its place when you edit the text, break or wrap lines, or change Scale.
+  - **Use it for every 🙂** makes an image the default for that emoji: every slot of it that has no image of its own uses it, on every card, and the choice is kept in the browser with the library. A slot's own image wins over the default. **Remove image** takes one off.
+  - Putting an image on a slot or taking it off goes through **undo and redo**.
+  - **Leave emoji slots empty** (Export panel and export dialog) keeps the images out of the PNG and the ZIP, for editors who still paste their own emoji on top. The preview still shows them.
+  - Each slot also has an **offset and size** of its own, stored with the slot, so it follows the slot when text moves. Controls for them come in a following update.
+  - A set file **names** the images a card uses; it doesn't contain them. Open it on a computer whose library lacks one and you get a warning (in the bottom bar, in the **Emoji Slot** list and on the slot), the slot stays empty and nothing breaks; add an image with that name and it is picked up. Older set files open as before.
+  - Renaming an image in the library updates the cards that use it.
+- The Download PNG note appears when a slot's image is missing from the library.
+
 ## v1.64
 
 ### Added

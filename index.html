@@ -225,6 +225,10 @@
   .emitem:hover .emdel,.emitem:focus-within .emdel{opacity:1}
   .emitem input.emren{width:100%;padding:2px 4px;font-size:11px;border-color:var(--accent)}
   #emMsg.bad{color:#ffb3a8}
+  .emslot{margin:8px 0 2px;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel2);font-size:11.5px;color:var(--mute)}
+  .emslot b{color:var(--text)} .emslot .bad{color:#ffb3a8}
+  .emslot .row{margin-top:6px;gap:6px;flex-wrap:wrap}
+  .emchars{font-size:10px;line-height:1}
   .emfoot{display:flex;align-items:center;gap:8px;padding:4px 8px;border-top:1px solid var(--line);background:var(--panel2);font-size:11.5px;color:var(--mute)}
   .emfoot #emUsage{flex:1;font-variant-numeric:tabular-nums}
   dialog{background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:12px;padding:0;width:min(920px,94vw);max-height:90vh;box-shadow:0 20px 80px #000a}
@@ -360,7 +364,7 @@
 </head>
 <body>
 <header>
-  <h1>OpenTitlecard <a id="appVersion" href="https://github.com/wishym1shy/opentitlecard/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer" title="What's new in this version (changelog on GitHub)">v1.64</a></h1>
+  <h1>OpenTitlecard <a id="appVersion" href="https://github.com/wishym1shy/opentitlecard/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer" title="What's new in this version (changelog on GitHub)">v1.65</a></h1>
   <button id="updateBtn" type="button" hidden title="A newer version of OpenTitlecard is out. Click to reload the page and get it (save your set first)."></button>
   <a class="gh" href="https://github.com/wishym1shy/opentitlecard" target="_blank" rel="noopener noreferrer" title="View the source on GitHub">
     <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
@@ -578,6 +582,7 @@
             <input type="file" id="emFile" accept="image/png,image/webp,image/svg+xml,.png,.webp,.svg" multiple hidden>
           </div>
           <div class="hint" id="emMsg" role="status" aria-live="polite">Your own emoji images. You can also paste an image.</div>
+          <div class="emslot" id="emSlot" aria-live="polite"></div>
           <label for="emSearch" class="sr">Search emoji by name</label>
           <input type="search" id="emSearch" placeholder="Search by name" autocomplete="off" style="margin:6px 0">
           <div class="emlib">
@@ -608,6 +613,8 @@
           <div class="hint">Up to 3840 px on each side (4K).</div>
           <div class="row tight" style="margin-top:8px"><label style="margin:0"><input type="checkbox" id="tight"> Tight crop (just the card)</label></div>
           <div id="tightOpts" style="display:none"><label>Export scale <span class="val" id="v_exportScale"></span></label><input type="range" id="exportScale" min="1" max="4" step="0.5"></div>
+          <div class="row tight" style="margin-top:6px"><label style="margin:0"><input type="checkbox" id="emptySlots"> Leave emoji slots empty</label></div>
+          <div class="hint">Tick it if you paste your own emoji on top in your editor. Images on slots then stay out of the PNG.</div>
         </div>
       </section>
       <section class="fp min" id="fp_safezone" data-panel="safezone" aria-labelledby="fph_safezone">
@@ -690,6 +697,7 @@
           </select></div>
         <div id="x_customRow" class="row" style="display:none;flex:2;align-items:end"><div><label for="x_fw">Width</label><input type="number" id="x_fw" min="64" max="3840"></div><div><label for="x_fh">Height</label><input type="number" id="x_fh" min="64" max="3840"></div></div>
         <div style="flex:none;align-self:end"><label style="margin:0 0 6px"><input type="checkbox" id="x_tight"> Tight crop</label></div>
+        <div style="flex:none;align-self:end"><label style="margin:0 0 6px"><input type="checkbox" id="x_emptySlots"> Leave emoji slots empty</label></div>
       </div>
       <div id="x_tightOpts" style="display:none"><label for="x_exportScale">Export scale <span class="val" id="xv_exportScale"></span></label><input type="range" id="x_exportScale" min="1" max="4" step="0.5"></div>
       <div id="x_frameOpts"><label>Card position: X / Y offset (px at 1080p, same as Titlecard Properties › Position)</label><div class="row"><input type="number" id="x_offX" aria-label="Card X offset"><input type="number" id="x_offY" aria-label="Card Y offset"></div></div>
@@ -1068,11 +1076,12 @@ const DEFAULTS = {
   bgOn:true, bgColor:'#ffffff', bgOpacity:100, padX:0.42, radius:0.17, boxShadow:false, topPad:0.44, botPad:0.49, clear:0.24, wrap:0,
   slot:1.25, showGuides:true,
   stretchX:100, stretchY:100,   // text stretch/squish, percent (see stretch())
-  frame:'1920x1080', fw:1920, fh:1080, offX:0, offY:0, tight:false, exportScale:2
+  frame:'1920x1080', fw:1920, fh:1080, offX:0, offY:0, tight:false, exportScale:2,
+  emptySlots:false   // export: leave the emoji slots empty even when they have an image (for editors who paste their own on top)
 };
 const STYLE_KEYS = Object.keys(DEFAULTS).filter(k=>!['showGuides','offX','offY'].includes(k));
 // What a single card can override. The canvas and crop settings are per export, not per card, so they stay global.
-const CARD_STYLE_KEYS = STYLE_KEYS.filter(k=>!['frame','fw','fh','tight','exportScale'].includes(k));
+const CARD_STYLE_KEYS = STYLE_KEYS.filter(k=>!['frame','fw','fh','tight','exportScale','emptySlots'].includes(k));
 const pickStyle = () => { const o={}; CARD_STYLE_KEYS.forEach(k=>o[k]=S[k]); return o; };
 /* Style values come from places the app doesn't control: hand-edited preset and batch files, and settings saved by an
    older version. One wrong type (a number where a color belongs) would make every render throw, and once saved it
@@ -1091,10 +1100,20 @@ function validStyle(raw,keys=STYLE_KEYS){
   return o;
 }
 const validColors = a => Array.isArray(a) ? a.filter(h=>typeof h==='string'&&HEX_RE.test(h)) : [];
+let emojiLib=[];       // the emoji library: {id, name, w, h, bytes, added, blob, chars, url, img, ready}; filled by the Emoji panel code below
+const emojiKey=c=>c.replace(/\uFE0F/g,'');
+const emojiRenamed={};   // old name (lower case) to new name, this session: undo can bring an old name back, and it still finds its image
+function emojiByName(n){
+  for(let i=0;i<20&&typeof n==='string';i++){ const k=n.toLowerCase(), e=emojiLib.find(x=>x.name.toLowerCase()===k); if(e) return e; n=emojiRenamed[k]; }
+  return null;
+}
+const emojiByChar=c=>emojiLib.find(e=>e.chars.includes(emojiKey(c)))||null;
+const emojiImagesReady=()=>emojiReady.then(()=>Promise.all(emojiLib.map(e=>e.ready)));   // the stored library first, then each picture decoded
 const FMT=['ital','bold','und'];   // per-character formats kept next to the text: arrays of 0/1, like S.colors
 const S = Object.assign({}, DEFAULTS, validStyle(store.get('opentitlecard.style',{})));
 S.text = PLACEHOLDER_TEXT;
 S.colors = Array(S.text.length).fill(null);
+S.emo = Array(S.text.length).fill(null);   // per character: null, or {n,x,y,s} on the first character of an emoji slot (see slotImage)
 S.ital = Array(S.text.length).fill(0); S.bold = Array(S.text.length).fill(0); S.und = Array(S.text.length).fill(0);
 S.nudges = []; S.custom = validColors(store.get('opentitlecard.custom',[]));
 S.previewBg = 'checker';
@@ -1393,6 +1412,27 @@ function layout(){
 }
 
 /* ============ drawing ============ */
+/* A slot's picture. The card says which one (S.emo[start] = {n: library name, x, y, s}); with no name of its own the slot
+   uses the library's default for that emoji, if any. {e: library entry or null, missing: a named image isn't in the library,
+   anchor: the slot's offset and size or null}. Never touches the layout: the slot keeps the size it always had. */
+function slotImage(it){
+  const d=S.emo[it.s]||null;
+  if(d&&d.n){ const e=emojiByName(d.n); return {e,missing:!e,anchor:d}; }
+  return {e:emojiByChar(S.text.slice(it.s,it.e)),missing:false,anchor:d};
+}
+const imageOf=r=>r.e&&r.e.img&&r.e.img.complete&&r.e.img.naturalWidth?r.e.img:null;
+function drawSlotImages(ctx,lines,o){
+  const u=o.u; ctx.save(); ctx.imageSmoothingEnabled=true; ctx.imageSmoothingQuality='high';
+  for(const l of lines) for(const it of l.items) if(it.k==='slot'){
+    const r=slotImage(it), img=imageOf(r); if(!img) continue;
+    const a=r.anchor||{x:0,y:0,s:100}, sw=it.w*u, bx=o.cx+(l.tx+l.nx+it.x)*u, by=o.cy+(l.cy+l.ny-it.w/2)*u;
+    // the picture fits the slot (its longer side), then the slot's own size and offset apply; the offset is in slot widths,
+    // so it moves with the slot when the text, the Scale or the line breaks change
+    const k=Math.min(sw/r.e.w,sw/r.e.h)*(a.s/100), w=r.e.w*k, h=r.e.h*k;
+    ctx.drawImage(img,bx+(sw-w)/2+(a.x/100)*sw,by+(sw-h)/2+(a.y/100)*sw,w,h);
+  }
+  ctx.restore();
+}
 function roundedUnion(ctx, rects, r, u, ox, oy){
   const n=rects.length; if(!n) return;
   const p=[]; const E=0.01;
@@ -1481,14 +1521,21 @@ function draw(ctx, W, H, o){
     }
   }
   ctx.restore();
+  // the user's emoji images, in the slots the layout reserved: same box in preview and export, so nothing moves
+  if(o.emoji!==false) drawSlotImages(ctx,lines,o);
   // slot guides (preview only)
   if(o.guides && S.showGuides){
     ctx.save(); ctx.setLineDash([6*u,5*u]); ctx.lineWidth=Math.max(1.5,2*u); ctx.strokeStyle='rgba(91,140,255,.95)'; ctx.fillStyle='rgba(91,140,255,.10)';
     let n=0;
     for(const l of lines) for(const it of l.items) if(it.k==='slot'){
-      n++; const sx=o.cx+(l.tx+l.nx+it.x)*u, sy=o.cy+(l.cy+l.ny-it.w/2)*u, sw=it.w*u;
-      ctx.beginPath(); ctx.roundRect(sx,sy,sw,sw,sw*0.22); ctx.fill(); ctx.stroke();
-      ctx.save(); ctx.setLineDash([]); ctx.fillStyle='rgba(91,140,255,.95)'; ctx.font=`600 ${Math.max(10,14*u)}px system-ui,sans-serif`; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('😀 '+n,sx+sw/2,sy+sw/2); ctx.restore();
+      n++; const sx=o.cx+(l.tx+l.nx+it.x)*u, sy=o.cy+(l.cy+l.ny-it.w/2)*u, sw=it.w*u, im=slotImage(it);
+      const shown=!!imageOf(im)&&o.emoji!==false, lost=im.missing;
+      if(lost){ ctx.save(); ctx.strokeStyle='rgba(255,120,100,.98)'; ctx.fillStyle='rgba(255,120,100,.14)'; }
+      ctx.beginPath(); ctx.roundRect(sx,sy,sw,sw,sw*0.22); if(!shown) ctx.fill(); ctx.stroke();
+      if(lost) ctx.restore();
+      if(!shown){   // with a picture in it the label would only cover the picture
+        ctx.save(); ctx.setLineDash([]); ctx.fillStyle=lost?'rgba(255,120,100,.98)':'rgba(91,140,255,.95)'; ctx.font=`600 ${Math.max(10,14*u)}px system-ui,sans-serif`; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(lost?'⚠ '+n:'😀 '+n,sx+sw/2,sy+sw/2); ctx.restore();
+      }
     }
     ctx.restore();
   }
@@ -1539,7 +1586,7 @@ function renderNow(){
   drawSafeZone(cv.getContext('2d'),g,k);   // preview only: export paints with draw() alone
   mockupStatus(); safeZoneStatus(g);
   $('#dims').textContent = `${g.W} × ${g.H} px${S.tight?' (tight crop)':''}`;
-  updateSlotInfo(g);
+  updateSlotInfo(g); updateEmojiSlotBar();
   $('#infoStats').innerHTML = `<span>${L.lines.length} line${L.lines.length===1?'':'s'}</span><span>card ${Math.round(L.cardW*g.u)} × ${Math.round(L.cardH*g.u)} px</span>`;
 }
 function wordAt(pos){
@@ -1979,13 +2026,15 @@ $('#szFile').addEventListener('change',async e=>{
 syncSZControls();
 
 /* ============ slot info ============ */
+const escHtml=t=>String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function updateSlotInfo(g){
   const box=$('#slotInfo'); let n=0, html='';
   for(const l of L.lines) for(const it of l.items) if(it.k==='slot'){
     n++; const cx=(l.tx+l.nx+it.x+it.w/2), cy=(l.cy+l.ny);
-    const px=Math.round(it.w*g.u);
+    const px=Math.round(it.w*g.u), lost=slotImage(it).missing?`<div class="hint bad">Slot ${n}: the image “${escHtml(S.emo[it.s].n)}” is not in your Emoji library, so this slot is empty.</div>`:'';
     if(S.tight) html+=`<div class="slotrow"><b>Slot ${n}</b> <code>${px}px</code> centre ${cx>=0?'+':''}${Math.round(cx*g.u)}, ${cy>=0?'+':''}${Math.round(cy*g.u)} from card centre</div>`;
     else html+=`<div class="slotrow"><b>Slot ${n}</b> <code>${px}px</code> Premiere Position <code>${Math.round(g.cx+cx*g.u)}, ${Math.round(g.cy+cy*g.u)}</code></div>`;
+    html+=lost;
   }
   box.innerHTML = html || '<div class="hint">No emoji in the text yet. Type or paste one, or use “＋ Emoji slot”.</div>';
   if(html && !S.tight) box.innerHTML += '<div class="hint">Position assumes this PNG sits at default position and 100% scale in a sequence of the same size.</div>';
@@ -2082,6 +2131,7 @@ ta.addEventListener('input',e=>{
   // typing at the end of a word continues its color and formats; a new word starts plain
   const keepStyle=ins===1 && it==='insertText' && p>0 && !/\s/.test(old[p-1]), c=keepStyle?S.colors[p-1]??null:null;
   S.colors.splice(p,rem,...Array(ins).fill(c));
+  S.emo.splice(p,rem,...Array(ins).fill(null));   // a slot's image and anchor ride along with its character
   for(const k of FMT) S[k].splice(p,rem,...Array(ins).fill(keepStyle?S[k][p-1]|0:0));
   S.text=nw;
   // a burst of typing (or of deleting) is one undo step; a paste, drop or cut is always its own
@@ -2113,7 +2163,7 @@ const toggleItalic = () => toggleFmt('ital');
 function insertSlot(){
   const s=ta.selectionStart,e=ta.selectionEnd, ins=' 🙂';
   S.text=S.text.slice(0,s)+ins+S.text.slice(e);
-  S.colors.splice(s,e-s,...Array(ins.length).fill(null)); for(const k of FMT) S[k].splice(s,e-s,...Array(ins.length).fill(0));
+  S.colors.splice(s,e-s,...Array(ins.length).fill(null)); S.emo.splice(s,e-s,...Array(ins.length).fill(null)); for(const k of FMT) S[k].splice(s,e-s,...Array(ins.length).fill(0));
   ta.value=S.text; ta.focus(); ta.setSelectionRange(s+ins.length,s+ins.length); record(); render();
 }
 
@@ -2224,7 +2274,9 @@ cv.addEventListener('pointermove',e=>{
 cv.addEventListener('pointerup',e=>{
   if(!drag) return; const d=drag; drag=null;
   if(d.moved){ record(); return; }   // the whole Alt-drag is one step
-  const p=evToUnits(e), l=L.lines[d.i], k=charAtX(l,p.x-(l.tx+l.nx));
+  const p=evToUnits(e), l=L.lines[d.i], lx=p.x-(l.tx+l.nx), k=charAtX(l,lx);
+  const slot=l.items.find(it=>it.k==='slot'&&lx>=it.x&&lx<=it.x+it.w);
+  if(slot){ ta.focus(); ta.setSelectionRange(slot.s,slot.e); render(); return; }   // a click on a slot selects it, ready for an image
   if(k<0) return;
   const r=clickSelection(k); ta.focus(); ta.setSelectionRange(r[0],r[1]); render();
 });
@@ -2262,12 +2314,12 @@ const bindings=[
   ['textColor','col'],['outlineColor','col'],['outlineW','num'],['textShadow','chk'],
   ['bgOn','chk'],['bgColor','col'],['bgOpacity','num'],['padX','num'],['radius','num'],['topPad','num'],['botPad','num'],['clear','num'],['boxShadow','chk'],
   ['slot','num'],['showGuides','chk'],['frame','sel'],['fw','num'],['fh','num'],['offX','num'],['offY','num'],
-  ['tight','chk'],['exportScale','num']
+  ['tight','chk'],['exportScale','num'],['emptySlots','chk']
 ];
 const fmt={stretchX:v=>v+'%',stretchY:v=>v+'%',size:v=>v+' px',lh:v=>(+v).toFixed(2)+'×',track:v=>v+' px',wrap:v=>(+v?v+' px':'Off'),outlineW:v=>v+' px',bgOpacity:v=>v+'%',padX:v=>(+v).toFixed(2)+' em',topPad:v=>(+v).toFixed(2)+' em',botPad:v=>(+v).toFixed(2)+' em',clear:v=>(+v).toFixed(2)+' em',radius:v=>(+v).toFixed(2)+' em',slot:v=>(+v).toFixed(2)+' em',exportScale:v=>v+'×'};
 /* The export dialog has its own copies of the canvas controls (ids "x_<key>", values "xv_<key>"). Both sets read and
    write the same S keys, so changing one moves the other. */
-const DIALOG_KEYS=['frame','fw','fh','offX','offY','tight','exportScale'];
+const DIALOG_KEYS=['frame','fw','fh','offX','offY','tight','exportScale','emptySlots'];
 function syncControls(){
   fillWeightMenu();
   for(const [k,t] of bindings){
@@ -2943,13 +2995,14 @@ function exportCanvas(){
   L=layout(); const g=exportGeometry();
   if(tooLarge(g)) return null;
   const c=document.createElement('canvas'); c.width=g.W; c.height=g.H;
-  draw(c.getContext('2d'),g.W,g.H,{u:g.u,cx:g.cx,cy:g.cy,guides:false,sel:null});
+  draw(c.getContext('2d'),g.W,g.H,{u:g.u,cx:g.cx,cy:g.cy,guides:false,sel:null,emoji:!S.emptySlots});
   return c;
 }
 $('#export').addEventListener('click',async()=>{
-  await Promise.all([rememberedReady,bundledReady]);   // only waits in the first moments after the page opens, while remembered fonts load
+  await Promise.all([rememberedReady,bundledReady,emojiImagesReady()]);   // only waits in the first moments after the page opens, while remembered fonts load
   const c=exportCanvas();
   if(!c) return;   // the button is disabled while the export would be over 4K
+  if(!S.emptySlots){ const lost=missingIn(S.emo); if(lost.length) toast(missingNote(lost)); }
   const stem=(S.text.replace(/\p{Extended_Pictographic}|️|‍/gu,'').trim().split(/\s+/).map(w=>w.replace(/[^\w\-]/g,'')).filter(Boolean).slice(0,5).join('-').replace(/[^\w\-]/g,'')||'titlecard').slice(0,40);
   c.toBlob(b=>download(b,`titlecard_${stem}.png`),'image/png');
 });
@@ -2981,8 +3034,8 @@ $('#cCancel').addEventListener('click',()=>answerConfirm(false));
    Style settings (font, colors, box, canvas) are shared by all cards: that is what makes a batch consistent. */
 /* A card's `style` is null (it follows `sharedStyle`) or its own copy of the card-level style keys. Whichever applies to
    the active card is what S holds, so the style controls always edit "the card in front of you". */
-const copyCard = c => ({name:c.name, text:c.text, colors:c.colors.slice(), ital:c.ital.slice(), bold:c.bold.slice(), und:c.und.slice(), nudges:Array.from(c.nudges,n=>n?{...n}:null), style:c.style?{...c.style}:null});
-const newCard = (text='',name=nextCardName()) => ({name, text, colors:Array(text.length).fill(null), ital:Array(text.length).fill(0), bold:Array(text.length).fill(0), und:Array(text.length).fill(0), nudges:[], style:null});
+const copyCard = c => ({name:c.name, text:c.text, colors:c.colors.slice(), emo:c.emo.map(e=>e?{...e}:null), ital:c.ital.slice(), bold:c.bold.slice(), und:c.und.slice(), nudges:Array.from(c.nudges,n=>n?{...n}:null), style:c.style?{...c.style}:null});
+const newCard = (text='',name=nextCardName()) => ({name, text, colors:Array(text.length).fill(null), emo:Array(text.length).fill(null), ital:Array(text.length).fill(0), bold:Array(text.length).fill(0), und:Array(text.length).fill(0), nudges:[], style:null});
 /* Card names, like layer names: every new card is "Titlecard N", where N is one more than both the highest such number
    in the batch and the number of cards already there (so the first card of a fresh page is "Titlecard 1", a card added
    after five named ones is "Titlecard 6", and no number is reused). A card can be renamed, or named by the first column of a pasted
@@ -3001,7 +3054,7 @@ function stash(){
   if(!own) sharedStyle=pickStyle();
 }
 function adopt(c){
-  const k=copyCard(c); S.text=k.text; S.colors=k.colors; S.ital=k.ital; S.bold=k.bold; S.und=k.und; S.nudges=k.nudges;
+  const k=copyCard(c); S.text=k.text; S.colors=k.colors; S.emo=k.emo; S.ital=k.ital; S.bold=k.bold; S.und=k.und; S.nudges=k.nudges;
   Object.assign(S,k.style||sharedStyle);
   ta.value=S.text; nudgeSig=''; syncControls();
 }
@@ -3011,10 +3064,10 @@ function selectCard(i){
 }
 /* Runs fn with card `c` temporarily in S/L (layout and draw read those globals), then puts the active card back. */
 function withCard(c,fn){
-  const keep={text:S.text,colors:S.colors,ital:S.ital,bold:S.bold,und:S.und,nudges:S.nudges,style:pickStyle(),L};
-  S.text=c.text; S.colors=c.colors; S.ital=c.ital; S.bold=c.bold; S.und=c.und; S.nudges=c.nudges; Object.assign(S,c.style||sharedStyle);
+  const keep={text:S.text,colors:S.colors,emo:S.emo,ital:S.ital,bold:S.bold,und:S.und,nudges:S.nudges,style:pickStyle(),L};
+  S.text=c.text; S.colors=c.colors; S.emo=c.emo; S.ital=c.ital; S.bold=c.bold; S.und=c.und; S.nudges=c.nudges; Object.assign(S,c.style||sharedStyle);
   try{ L=layout(); return fn(); }
-  finally{ S.text=keep.text; S.colors=keep.colors; S.ital=keep.ital; S.bold=keep.bold; S.und=keep.und; S.nudges=keep.nudges; Object.assign(S,keep.style); L=keep.L; }
+  finally{ S.text=keep.text; S.colors=keep.colors; S.emo=keep.emo; S.ital=keep.ital; S.bold=keep.bold; S.und=keep.und; S.nudges=keep.nudges; Object.assign(S,keep.style); L=keep.L; }
 }
 const cardLabel = t => (t.split('\n').map(x=>x.trim()).find(Boolean)||'');
 const cardsWord = n => `${n} card${n===1?'':'s'}`;
@@ -3173,6 +3226,13 @@ $('#listAdd').addEventListener('click',()=>{
    italics are stored sparsely (only the characters that have one). A file is untrusted input (old, hand-edited, cut
    short, or not ours at all), so every field is checked and anything unusable is dropped, never trusted. */
 const FMT_FILE=[['i','ital'],['b','bold'],['u','und']];   // a card's formats in a set file: the character positions that have them
+/* A slot's picture and anchor, from a file or a field: n is the library name (or none, so the default for that emoji
+   applies), x and y the offset in percent of the slot's width, s the size in percent of the fitted picture. */
+const MAX_SLOTS=200, SLOT_OFF=[-300,300], SLOT_SCALE=[10,400];
+function cleanSlot(d){
+  const n=cleanName(d.n), num=v=>typeof v==='number'&&isFinite(v);
+  return {n:n||null, x:num(d.x)?clamp(d.x,...SLOT_OFF):0, y:num(d.y)?clamp(d.y,...SLOT_OFF):0, s:num(d.s)?clamp(d.s,...SLOT_SCALE):100};
+}
 const BATCH_APP='opentitlecard', MAX_CARDS=500, MAX_TEXT=2000, MAX_FILE=5e6;
 function encodeBatch(){
   stash();
@@ -3180,6 +3240,8 @@ function encodeBatch(){
     const o={m:c.name, t:c.text};
     const col={}; c.colors.forEach((h,i)=>{ if(h) col[i]=h; }); if(Object.keys(col).length) o.c=col;
     for(const [k,key] of FMT_FILE){ const ix=[]; c[key].forEach((v,i)=>{ if(v) ix.push(i); }); if(ix.length) o[k]=ix; }
+    const em={}; c.emo.forEach((d,i)=>{ if(d&&(d.n||d.x||d.y||d.s!==100)) em[i]={...(d.n?{n:d.n}:{}),...(d.x?{x:d.x}:{}),...(d.y?{y:d.y}:{}),...(d.s!==100?{s:d.s}:{})}; });
+    if(Object.keys(em).length) o.e=em;   // emoji images are named, never embedded: a name the library lacks shows as missing
     let last=c.nudges.length; while(last>0 && !(c.nudges[last-1]&&(c.nudges[last-1].x||c.nudges[last-1].y))) last--;
     if(last) o.n=c.nudges.slice(0,last).map(n=>n&&(n.x||n.y)?{x:n.x||0,y:n.y||0}:null);
     if(c.style) o.s=c.style;
@@ -3199,6 +3261,10 @@ function decodeBatch(raw){
     const text=typeof r.t==='string'?r.t.slice(0,MAX_TEXT):'';
     const c=newCard(text,cleanName(r.m));   // files saved before names existed have none: numbered below
     if(r.c&&typeof r.c==='object') for(const k of Object.keys(r.c)){ const i=+k; if(Number.isInteger(i)&&i>=0&&i<text.length&&typeof r.c[k]==='string'&&HEX_RE.test(r.c[k])) c.colors[i]=r.c[k]; }
+    if(r.e&&typeof r.e==='object'&&!Array.isArray(r.e)) for(const k of Object.keys(r.e).slice(0,MAX_SLOTS)){
+      const i=+k, d=r.e[k]; if(!Number.isInteger(i)||i<0||i>=text.length||!d||typeof d!=='object') continue;
+      const e=cleanSlot(d); if(e.n||e.x||e.y||e.s!==100) c.emo[i]=e;
+    }
     for(const [k,key] of FMT_FILE) if(Array.isArray(r[k])) for(const i of r[k]) if(Number.isInteger(i)&&i>=0&&i<text.length) c[key][i]=1;   // an older file simply has no b or u
     if(Array.isArray(r.n)) c.nudges=r.n.slice(0,200).map(n=>n&&num(n.x)&&num(n.y)?{x:clamp(n.x,-5000,5000),y:clamp(n.y,-5000,5000)}:null);
     if(r.s&&typeof r.s==='object') c.style=cleanStyle(r.s,style);   // keys missing from (or invalid in) the card's style fall back to the batch's shared style
@@ -3296,7 +3362,9 @@ async function openSetFile(f,handle){
     sharedStyle=b.style; cards=b.cards; active=b.active; adopt(cards[active]); persistStyle(); record(); cardSig=''; render();
     setSetName(b.name||fileBase(f.name)); setHandle=handle||null;
     markSaved();   // what's on the page is what's in the file
-    fileMsg(`Opened ${cardsWord(cards.length)} from “${f.name}”.`);
+    await emojiReady;   // the library may still be loading when a set is opened right after the page
+    const lost=missingIn(cards.flatMap(c=>c.emo));
+    fileMsg(`Opened ${cardsWord(cards.length)} from “${f.name}”.${lost.length?' ⚠ '+missingNote(lost):''}`,lost.length>0);
   }catch(err){ fileMsg('That file isn\'t an OpenTitlecard set, so nothing was changed.',true); }
 }
 $('#batchSave').addEventListener('click',()=>saveSet(false));
@@ -3333,7 +3401,7 @@ function batchHasWork(){
   stash();
   if(cards.length>1) return true;
   const c=cards[0]; if(c.style) return true;
-  if(c.colors.some(Boolean)||FMT.some(k=>c[k].some(Boolean))||c.nudges.some(n=>n&&(n.x||n.y))) return true;
+  if(c.colors.some(Boolean)||c.emo.some(Boolean)||FMT.some(k=>c[k].some(Boolean))||c.nudges.some(n=>n&&(n.x||n.y))) return true;
   return !!c.text.trim() && c.text!==PLACEHOLDER_TEXT;
 }
 /* Cards live only in memory, so closing or reloading the tab loses them. The browser asks first (its own prompt: the
@@ -3389,6 +3457,9 @@ async function resetApp(kind){
 $('#softReset').addEventListener('click',()=>resetApp('soft'));
 $('#resetAll').addEventListener('click',()=>resetApp('all'));
 
+/* Names a card asks for that the library doesn't have (the slot stays empty; the preview, the Slot list and a note say so). */
+const missingIn=emo=>[...new Set(emo.filter(d=>d&&d.n&&!emojiByName(d.n)).map(d=>d.n))];
+const missingNote=names=>names.length?`${names.length===1?'1 emoji image is':`${names.length} emoji images are`} not in your Emoji library (${names.slice(0,3).join(', ')}${names.length>3?', …':''}), so ${names.length===1?'its slot is':'their slots are'} empty.`:'';
 /* ============ emoji library ============ */
 /* The user's own emoji images, kept in this browser (IndexedDB, its own small database next to the fonts') and never
    uploaded. The app ships with none and draws none yet: this is the library they will be placed from. Each image is
@@ -3400,7 +3471,6 @@ $('#resetAll').addEventListener('click',()=>resetApp('all'));
 const EMOJI_DB='opentitlecard-emoji', EMOJI_STORE='emoji';
 const EMOJI_MAX_SIDE=512, EMOJI_MAX_FILE=5e6, EMOJI_MAX_PIXELS=50e6, EMOJI_MAX_ITEMS=200, EMOJI_MAX_BYTES=50e6, EMOJI_PER_DROP=50, EMOJI_ALPHA=8;
 const EMOJI_EXT={png:'image/png',webp:'image/webp',svg:'image/svg+xml'};
-let emojiLib=[];       // {id, name, w, h, bytes, added, blob, url}
 let emojiFilter='', emojiBusy=Promise.resolve();
 function emojiStore(mode,fn){
   return new Promise((res,rej)=>{
@@ -3455,7 +3525,16 @@ async function emojiFromFile(f,trim){
   return {blob,w:c.width,h:c.height};
 }
 const emojiNewId=()=>(crypto.randomUUID&&crypto.randomUUID())||`${Date.now().toString(36)}${Math.random().toString(36).slice(2)}`;
-const storable=e=>({id:e.id,name:e.name,w:e.w,h:e.h,bytes:e.bytes,added:e.added,blob:e.blob});
+const storable=e=>({id:e.id,name:e.name,w:e.w,h:e.h,bytes:e.bytes,added:e.added,blob:e.blob,chars:e.chars});
+// A library entry gets its object URL and a decoded <img> for drawing; render() once it can paint. `chars` are the emoji it
+// is the default for ("whenever 😀 appears, use this"), without VS16 so ❤ and ❤️ match.
+function emojiAttach(rec){
+  rec.chars=Array.isArray(rec.chars)?[...new Set(rec.chars.filter(c=>typeof c==='string'&&c&&c.length<=16).map(emojiKey))].slice(0,20):[];
+  rec.url=URL.createObjectURL(rec.blob); rec.img=new Image(); rec.img.src=rec.url;
+  rec.ready=rec.img.decode().then(()=>render(),()=>{});
+  return rec;
+}
+
 function setEmojiMsg(text,bad){ const m=$('#emMsg'); m.textContent=text; m.classList.toggle('bad',!!bad); }
 // Adds the files one after another (one drop at a time, in order). Returns the sentence it also shows in the panel.
 function addEmojiFiles(files,trim=$('#emTrim').checked){
@@ -3467,10 +3546,10 @@ function addEmojiFiles(files,trim=$('#emTrim').checked){
         if(emojiLib.length>=EMOJI_MAX_ITEMS){ problems.push(`The library is full (${EMOJI_MAX_ITEMS} emoji). Delete some to add more`); break; }
         const r=await emojiFromFile(f,trim);
         if(emojiBytes()+r.blob.size>EMOJI_MAX_BYTES){ problems.push(`The library is full (${fmtBytes(EMOJI_MAX_BYTES)}). Delete some to add more`); break; }
-        const rec={id:emojiNewId(),name:uniqueEmojiName(f.name.replace(/\.[a-z0-9]{1,5}$/i,'')),w:r.w,h:r.h,bytes:r.blob.size,added:Date.now(),blob:r.blob};
+        const rec={id:emojiNewId(),name:uniqueEmojiName(f.name.replace(/\.[a-z0-9]{1,5}$/i,'')),w:r.w,h:r.h,bytes:r.blob.size,added:Date.now(),blob:r.blob,chars:[]};
         try{ await emojiStore('readwrite',st=>st.put(storable(rec))); }
         catch(e){ throw new Error(e&&e.name==='QuotaExceededError'?"wasn't saved: the browser has no room left":"wasn't saved: this browser isn't letting the page keep files"); }
-        rec.url=URL.createObjectURL(rec.blob); emojiLib.push(rec); added++;
+        emojiAttach(rec); emojiLib.push(rec); added++;
       }catch(e){
         if(!/^(is|can't|wasn't)/.test(e.message)){ problems.push(e.message); break; }
         problems.push(`${cleanName(f.name).slice(0,40)} ${e.message}`);
@@ -3496,25 +3575,34 @@ function renderEmojiLib(){
     const nm=document.createElement('span'); nm.className='emname'; nm.textContent=e.name;
     const del=document.createElement('button'); del.type='button'; del.className='emdel icon'; del.setAttribute('aria-label',`Delete ${e.name}`); del.title='Delete';
     del.innerHTML='<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4.5 4.5l7 7M11.5 4.5l-7 7"/></svg>';
-    it.append(th,nm,del); grid.append(it);
+    it.append(th,nm,del);
+    if(e.chars.length){ const ch=document.createElement('span'); ch.className='emchars'; ch.textContent=e.chars.join(' '); ch.title=`Default image for ${e.chars.join(' ')}`; it.append(ch); }
+    grid.append(it);
   }
   if(!shown.length){ const n=document.createElement('div'); n.className='emnone'; n.textContent=emojiLib.length?'No emoji match.':'No emoji yet.'; grid.append(n); }
   $('#emUsage').textContent=emojiLib.length?`${emojiLib.length} emoji · ${fmtBytes(emojiBytes())} of ${fmtBytes(EMOJI_MAX_BYTES)}`:'No emoji yet';
   $('#emClear').disabled=!emojiLib.length;
+  updateEmojiSlotBar();
   if(focusId){ const t=grid.querySelector(`.emitem[data-id="${CSS.escape(focusId)}"] .emthumb`); if(t) t.focus(); }
 }
 async function deleteEmoji(id){
   const e=emojiLib.find(x=>x.id===id); if(!e) return;
   try{ await emojiStore('readwrite',st=>st.delete(id)); }catch(err){ setEmojiMsg("Couldn't delete that emoji from this browser.",true); return; }
   URL.revokeObjectURL(e.url); emojiLib=emojiLib.filter(x=>x.id!==id);
-  renderEmojiLib(); setEmojiMsg(`Deleted ${e.name}.`);
+  renderEmojiLib(); render(); setEmojiMsg(`Deleted ${e.name}.`);
 }
 async function renameEmoji(id,v){
   const e=emojiLib.find(x=>x.id===id); if(!e) return;
   const name=cleanName(v); if(!name||name===e.name) return;
   const next=uniqueEmojiName(name,id);
   try{ await emojiStore('readwrite',st=>st.put(storable({...e,name:next}))); }catch(err){ setEmojiMsg("Couldn't save the new name.",true); return; }
-  e.name=next; renderEmojiLib();
+  // cards name their images, so a rename follows them (and a saved set carries the new name); undo can still bring the old
+  // name back and it keeps finding its image through emojiRenamed
+  const old=e.name.toLowerCase(), fix=d=>{ if(d&&d.n&&d.n.toLowerCase()===old) d.n=next; };
+  emojiRenamed[old]=next; e.name=next;
+  for(const c of cards) c.emo.forEach(fix);
+  S.emo.forEach(fix); record();
+  renderEmojiLib(); render();
   setEmojiMsg(next===name?`Renamed to ${next}.`:`Renamed to ${next} (${name} was taken).`);
 }
 function startEmojiRename(item){
@@ -3535,9 +3623,70 @@ function startEmojiRename(item){
   box.addEventListener('blur',()=>end(true));
   nm.replaceWith(box); box.focus(); box.select();
 }
+/* Putting an image on a slot. A slot is selected by clicking it in the preview or by selecting its emoji in the text; the
+   image you click in the library goes on it (and is a step in undo). "Default" makes an image the one for every slot of
+   that emoji that has none of its own. */
+function selectedSlot(){
+  if(!L) return null;   // before the first render there is no layout yet
+  const a=ta.selectionStart, b=ta.selectionEnd; let n=0;
+  for(const l of L.lines) for(const it of l.items) if(it.k==='slot'){ n++; if(it.s===a&&it.e===b) return {it,n}; }
+  return null;
+}
+const SLOT_PLAIN=()=>({n:null,x:0,y:0,s:100});
+const tidySlot=d=>d&&(d.n||d.x||d.y||d.s!==100)?d:null;   // a slot with nothing to say holds nothing
+function assignEmoji(id){
+  const sel=selectedSlot(), e=emojiLib.find(x=>x.id===id); if(!e) return;
+  if(!sel){ setEmojiMsg('Select an emoji slot first: click it in the preview, or select the emoji in the text.',true); return; }
+  S.emo[sel.it.s]={...(S.emo[sel.it.s]||SLOT_PLAIN()),n:e.name}; record(); render(); setEmojiMsg(`Put ${e.name} on slot ${sel.n}.`);
+}
+function removeSlotImage(){
+  const sel=selectedSlot(); if(!sel||!S.emo[sel.it.s]) return;
+  S.emo[sel.it.s]=tidySlot({...S.emo[sel.it.s],n:null}); record(); render();
+}
+async function setEmojiDefault(e,ch,on){
+  const k=emojiKey(ch), changed=[];
+  for(const x of emojiLib){
+    const has=x.chars.includes(k), want=on&&x===e;
+    if(has&&!want){ x.chars=x.chars.filter(c=>c!==k); changed.push(x); } else if(!has&&want){ x.chars=[...x.chars,k]; changed.push(x); }
+  }
+  try{ for(const x of changed) await emojiStore('readwrite',st=>st.put(storable(x))); }
+  catch(err){ setEmojiMsg("Couldn't save that default.",true); }
+  renderEmojiLib(); render();
+}
+let slotBarSig='';
+function updateEmojiSlotBar(){
+  const box=$('#emSlot'), sel=selectedSlot();
+  const r=sel&&slotImage(sel.it), d=sel&&S.emo[sel.it.s], ch=sel&&S.text.slice(sel.it.s,sel.it.e);
+  const sig=JSON.stringify([sel&&[sel.n,sel.it.s,ch],d,r&&[r.e&&r.e.id,r.missing],r&&r.e&&r.e.chars,emojiLib.length]);
+  if(sig===slotBarSig) return; slotBarSig=sig;
+  box.textContent='';
+  const line=(t,cls)=>{ const x=document.createElement('div'); if(cls) x.className=cls; x.append(...t); box.append(x); return x; };
+  if(!sel){ line(['Click an emoji slot in the preview (or select the emoji in the text), then click an image below to put it there.']); return; }
+  const b=t=>{ const x=document.createElement('b'); x.textContent=t; return x; };
+  if(r.missing) line([`Slot ${sel.n} ${ch}: `,'⚠ the image ',b(d.n),' is not in your library, so the slot stays empty. Pick another below, or add the image again.'],'bad');
+  else if(d&&d.n) line([`Slot ${sel.n} ${ch}: image `,b(r.e.name)]);
+  else if(r.e) line([`Slot ${sel.n} ${ch}: default image `,b(r.e.name)]);
+  else line([`Slot ${sel.n} ${ch}: no image yet. Click one below.`]);
+  const row=document.createElement('div'); row.className='row';
+  const btn=(label,act)=>{ const x=document.createElement('button'); x.type='button'; x.className='sm'; x.dataset.act=act; x.textContent=label; x.style.flex='none'; row.append(x); };
+  if(d&&d.n) btn('Remove image','remove');
+  if(r.e){ const isDef=r.e.chars.includes(emojiKey(ch)); btn(isDef?`Stop using it for every ${ch}`:`Use it for every ${ch}`,isDef?'undefault':'default'); }
+  if(row.children.length) box.append(row);
+}
+$('#emSlot').addEventListener('mousedown',e=>{ if(e.target.closest('button')) e.preventDefault(); });   // the text box keeps its selection
+$('#emSlot').addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b) return;
+  const sel=selectedSlot(); if(!sel) return;
+  if(b.dataset.act==='remove') removeSlotImage();
+  else{ const r=slotImage(sel.it); if(r.e) setEmojiDefault(r.e,S.text.slice(sel.it.s,sel.it.e),b.dataset.act==='default'); }
+});
 const emGrid=$('#emGrid');
 emGrid.addEventListener('dblclick',e=>{ const it=e.target.closest('.emitem'); if(it&&!e.target.closest('.emdel')) startEmojiRename(it); });
-emGrid.addEventListener('click',e=>{ const b=e.target.closest('.emdel'); if(b) deleteEmoji(b.closest('.emitem').dataset.id); });
+emGrid.addEventListener('mousedown',e=>{ if(e.target.closest('.emthumb')) e.preventDefault(); });   // keep the text box's selection: it is the slot the image goes on
+emGrid.addEventListener('click',e=>{
+  const b=e.target.closest('.emdel'); if(b){ deleteEmoji(b.closest('.emitem').dataset.id); return; }
+  const t=e.target.closest('.emthumb'); if(t) assignEmoji(t.closest('.emitem').dataset.id);
+});
 emGrid.addEventListener('keydown',e=>{
   const it=e.target.closest('.emitem'); if(!it||e.target.matches('input')) return;
   if(e.key==='F2'){ e.preventDefault(); startEmojiRename(it); }
@@ -3551,7 +3700,7 @@ $('#emClear').addEventListener('click',async()=>{
   const ok=await confirmAction({title:'Clear the emoji library?',message:`All ${emojiLib.length} emoji images are removed from this browser. Cards that used them will show an empty slot until you add the images again.`,ok:'Clear library'});
   if(!ok) return;
   try{ await emojiStore('readwrite',st=>st.clear()); }catch(err){ setEmojiMsg("Couldn't clear the library.",true); return; }
-  emojiLib.forEach(x=>URL.revokeObjectURL(x.url)); emojiLib=[]; renderEmojiLib(); setEmojiMsg('The emoji library is empty.');
+  emojiLib.forEach(x=>URL.revokeObjectURL(x.url)); emojiLib=[]; renderEmojiLib(); render(); setEmojiMsg('The emoji library is empty.');
 });
 // Images dropped on the Emoji panel (even minimized) or pasted anywhere join the library. Elsewhere on the page a drop
 // still opens a set file, as before.
@@ -3575,7 +3724,7 @@ const emojiReady=(async()=>{
     const recs=await emojiStore('readonly',st=>st.getAll())||[];
     for(const r of recs.sort((a,b)=>(a.added||0)-(b.added||0))){
       if(!r||typeof r.id!=='string'||!(r.blob instanceof Blob)||!(r.w>0)||!(r.h>0)||emojiLib.some(x=>x.id===r.id)) continue;   // a damaged entry is skipped, never fatal
-      emojiLib.push({id:r.id,name:uniqueEmojiName(r.name),w:r.w,h:r.h,bytes:r.blob.size,added:r.added||0,blob:r.blob,url:URL.createObjectURL(r.blob)});
+      emojiLib.push(emojiAttach({id:r.id,name:uniqueEmojiName(r.name),w:r.w,h:r.h,bytes:r.blob.size,added:r.added||0,blob:r.blob,chars:r.chars}));
     }
   }catch(e){}
   renderEmojiLib();
@@ -3725,7 +3874,7 @@ function fillBatchGrid(){
       const g=exportGeometry(), k=Math.min(1,360/g.W), t=document.createElement('canvas');
       if(tooLarge(g)) batchTooLarge=true;   // same limit exportCanvas() enforces
       t.width=Math.max(1,Math.round(g.W*k)); t.height=Math.max(1,Math.round(g.H*k));
-      draw(t.getContext('2d'),t.width,t.height,{u:g.u*k,cx:g.cx*k,cy:g.cy*k,guides:false,sel:null});
+      draw(t.getContext('2d'),t.width,t.height,{u:g.u*k,cx:g.cx*k,cy:g.cy*k,guides:false,sel:null,emoji:!S.emptySlots});
       t.setAttribute('role','img'); t.setAttribute('aria-label',`Card ${idx+1}: ${cardLabel(c.text)}`);
       return t;
     });
@@ -3759,7 +3908,7 @@ $('#bUseSet').addEventListener('click',()=>{ $('#bPattern').value=SET_PATTERN; r
 $('#bCancel').addEventListener('click',()=>dlg.close());
 $('#bClose').addEventListener('click',()=>dlg.close());
 $('#bGo').addEventListener('click',async()=>{
-  await Promise.all([rememberedReady,bundledReady]);
+  await Promise.all([rememberedReady,bundledReady,emojiImagesReady()]);
   const [live,names]=batchFileNames();
   const go=$('#bGo'), status=$('#bStatus'); go.disabled=true;
   try{
@@ -3866,7 +4015,7 @@ render();
 // Panels animate open from now on, not at page load (their @starting-style rule needs .anim): two frames, so it is
 // added after the first paint.
 requestAnimationFrame(()=>requestAnimationFrame(()=>document.documentElement.classList.add('anim')));
-window.__tt={emoji:{get library(){ return emojiLib.map(e=>({id:e.id,name:e.name,w:e.w,h:e.h,bytes:e.bytes})); },ready:emojiReady,add:addEmojiFiles,get idle(){ return emojiBusy; },limits:{side:EMOJI_MAX_SIDE,file:EMOJI_MAX_FILE,items:EMOJI_MAX_ITEMS,bytes:EMOJI_MAX_BYTES}},fonts:{read:readFontFile,guess:guessFromName,get faces(){ return [...faceReg].map(([family,l])=>({family,faces:l.map(f=>({w:f.w,italic:f.italic}))})); },get aliases(){ return [...loadedAlias].map(([name,a])=>({name,family:a.family,weight:a.weight})); }},update:{check:checkForUpdate,get offered(){return updateOffered},running:RUNNING_VERSION},S,render,renderNow,get L(){return L},exportGeometry,draw,get cards(){return cards},get sharedStyle(){return sharedStyle},get active(){return active},batchNames,zipStem,crc32,buildZip,undo:undoStep,redo:redoStep,unsavedWork,get history(){return {length:hist.length,at:histAt}},get view(){return {...viewState}},get safezone(){return {...SZ,box:szBox&&{...szBox},status:$('#szStatus').textContent,fit:$('#szFit').textContent}},get mockup(){return {...MK,box:mkBox&&{...mkBox},image:mkImage&&mkImage.name,status:$('#mkStatus').textContent}}};
+window.__tt={emoji:{get library(){ return emojiLib.map(e=>({id:e.id,name:e.name,w:e.w,h:e.h,bytes:e.bytes})); },ready:emojiReady,images:emojiImagesReady,add:addEmojiFiles,get idle(){ return emojiBusy; },limits:{side:EMOJI_MAX_SIDE,file:EMOJI_MAX_FILE,items:EMOJI_MAX_ITEMS,bytes:EMOJI_MAX_BYTES}},fonts:{read:readFontFile,guess:guessFromName,get faces(){ return [...faceReg].map(([family,l])=>({family,faces:l.map(f=>({w:f.w,italic:f.italic}))})); },get aliases(){ return [...loadedAlias].map(([name,a])=>({name,family:a.family,weight:a.weight})); }},update:{check:checkForUpdate,get offered(){return updateOffered},running:RUNNING_VERSION},S,render,renderNow,get L(){return L},exportGeometry,draw,get cards(){return cards},get sharedStyle(){return sharedStyle},get active(){return active},batchNames,zipStem,crc32,buildZip,undo:undoStep,redo:redoStep,unsavedWork,get history(){return {length:hist.length,at:histAt}},get view(){return {...viewState}},get safezone(){return {...SZ,box:szBox&&{...szBox},status:$('#szStatus').textContent,fit:$('#szFit').textContent}},get mockup(){return {...MK,box:mkBox&&{...mkBox},image:mkImage&&mkImage.name,status:$('#mkStatus').textContent}}};
 </script>
 </body>
 </html>
