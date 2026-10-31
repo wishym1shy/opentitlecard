@@ -90,6 +90,8 @@
   .nudge .g2{grid-column:1 / -1}
   /* nudges go both ways, so their slider line has a centre tick (0) instead of a fill */
   .nudge .fld input[type=range]::-webkit-slider-runnable-track{background:linear-gradient(to right,var(--line) calc(50% - .5px),var(--mute) 0 calc(50% + .5px),var(--line) 0)}
+  .slotrow .fld .unit{margin-right:2px}
+  .slotrow button[data-slot-reset]{width:22px;height:22px;padding:0;line-height:20px}
   .nudge .scrub:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
   /* Missing-font warning: a ⚠ inside the family box, with its message in a pop-out (top layer, so it can spill over
      the canvas) pointing back at it. */
@@ -368,7 +370,7 @@
 </head>
 <body>
 <header>
-  <h1>OpenTitlecard <a id="appVersion" href="https://github.com/wishym1shy/opentitlecard/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer" title="What's new in this version (changelog on GitHub)">v1.66</a></h1>
+  <h1>OpenTitlecard <a id="appVersion" href="https://github.com/wishym1shy/opentitlecard/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer" title="What's new in this version (changelog on GitHub)">v1.67</a></h1>
   <button id="updateBtn" type="button" hidden title="A newer version of OpenTitlecard is out. Click to reload the page and get it (save your set first)."></button>
   <a class="gh" href="https://github.com/wishym1shy/opentitlecard" target="_blank" rel="noopener noreferrer" title="View the source on GitHub">
     <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
@@ -488,7 +490,8 @@
       <details open>
         <summary>Emoji Slot</summary>
         <div class="body">
-          <div class="g2"><div><label for="n_slot">Slot size</label><div class="fld" data-name="Slot size"><span class="scrub" data-scrub-for="slot" title="Drag to change slot size (Shift = 10×). Double-click to reset."><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2.5" y="2.5" width="11" height="11" rx="2" stroke-dasharray="2.2 1.8"/></svg></span><input type="number" id="n_slot" step="0.01" aria-label="Slot size"><span class="unit">em</span><span class="sr" id="v_slot" aria-hidden="true"></span><input type="range" id="slot" min="0.6" max="2" step="0.01" aria-label="Slot size slider"></div></div></div>
+          <div class="hint" style="margin:0 0 6px">Scale X and Scale Y set the space each emoji slot takes, as a percent of the standard slot. Type an emoji (or use “＋ Emoji slot”) to add one.</div>
+          <div id="slotRows"></div>
           <label class="chk"><input type="checkbox" id="showGuides"> Show slot outline in preview (never exported)</label>
           <div id="slotInfo" style="margin-top:8px"></div>
         </div>
@@ -592,7 +595,7 @@
             <label for="n_anScale">Size</label><div class="fld" data-name="Image size"><span class="scrub" data-view-scrub="anScale" title="Drag to resize the image (Shift = 10×). Double-click to reset."><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 4V3h7v1M5.5 3v10M4 13h3M10 8V7.5h4.5V8M12.2 7.5V13M11.2 13h2"/></svg></span><input type="number" id="n_anScale" step="1" aria-label="Image size, percent"><span class="unit">%</span><span class="sr" id="v_anScale" aria-hidden="true"></span><input type="range" id="anScale" min="10" max="400" step="1" aria-label="Image size slider"></div>
             <div class="row"><button type="button" class="sm" id="anCap" style="flex:none" title="Make the image as tall as the capital letters, centred on them">Match cap height</button><button type="button" class="sm" id="anBase" style="flex:none" title="Move the image down so its bottom edge sits on the text baseline">Sit on baseline</button></div>
             <div class="row"><button type="button" class="sm" id="anCopy" style="flex:none" title="Give every slot that shows this image, on every card, this offset and size">Use for every slot with this image</button></div>
-            <div class="hint">Percent of the slot's width, so it moves with the slot. The pink guides on the preview mark the slot's centre, the capital height and the baseline.</div>
+            <div class="hint">X is a percent of the slot's width and Y of its height, so it moves with the slot. The pink guides on the preview mark the slot's centre, the capital height and the baseline.</div>
           </div>
           <label for="emSearch" class="sr">Search emoji by name</label>
           <input type="search" id="emSearch" placeholder="Search by name" autocomplete="off" style="margin:6px 0">
@@ -1366,7 +1369,10 @@ function layout(){
     }
     for(const {segment,index} of SEG.segment(raw)){
       const gi=start+index;
-      if(isEmoji(segment)){ items0.push({k:'slot',s:gi,e:gi+segment.length,w:slotW}); continue; }
+      if(isEmoji(segment)){
+        // Scale X / Scale Y of this slot (percent of the base size; 100 when the slot says nothing): the space it takes
+        const d=S.emo[gi]; items0.push({k:'slot',s:gi,e:gi+segment.length,w:slotW*(d&&d.sx||100)/100,h:slotW*(d&&d.sy||100)/100,tall:!!(d&&d.sy>100)}); continue;
+      }
       const c=S.colors[gi]??null, f=(S.ital[gi]?1:0)|(S.bold[gi]?2:0)|(undAt[index]?4:0), last=items0[items0.length-1];
       if(last && last.k==='t' && last.c===c && last.f===f && last.e===gi){ last.text+=segment; last.e+=segment.length; }
       else items0.push({k:'t',text:segment,s:gi,e:gi+segment.length,c,f});
@@ -1376,9 +1382,15 @@ function layout(){
     while(items.length && items[0].k==='t'){ const m=items[0].text.match(/^\s+/); if(!m) break; items[0].text=items[0].text.slice(m[0].length); items[0].s+=m[0].length; if(!items[0].text) items.shift(); }
     while(items.length && items[items.length-1].k==='t'){ const t=items[items.length-1]; const m=t.text.match(/\s+$/); if(!m) break; t.text=t.text.slice(0,-m[0].length); t.e-=m[0].length; if(!t.text) items.pop(); }
     if(!items.length) continue;
-    let x=0; const words=[]; let hasSlot=false, below=0;
+    let x=0; const words=[]; let hasSlot=false, below=0, above=0;
     for(const it of items){
-      if(it.k==='slot'){ it.x=x; x+=it.w; hasSlot=true; below=Math.max(below,it.w/2-capH/2); continue; }
+      if(it.k==='slot'){
+        it.x=x; x+=it.w; hasSlot=true; below=Math.max(below,it.h/2-capH/2);
+        // a slot made taller than the base reaches above the capitals too, and the box grows to hold it; a base-size one never
+        // moves the top (the measured box top, topPad, is already roomier than it)
+        if(it.tall) above=Math.max(above,it.h/2-capH/2);
+        continue;
+      }
       const dx=it.f&1?slantDx:0;                 // keeps the slant centred on the run's advance box (see italicShift)
       mctx.font = fontStr(it.f,size);         // italicShift changed the measuring font
       it.x=x+dx; const mm=mctx.measureText(it.text); it.w=mm.width*sx; below=Math.max(below,(mm.actualBoundingBoxDescent||0)*sy);
@@ -1393,7 +1405,7 @@ function layout(){
       }
       x+=it.w;
     }
-    lines.push({items,words,w:x,hasSlot,below});
+    lines.push({items,words,w:x,hasSlot,below,above});
     }
   }
   // box widths + snap near-equal neighbours (TikTok merges them)
@@ -1407,7 +1419,7 @@ function layout(){
   let p0=-Infinity,p1=-Infinity;
   lines.forEach((l,i)=>{
     l.base=i*pitch;
-    l.y0=Math.max(p0,l.base-capH-S.topPad*size);
+    l.y0=Math.max(p0,l.base-capH-Math.max(S.topPad*size,l.above));
     l.y1=Math.max(p1,l.base+Math.max(S.botPad*size,l.below+S.clear*size));
     p0=l.y0; p1=l.y1; l.cy=l.base-capH/2; l.boxH=l.y1-l.y0;
   });
@@ -1434,11 +1446,11 @@ function imageForSlot(emo,text,a,b){
 const slotImage=it=>imageForSlot(S.emo,S.text,it.s,it.e);
 const imageOf=r=>r.e&&r.e.img&&r.e.img.complete&&r.e.img.naturalWidth?r.e.img:null;
 // Where a slot's picture goes, in canvas px: the picture fits the slot (its longer side), then the slot's own size and
-// offset apply; the offset is in slot widths, so it moves with the slot when the text, the Scale or the line breaks change.
+// offset apply; X is in slot widths and Y in slot heights, so it moves with the slot when the text, the Scale or the line breaks change.
 function pictureRect(l,it,r,o){
-  const a=r.anchor||{x:0,y:0,s:100}, sw=it.w*o.u, bx=o.cx+(l.tx+l.nx+it.x)*o.u, by=o.cy+(l.cy+l.ny-it.w/2)*o.u;
-  const k=Math.min(sw/r.e.w,sw/r.e.h)*(a.s/100), w=r.e.w*k, h=r.e.h*k;
-  return {x:bx+(sw-w)/2+(a.x/100)*sw, y:by+(sw-h)/2+(a.y/100)*sw, w, h};
+  const a=r.anchor||{x:0,y:0,s:100}, sw=it.w*o.u, sh=it.h*o.u, bx=o.cx+(l.tx+l.nx+it.x)*o.u, by=o.cy+(l.cy+l.ny-it.h/2)*o.u;
+  const k=Math.min(sw/r.e.w,sh/r.e.h)*(a.s/100), w=r.e.w*k, h=r.e.h*k;
+  return {x:bx+(sw-w)/2+(a.x/100)*sw, y:by+(sh-h)/2+(a.y/100)*sh, w, h};   // X in slot widths, Y in slot heights
 }
 function drawSlotImages(ctx,lines,o){
   ctx.save(); ctx.imageSmoothingEnabled=true; ctx.imageSmoothingQuality='high';
@@ -1453,11 +1465,11 @@ function drawSlotImages(ctx,lines,o){
 function drawSlotRulers(ctx,lines,o,sel){
   const u=o.u;
   for(const l of lines) for(const it of l.items) if(it===sel){
-    const x0=o.cx+(l.tx+l.nx+it.x)*u, sw=it.w*u, ext=8*u, cyy=o.cy+(l.cy+l.ny)*u;
+    const x0=o.cx+(l.tx+l.nx+it.x)*u, sw=it.w*u, sh=it.h*u, ext=8*u, cyy=o.cy+(l.cy+l.ny)*u;
     const base=o.cy+(l.base+l.ny)*u, cap=o.cy+(l.base+l.ny-L.capH)*u, line=(y,dash)=>{ ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(x0-ext,y); ctx.lineTo(x0+sw+ext,y); ctx.stroke(); };
     ctx.save(); ctx.lineWidth=Math.max(1,1.5*u); ctx.strokeStyle='rgba(255,105,180,.95)';
     line(base,[]); line(cap,[]); line(cyy,[3*u,4*u]);
-    ctx.setLineDash([3*u,4*u]); ctx.beginPath(); ctx.moveTo(x0+sw/2,cyy-sw/2-ext); ctx.lineTo(x0+sw/2,cyy+sw/2+ext); ctx.stroke();
+    ctx.setLineDash([3*u,4*u]); ctx.beginPath(); ctx.moveTo(x0+sw/2,cyy-sh/2-ext); ctx.lineTo(x0+sw/2,cyy+sh/2+ext); ctx.stroke();
     const r=slotImage(it);
     if(imageOf(r)){ const q=pictureRect(l,it,r,o); ctx.setLineDash([]); ctx.strokeStyle='rgba(255,105,180,.6)'; ctx.strokeRect(q.x,q.y,q.w,q.h); }
     ctx.restore();
@@ -1560,13 +1572,13 @@ function draw(ctx, W, H, o){
     ctx.save(); ctx.setLineDash([6*u,5*u]); ctx.lineWidth=Math.max(1.5,2*u); ctx.strokeStyle='rgba(91,140,255,.95)'; ctx.fillStyle='rgba(91,140,255,.10)';
     let n=0;
     for(const l of lines) for(const it of l.items) if(it.k==='slot'){
-      n++; const sx=o.cx+(l.tx+l.nx+it.x)*u, sy=o.cy+(l.cy+l.ny-it.w/2)*u, sw=it.w*u, im=slotImage(it);
+      n++; const sx=o.cx+(l.tx+l.nx+it.x)*u, sy=o.cy+(l.cy+l.ny-it.h/2)*u, sw=it.w*u, sh=it.h*u, im=slotImage(it);
       const shown=!!imageOf(im)&&o.emoji!==false, lost=im.missing;
       if(lost){ ctx.save(); ctx.strokeStyle='rgba(255,120,100,.98)'; ctx.fillStyle='rgba(255,120,100,.14)'; }
-      ctx.beginPath(); ctx.roundRect(sx,sy,sw,sw,sw*0.22); if(!shown) ctx.fill(); ctx.stroke();
+      ctx.beginPath(); ctx.roundRect(sx,sy,sw,sh,Math.min(sw,sh)*0.22); if(!shown) ctx.fill(); ctx.stroke();
       if(lost) ctx.restore();
       if(!shown){   // with a picture in it the label would only cover the picture
-        ctx.save(); ctx.setLineDash([]); ctx.fillStyle=lost?'rgba(255,120,100,.98)':'rgba(91,140,255,.95)'; ctx.font=`600 ${Math.max(10,14*u)}px system-ui,sans-serif`; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(lost?'⚠ '+n:'😀 '+n,sx+sw/2,sy+sw/2); ctx.restore();
+        ctx.save(); ctx.setLineDash([]); ctx.fillStyle=lost?'rgba(255,120,100,.98)':'rgba(91,140,255,.95)'; ctx.font=`600 ${Math.max(10,14*u)}px system-ui,sans-serif`; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(lost?'⚠ '+n:'😀 '+n,sx+sw/2,sy+sh/2); ctx.restore();
       }
     }
     ctx.restore();
@@ -1598,7 +1610,7 @@ let raf=0;
 function render(){ cancelAnimationFrame(raf); raf=requestAnimationFrame(renderNow); }
 function renderNow(){
   L=layout();
-  syncNudgeRows(); const fontOk=updateFontChip(); syncFmtBar(); renderCards();
+  syncNudgeRows(); syncSlotRows(); const fontOk=updateFontChip(); syncFmtBar(); renderCards();
   const g=exportGeometry();
   const big=tooLarge(g), xb=$('#export');
   xb.disabled=big; xb.classList.toggle('warn',!fontOk&&!big);
@@ -2066,7 +2078,7 @@ function updateSlotInfo(g){
   const box=$('#slotInfo'); let n=0, html='';
   for(const l of L.lines) for(const it of l.items) if(it.k==='slot'){
     n++; const cx=(l.tx+l.nx+it.x+it.w/2), cy=(l.cy+l.ny);
-    const px=Math.round(it.w*g.u), lost=slotImage(it).missing?`<div class="hint bad">Slot ${n}: the image “${escHtml(S.emo[it.s].n)}” is not in your Emoji library, so this slot is empty.</div>`:'';
+    const px=it.w===it.h?String(Math.round(it.w*g.u)):`${Math.round(it.w*g.u)}×${Math.round(it.h*g.u)}`, lost=slotImage(it).missing?`<div class="hint bad">Slot ${n}: the image “${escHtml(S.emo[it.s].n)}” is not in your Emoji library, so this slot is empty.</div>`:'';
     if(S.tight) html+=`<div class="slotrow"><b>Slot ${n}</b> <code>${px}px</code> centre ${cx>=0?'+':''}${Math.round(cx*g.u)}, ${cy>=0?'+':''}${Math.round(cy*g.u)} from card centre</div>`;
     else html+=`<div class="slotrow"><b>Slot ${n}</b> <code>${px}px</code> Premiere Position <code>${Math.round(g.cx+cx*g.u)}, ${Math.round(g.cy+cy*g.u)}</code></div>`;
     html+=lost;
@@ -2148,6 +2160,69 @@ nudgeHost.addEventListener('pointermove',e=>{
 });
 const endNudgeDrag=()=>{ scrub=null; sliderDrag=false; };
 window.addEventListener('pointerup',endNudgeDrag); window.addEventListener('pointercancel',endNudgeDrag);
+
+/* ============ emoji slot scale rows ============ */
+/* One row per emoji slot in the card, like the line nudges: Scale X and Scale Y (percent of the standard slot, which is
+   S.slot em, 1.25 unless an old preset or set says otherwise). They live on the slot (S.emo[start].sx / .sy), so they
+   follow it through edits like the picture's placement does, and they change the layout: the slot takes that much room. */
+const SLOT_AXES=[['sx','X'],['sy','Y']];
+let slotRowSig='';
+const slotScaleOf=(i,k)=>{ const d=S.emo[i]; return d&&d[k]||100; };
+function setSlotScale(i,k,v){
+  v=clamp(Math.round(v),...SLOT_SCALE);
+  const d={...(S.emo[i]||SLOT_PLAIN())}; if(v===100) delete d[k]; else d[k]=v;
+  S.emo[i]=tidySlot(d); record('slotscale'+i+k); render(); showSlotScales();
+}
+// A change made here (typed, stepped, scrubbed, reset) is committed, so every field shows it, even one that has focus (the
+// redraw's own sync leaves a focused field alone so it can't undo what is being typed).
+function showSlotScales(){ $('#slotRows').querySelectorAll('input[data-sk]').forEach(inp=>{ inp.value=slotScaleOf(+inp.dataset.s,inp.dataset.sk); }); }
+function slotRowAxis(i,n,k,A){
+  return `<div class="fld ax"><span class="scrub" data-sscrub="${k}" data-s="${i}" title="Drag to change Scale ${A} (Shift = 10×). Double-click to reset.">${A}</span>
+    <input type="number" step="1" min="${SLOT_SCALE[0]}" max="${SLOT_SCALE[1]}" data-s="${i}" data-sk="${k}" value="${slotScaleOf(i,k)}" aria-label="Emoji slot ${n} Scale ${A}"><span class="unit">%</span></div>`;
+}
+function syncSlotRows(){
+  const slots=[]; for(const l of L.lines) for(const it of l.items) if(it.k==='slot') slots.push(it);
+  const sig=slots.map(it=>it.s+':'+S.text.slice(it.s,it.e)).join('|'), host=$('#slotRows');
+  if(sig!==slotRowSig){
+    slotRowSig=sig; host.textContent='';
+    slots.forEach((it,j)=>{
+      const row=document.createElement('div'); row.className='nudge slotrow'; row.dataset.s=it.s;
+      const nm=document.createElement('div'); nm.className='nm'; const b=document.createElement('b'); b.textContent=j+1; nm.append(b,' ',S.text.slice(it.s,it.e));
+      const rs=document.createElement('button'); rs.className='sm'; rs.type='button'; rs.dataset.slotReset=it.s; rs.textContent='↺'; rs.title='Reset Scale X and Scale Y to 100%'; rs.setAttribute('aria-label',`Reset emoji slot ${j+1} scale`);
+      const g=document.createElement('div'); g.className='g2'; g.innerHTML=SLOT_AXES.map(([k,A])=>slotRowAxis(it.s,j+1,k,A)).join('');
+      row.append(nm,rs,g); host.append(row);
+    });
+  }
+  host.querySelectorAll('input[data-sk]').forEach(inp=>{ const v=slotScaleOf(+inp.dataset.s,inp.dataset.sk); if(document.activeElement!==inp) inp.value=v; });
+  host.querySelectorAll('button[data-slot-reset]').forEach(b=>{ const i=+b.dataset.slotReset; b.disabled=slotScaleOf(i,'sx')===100&&slotScaleOf(i,'sy')===100; });
+}
+const slotHost=$('#slotRows');
+slotHost.addEventListener('change',e=>{
+  const t=e.target; if(!t.dataset||!t.dataset.sk) return;
+  const v=t.value.trim()===''?NaN:+t.value;
+  if(Number.isFinite(v)) setSlotScale(+t.dataset.s,t.dataset.sk,v); else { t.value=slotScaleOf(+t.dataset.s,t.dataset.sk); }
+});
+slotHost.addEventListener('click',e=>{
+  const b=e.target.closest('[data-slot-reset]'); if(!b) return;
+  const i=+b.dataset.slotReset, d={...(S.emo[i]||SLOT_PLAIN())}; delete d.sx; delete d.sy; S.emo[i]=tidySlot(d); record(); render(); showSlotScales();
+});
+slotHost.addEventListener('dblclick',e=>{ const t=e.target.closest('[data-sscrub]'); if(t) setSlotScale(+t.dataset.s,t.dataset.sscrub,100); });
+let slotScrub=null;   // dragging a label changes the value one step per pixel (Shift = 10), accumulating so Shift mid-drag doesn't jump
+slotHost.addEventListener('pointerdown',e=>{
+  const t=e.target.closest('[data-sscrub]'); if(!t||e.button!==0) return;
+  e.preventDefault(); t.setPointerCapture(e.pointerId);
+  slotScrub={s:+t.dataset.s,k:t.dataset.sscrub,x:e.clientX,v:slotScaleOf(+t.dataset.s,t.dataset.sscrub)};
+});
+slotHost.addEventListener('pointermove',e=>{
+  if(!slotScrub) return;
+  slotScrub.v+=(e.clientX-slotScrub.x)*(e.shiftKey?10:1); slotScrub.x=e.clientX;
+  if(Math.round(slotScrub.v)!==slotScaleOf(slotScrub.s,slotScrub.k)) setSlotScale(slotScrub.s,slotScrub.k,slotScrub.v);
+});
+for(const t of ['pointerup','pointercancel']) window.addEventListener(t,()=>{ slotScrub=null; });
+slotHost.addEventListener('keydown',e=>{
+  const t=e.target; if(!t.dataset||!t.dataset.sk||(e.key!=='ArrowUp'&&e.key!=='ArrowDown')||!e.shiftKey) return;
+  e.preventDefault(); setSlotScale(+t.dataset.s,t.dataset.sk,slotScaleOf(+t.dataset.s,t.dataset.sk)+(e.key==='ArrowUp'?10:-10));
+});
 
 /* ============ text input + run attributes ============ */
 const ta=$('#text');
@@ -2348,7 +2423,7 @@ const bindings=[
   ['family','text'],['weight','num'],['align','rad'],['size','num'],['lh','num'],['track','num'],['stretchX','num'],['stretchY','num'],['wrap','num'],
   ['textColor','col'],['outlineColor','col'],['outlineW','num'],['textShadow','chk'],
   ['bgOn','chk'],['bgColor','col'],['bgOpacity','num'],['padX','num'],['radius','num'],['topPad','num'],['botPad','num'],['clear','num'],['boxShadow','chk'],
-  ['slot','num'],['showGuides','chk'],['frame','sel'],['fw','num'],['fh','num'],['offX','num'],['offY','num'],
+  ['showGuides','chk'],['frame','sel'],['fw','num'],['fh','num'],['offX','num'],['offY','num'],
   ['tight','chk'],['exportScale','num'],['emptySlots','chk']
 ];
 const fmt={stretchX:v=>v+'%',stretchY:v=>v+'%',size:v=>v+' px',lh:v=>(+v).toFixed(2)+'×',track:v=>v+' px',wrap:v=>(+v?v+' px':'Off'),outlineW:v=>v+' px',bgOpacity:v=>v+'%',padX:v=>(+v).toFixed(2)+' em',topPad:v=>(+v).toFixed(2)+' em',botPad:v=>(+v).toFixed(2)+' em',clear:v=>(+v).toFixed(2)+' em',radius:v=>(+v).toFixed(2)+' em',slot:v=>(+v).toFixed(2)+' em',exportScale:v=>v+'×'};
@@ -2463,7 +2538,7 @@ $('#autoScale').addEventListener('change',e=>{ autoScale=e.target.checked; store
    preset: the default preset only applies on a first load). It goes through the slider's own input event, so saving,
    a card's own style and redrawing behave exactly as for a drag. Double-clicking the slider does the same, like the
    nudge sliders. syncControls() greys a button out while its slider is already at the default. */
-const RESET_KEYS=['size','lh','track','stretchX','stretchY','wrap','outlineW','bgOpacity','padX','radius','topPad','botPad','clear','slot'];
+const RESET_KEYS=['size','lh','track','stretchX','stretchY','wrap','outlineW','bgOpacity','padX','radius','topPad','botPad','clear'];
 function resetSlider(k){ const el=$('#'+k); el.value=DEFAULTS[k]; lastKind=''; el.dispatchEvent(new Event('input')); }   // its own undo step, never merged into the drag before it
 RESET_KEYS.forEach(k=>{
   const v=$('#v_'+k), b=document.createElement('button'), name=v.closest('[data-name]').dataset.name;
@@ -3266,7 +3341,9 @@ const FMT_FILE=[['i','ital'],['b','bold'],['u','und']];   // a card's formats in
 const MAX_SLOTS=200, SLOT_OFF=[-300,300], SLOT_SCALE=[10,400];
 function cleanSlot(d){
   const n=cleanName(d.n), num=v=>typeof v==='number'&&isFinite(v);
-  return {n:n||null, x:num(d.x)?clamp(d.x,...SLOT_OFF):0, y:num(d.y)?clamp(d.y,...SLOT_OFF):0, s:num(d.s)?clamp(d.s,...SLOT_SCALE):100};
+  const e={n:n||null, x:num(d.x)?clamp(d.x,...SLOT_OFF):0, y:num(d.y)?clamp(d.y,...SLOT_OFF):0, s:num(d.s)?clamp(d.s,...SLOT_SCALE):100};
+  for(const k of ['sx','sy']) if(num(d[k])&&Math.round(clamp(d[k],...SLOT_SCALE))!==100) e[k]=Math.round(clamp(d[k],...SLOT_SCALE));   // the slot's own Scale X / Scale Y: only when not 100
+  return e;
 }
 const BATCH_APP='opentitlecard', MAX_CARDS=500, MAX_TEXT=2000, MAX_FILE=5e6;
 function encodeBatch(){
@@ -3275,7 +3352,7 @@ function encodeBatch(){
     const o={m:c.name, t:c.text};
     const col={}; c.colors.forEach((h,i)=>{ if(h) col[i]=h; }); if(Object.keys(col).length) o.c=col;
     for(const [k,key] of FMT_FILE){ const ix=[]; c[key].forEach((v,i)=>{ if(v) ix.push(i); }); if(ix.length) o[k]=ix; }
-    const em={}; c.emo.forEach((d,i)=>{ if(d&&(d.n||d.x||d.y||d.s!==100)) em[i]={...(d.n?{n:d.n}:{}),...(d.x?{x:d.x}:{}),...(d.y?{y:d.y}:{}),...(d.s!==100?{s:d.s}:{})}; });
+    const em={}; c.emo.forEach((d,i)=>{ if(d&&(d.n||d.x||d.y||d.s!==100||d.sx||d.sy)) em[i]={...(d.n?{n:d.n}:{}),...(d.x?{x:d.x}:{}),...(d.y?{y:d.y}:{}),...(d.s!==100?{s:d.s}:{}),...(d.sx?{sx:d.sx}:{}),...(d.sy?{sy:d.sy}:{})}; });
     if(Object.keys(em).length) o.e=em;   // emoji images are named, never embedded: a name the library lacks shows as missing
     let last=c.nudges.length; while(last>0 && !(c.nudges[last-1]&&(c.nudges[last-1].x||c.nudges[last-1].y))) last--;
     if(last) o.n=c.nudges.slice(0,last).map(n=>n&&(n.x||n.y)?{x:n.x||0,y:n.y||0}:null);
@@ -3298,7 +3375,7 @@ function decodeBatch(raw){
     if(r.c&&typeof r.c==='object') for(const k of Object.keys(r.c)){ const i=+k; if(Number.isInteger(i)&&i>=0&&i<text.length&&typeof r.c[k]==='string'&&HEX_RE.test(r.c[k])) c.colors[i]=r.c[k]; }
     if(r.e&&typeof r.e==='object'&&!Array.isArray(r.e)) for(const k of Object.keys(r.e).slice(0,MAX_SLOTS)){
       const i=+k, d=r.e[k]; if(!Number.isInteger(i)||i<0||i>=text.length||!d||typeof d!=='object') continue;
-      const e=cleanSlot(d); if(e.n||e.x||e.y||e.s!==100) c.emo[i]=e;
+      const e=cleanSlot(d); if(e.n||e.x||e.y||e.s!==100||e.sx||e.sy) c.emo[i]=e;
     }
     for(const [k,key] of FMT_FILE) if(Array.isArray(r[k])) for(const i of r[k]) if(Number.isInteger(i)&&i>=0&&i<text.length) c[key][i]=1;   // an older file simply has no b or u
     if(Array.isArray(r.n)) c.nudges=r.n.slice(0,200).map(n=>n&&num(n.x)&&num(n.y)?{x:clamp(n.x,-5000,5000),y:clamp(n.y,-5000,5000)}:null);
@@ -3668,7 +3745,7 @@ function selectedSlot(){
   return null;
 }
 const SLOT_PLAIN=()=>({n:null,x:0,y:0,s:100});
-const tidySlot=d=>d&&(d.n||d.x||d.y||d.s!==100)?d:null;   // a slot with nothing to say holds nothing
+const tidySlot=d=>d&&(d.n||d.x||d.y||d.s!==100||d.sx||d.sy)?d:null;   // a slot with nothing to say holds nothing
 function assignEmoji(id){
   const sel=selectedSlot(), e=emojiLib.find(x=>x.id===id); if(!e) return;
   if(!sel){ setEmojiMsg('Select an emoji slot first: click it in the preview, or select the emoji in the text.',true); return; }
@@ -3709,9 +3786,9 @@ bindViewSliders('an',AN,AN_D,AN_R,writeAnchor,AN_FMT,true);
 // Quick starting points, from the layout: as tall as the capitals, or standing on the baseline.
 function anchorPreset(kind){
   const sel=selectedSlot(), r=sel&&slotImage(sel.it); if(!r||!r.e) return;
-  const sw=sel.it.w, h100=r.e.h*Math.min(sw/r.e.w,sw/r.e.h);   // the fitted picture's height at Size 100%, in layout units
+  const sw=sel.it.w, sh=sel.it.h, h100=r.e.h*Math.min(sw/r.e.w,sh/r.e.h);   // the fitted picture's height at Size 100%, in layout units
   if(kind==='cap'){ AN.y=0; AN.scale=clamp(Math.round(L.capH/h100*100),...SLOT_SCALE); }
-  else AN.y=clamp(Math.round((L.capH-h100*AN.scale/100)/2/sw*100),...SLOT_OFF);   // bottom edge on the baseline
+  else AN.y=clamp(Math.round((L.capH-h100*AN.scale/100)/2/sh*100),...SLOT_OFF);   // bottom edge on the baseline
   writeAnchor();
 }
 $('#anCap').addEventListener('click',()=>anchorPreset('cap'));
