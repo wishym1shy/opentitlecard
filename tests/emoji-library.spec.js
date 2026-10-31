@@ -1,25 +1,7 @@
-const zlib = require('zlib');
-const { test, expect, APP_URL, expandUi, confirmDialog } = require('./helpers');
+const { test, expect, APP_URL, expandUi, confirmDialog, makePng: png } = require('./helpers');
 
 // The emoji library: the user's own images, kept in the browser. The app bundles none, so every image here is made by
 // the test: a tiny PNG encoder (no binary fixtures in the repo).
-function crc(buf) {
-  let c, crcv = 0xffffffff;
-  for (let n = 0; n < buf.length; n++) { c = (crcv ^ buf[n]) & 0xff; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; crcv = (crcv >>> 8) ^ c; }
-  return (crcv ^ 0xffffffff) >>> 0;
-}
-function chunk(type, data) {
-  const len = Buffer.alloc(4); len.writeUInt32BE(data.length);
-  const td = Buffer.concat([Buffer.from(type), data]), c = Buffer.alloc(4); c.writeUInt32BE(crc(td));
-  return Buffer.concat([len, td, c]);
-}
-/** A w×h RGBA PNG; px(x, y) returns [r, g, b, a]. */
-function png(w, h, px) {
-  const raw = Buffer.alloc((w * 4 + 1) * h);
-  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const o = y * (w * 4 + 1) + 1 + x * 4, p = px(x, y); raw[o] = p[0]; raw[o + 1] = p[1]; raw[o + 2] = p[2]; raw[o + 3] = p[3]; }
-  const ihdr = Buffer.alloc(13); ihdr.writeUInt32BE(w, 0); ihdr.writeUInt32BE(h, 4); ihdr[8] = 8; ihdr[9] = 6;
-  return Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk('IHDR', ihdr), chunk('IDAT', zlib.deflateSync(raw)), chunk('IEND', Buffer.alloc(0))]);
-}
 // a red disc-ish square in the middle of a transparent field: 40×40 canvas, art from (10,10) to (29,29)
 const padded = () => png(40, 40, (x, y) => (x >= 10 && x < 30 && y >= 10 && y < 30 ? [220, 30, 30, 255] : [0, 0, 0, 0]));
 const solid = (w = 16, h = 16) => png(w, h, () => [30, 120, 220, 255]);
@@ -142,13 +124,14 @@ test.describe('emoji library', () => {
     // rename by double-click
     await page.locator('.emitem', { hasText: 'smile' }).dblclick();
     await page.keyboard.press('Control+A'); await page.keyboard.type('Grin'); await page.keyboard.press('Enter');
-    expect((await lib(page)).map((e) => e.name)).toEqual(['Grin', 'heart', 'heart-eyes']);
+    await expect.poll(async () => (await lib(page)).map((e) => e.name)).toEqual(['Grin', 'heart', 'heart-eyes']);
     // a taken name (any case) is numbered, not duplicated; Esc cancels
     await page.locator('.emitem', { hasText: 'Grin' }).locator('.emthumb').focus();
     await page.keyboard.press('F2'); await page.keyboard.press('Control+A'); await page.keyboard.type('HEART'); await page.keyboard.press('Enter');
-    expect((await lib(page)).map((e) => e.name)).toEqual(['HEART 2', 'heart', 'heart-eyes']);
+    await expect.poll(async () => (await lib(page)).map((e) => e.name)).toEqual(['HEART 2', 'heart', 'heart-eyes']);
     await page.locator('.emitem', { hasText: 'heart-eyes' }).locator('.emthumb').focus();
     await page.keyboard.press('F2'); await page.keyboard.type('nope'); await page.keyboard.press('Escape');
+    await expect(page.locator('#emGrid .emitem input')).toHaveCount(0);
     expect((await lib(page))[2].name).toBe('heart-eyes');
     // the new names are kept
     await reload(page);
