@@ -119,7 +119,7 @@ test.describe('first open', () => {
     expect(inner).toEqual(MOVED);
     await expect(page.locator('#lh')).toBeHidden();
     await page.click('#tcProps > summary');
-    for (const id of ['#offX', '#offY', '#nudges .nudge', '#align', '#lh', '#bgOn', '#slot']) await expect(page.locator(id).first(), id).toBeVisible();
+    for (const id of ['#offX', '#offY', '#nudges .nudge', '#align', '#lh', '#bgOn', '#slotRows .slotrow']) await expect(page.locator(id).first(), id).toBeVisible();
     await expect(page.locator('#panels #offX')).toHaveCount(0); // the card position left the Canvas panel
   });
 

@@ -6,7 +6,7 @@ const S = (page, k) => page.evaluate((k) => __tt.S[k], k);
 test.describe('sidebar fields', () => {
   test('every slider setting has a typed value that follows the slider', async ({ app: { page } }) => {
     const keys = await page.evaluate(() => [...document.querySelectorAll('aside .fld input[type=range][id]')].map((r) => r.id));
-    expect(keys.length).toBeGreaterThanOrEqual(14);
+    expect(keys.length).toBeGreaterThanOrEqual(13); // the slot size is no longer one of them: it is Scale X / Scale Y per emoji slot
     for (const k of keys) {
       const v = await page.evaluate((k) => { const r = document.querySelector('#' + k); r.value = r.max; r.dispatchEvent(new Event('input', { bubbles: true })); return r.max; }, k);
       await expect(page.locator('#n_' + k), k).toHaveValue(String(+v));

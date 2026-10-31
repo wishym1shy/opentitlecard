@@ -93,14 +93,13 @@ test.describe('emoji slots', () => {
     expect(L.lines[0].items.filter((i) => i.k === 'slot')).toHaveLength(1);
   });
 
-  test('slot width follows the size slider', async ({ app: { page } }) => {
+  test('slot width follows its Scale X (the slot size is per emoji slot now)', async ({ app: { page } }) => {
     await setText(page, 'Hi 😳');
     const before = (await settle(page)).lines[0].items.find((i) => i.k === 'slot').w;
-    await page.evaluate(() => { const e = document.querySelector('#slot'); e.value = '2'; e.dispatchEvent(new Event('input', { bubbles: true })); });
+    await page.fill('#slotRows input[data-sk="sx"]', '160'); await page.press('#slotRows input[data-sk="sx"]', 'Enter');
     const L = await settle(page);
     const after = L.lines[0].items.find((i) => i.k === 'slot').w;
-    expect(after).toBeCloseTo(2 * L.size, 3);
-    expect(after).toBeGreaterThan(before);
+    expect(after).toBeCloseTo(1.6 * before, 3);
   });
 });
 

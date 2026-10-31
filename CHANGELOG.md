@@ -4,6 +4,16 @@ What changed in OpenTitlecard, newest first. The version is shown next to the ap
 
 Versions are `vMAJOR.MINOR`. Each merged pull request that changes the app adds one to the minor number (v1.31 → v1.32 → …). The changelog started at v1.31: v1.27 stands for everything merged before the UI review that led to v1.28–v1.31 (pull requests up to #31), so the numbers line up with the work done.
 
+## v1.67
+
+### Changed
+- **Emoji slot size is now set per emoji slot, as Scale X and Scale Y.** The single **Slot size** setting under **Titlecard Properties › Emoji Slot** is replaced by a row for each emoji slot in the card, with **Scale X** and **Scale Y** (percent of the standard slot, 10–400%): type a number, drag the X or Y label, press **Shift+↑/↓** for steps of 10, double-click a label to reset it, or use the row's **↺**. They set the space the slot takes: Scale X changes its width and moves the text after it, and Scale Y changes its height. They apply to empty slots too (for editors who paste their own emoji on top), and a picture in the slot fits the slot's new box.
+  - A slot taller than the standard one makes the card's box grow, above and below, to hold it. A shorter one never takes the box smaller than the text needs.
+  - The scales belong to the slot, so they follow it when you reword the text, break lines or wrap, and they are part of undo and redo and of saved sets.
+  - At 100% / 100%, every slot is exactly the standard slot, so existing cards look the same. A preset or set saved with a different slot size keeps that size as its standard slot (there is just no control for it any more); Scale X and Y are measured from it.
+  - The picture's **Y** offset is now a percent of the slot's height (it was the slot's width, the same thing while slots were square).
+  - The slot list shows a scaled slot's size as width × height.
+
 ## v1.66
 
 ### Added
