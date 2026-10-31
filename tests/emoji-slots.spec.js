@@ -272,8 +272,25 @@ test.describe('emoji images on slots', () => {
     await page.click('#redo');
     await page.locator('.emitem', { hasText: 'crimson' }).hover();
     await page.locator('.emitem', { hasText: 'crimson' }).locator('.emdel').click();
+    await confirmDialog(page, true);
     await expect(page.locator('#slotInfo')).toContainText('is not in your Emoji library');
     expect(near(await pixelAt(page, centre(b)), [255, 255, 255])).toBe(true);
+  });
+
+  test('the delete confirmation says how many slots use the image and which emoji it is the default for', async ({ app: { page } }) => {
+    await addImages(page, [file('red', square(RED))]);
+    await setText(page, '🙂 🙂 🙃');
+    let [a, c, d] = await slots(page);
+    const pick = () => page.locator('#emGrid .emitem', { hasText: 'red' }).locator('.emthumb').click();
+    await setSelection(page, a.s, a.e); await pick();
+    await page.click('#emSlot button:has-text("Use it for every")');            // the default for 🙂
+    await setSelection(page, d.s, d.e); await pick();                           // and a slot that names it
+    const item = page.locator('.emitem', { hasText: 'red' });
+    await item.hover(); await item.locator('.emdel').click();
+    await expect(page.locator('#cMsg')).toContainText('2 emoji slots on your cards use it and will show as missing');   // the two that name it
+    await expect(page.locator('#cMsg')).toContainText('default image for 🙂');
+    await confirmDialog(page, false);
+    expect(await page.evaluate(() => __tt.emoji.library.length)).toBe(1);
   });
 
   test('a set file is untrusted: bad slot entries are dropped or clamped, never trusted', async ({ app: { page } }) => {

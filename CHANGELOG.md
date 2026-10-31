@@ -4,6 +4,16 @@ What changed in OpenTitlecard, newest first. The version is shown next to the ap
 
 Versions are `vMAJOR.MINOR`. Each merged pull request that changes the app adds one to the minor number (v1.31 → v1.32 → …). The changelog started at v1.31: v1.27 stands for everything merged before the UI review that led to v1.28–v1.31 (pull requests up to #31), so the numbers line up with the work done.
 
+## v1.68
+
+### Added
+- **Deleting an image from the Emoji library asks first.** The × on a thumbnail (and the Delete key on a focused one) opens a confirmation that says what it would affect: how many emoji slots on your cards use the image (they would show as missing) and which emoji it is the default for. Cancel or Esc keep it.
+
+### Changed
+- **The picture's size no longer depends on the slot's Scale X / Scale Y.** Before, the picture was fitted to the slot's own box, so a wide or short slot also changed how big the picture was, and the picture's Size and offsets multiplied with the slot scale. Now **Size** and the **X / Y offsets** are measured from the standard slot (a square), so a picture at Size 100% is the same size in every slot, and an offset moves it the same distance, however much room the slot takes. Scale X and Scale Y only set the room the slot takes, and the picture stays centred in it. This makes it easy to size emoji alike and then space them out differently. **Match cap height** and **Sit on baseline** give the same result at any slot scale.
+  - Cards whose slots are at the standard 100% / 100% look exactly as before. A slot you had scaled, with a picture on it, may look different: the picture keeps its standard size and centre instead of changing with the slot.
+  - A picture can now be larger than a slot that you made smaller; that is the point, but it can overlap the text next to it.
+
 ## v1.67
 
 ### Changed

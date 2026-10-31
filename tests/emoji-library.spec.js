@@ -139,12 +139,31 @@ test.describe('emoji library', () => {
     // delete with the × and with the Delete key
     await page.locator('.emitem', { hasText: 'heart-eyes' }).hover();
     await page.locator('.emitem', { hasText: 'heart-eyes' }).locator('.emdel').click();
+    await confirmDialog(page, true);
     await expect.poll(async () => (await lib(page)).map((e) => e.name)).toEqual(['HEART 2', 'heart']);
     await page.locator('.emitem', { hasText: 'HEART 2' }).locator('.emthumb').focus();
     await page.keyboard.press('Delete');
+    await confirmDialog(page, true);
     await expect.poll(async () => (await lib(page)).map((e) => e.name)).toEqual(['heart']);
     await reload(page);
     expect((await lib(page)).map((e) => e.name)).toEqual(['heart']);
+  });
+
+  test('deleting one image asks first (the × and the Delete key alike), and Cancel or Esc keep it', async ({ app: { page } }) => {
+    await add(page, [file('keep.png', solid()), file('other.png', solid())]);
+    const item = page.locator('.emitem', { hasText: 'keep' });
+    await item.hover(); await item.locator('.emdel').click();
+    await expect(page.locator('#cTitle')).toHaveText('Delete “keep”?');
+    await expect(page.locator('#cMsg')).toContainText('add the file again');
+    await confirmDialog(page, false);
+    expect((await lib(page)).map((e) => e.name)).toEqual(['keep', 'other']);          // Cancel: still there
+    await item.locator('.emthumb').focus(); await page.keyboard.press('Delete');
+    await expect(page.locator('#confirmDlg')).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#confirmDlg')).toBeHidden();
+    expect((await lib(page)).map((e) => e.name)).toEqual(['keep', 'other']);          // Esc: still there
+    await item.hover(); await item.locator('.emdel').click(); await confirmDialog(page, true);
+    await expect.poll(async () => (await lib(page)).map((e) => e.name)).toEqual(['other']);
   });
 
   test('Clear library asks first, and Cancel keeps everything', async ({ app: { page } }) => {
