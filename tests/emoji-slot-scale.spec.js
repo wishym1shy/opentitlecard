@@ -147,28 +147,65 @@ test.describe('emoji slot Scale X / Scale Y', () => {
     await page.click('#redo'); expect(await layoutKey(page)).toBe(b);
   });
 
-  test('a picture fits the slot\'s own box, and its Y offset is a percent of the slot\'s height', async ({ app: { page } }) => {
+  /** The red picture's box in the exported PNG (the only red thing on the card), in export px. */
+  const redBox = async (page) => {
+    const { buffer } = await exportPng(page);
+    return page.evaluate(async (b64) => {
+      const bmp = await createImageBitmap(new Blob([Uint8Array.from(atob(b64), (c) => c.charCodeAt(0))], { type: 'image/png' }));
+      const cx = new OffscreenCanvas(bmp.width, bmp.height).getContext('2d'); cx.drawImage(bmp, 0, 0);
+      const d = cx.getImageData(0, 0, bmp.width, bmp.height).data; let x0 = 1e9, x1 = -1, y0 = 1e9, y1 = -1;
+      for (let y = 0; y < bmp.height; y++) for (let x = 0; x < bmp.width; x++) { const i = (y * bmp.width + x) * 4; if (d[i] > 180 && d[i + 1] < 80 && d[i + 2] < 80 && d[i + 3] > 200) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; } }
+      return { x0, x1: x1 + 1, y0, y1: y1 + 1 };
+    }, buffer.toString('base64'));
+  };
+  const COMBOS = [[100, 100], [200, 100], [100, 50], [300, 300], [40, 40]];
+  async function placeImage(page) {
     await addImage(page);
     await setText(page, 'Hi 🙂');
-    let b = (await facts(page)).slots[0];
+    const b = (await facts(page)).slots[0];
     await setSelection(page, b.s, b.e); await page.locator('#emGrid .emthumb').click();
-    await setScale(page, 'sx', 200);                                                            // twice as wide, as tall as before: a square picture fits the height
-    b = (await facts(page)).slots[0];
-    const mid = Math.round(b.y + b.ph / 2);
-    const row = async (dx) => pixelAt(page, [Math.round(b.x + b.pw * dx), mid]);
-    expect(near(await row(0.5), RED)).toBe(true);                                               // the middle of the slot
-    expect(near(await row(0.1), RED)).toBe(false);                                              // beyond the picture on the left: it is not stretched to fill
-    expect(near(await row(0.9), RED)).toBe(false);
-    // Y is a share of the slot's height: with the slot twice as tall, 25% moves the picture a quarter of its height
-    await setScale(page, 'sx', 100); await setScale(page, 'sy', 200);
-    b = (await facts(page)).slots[0];
-    await page.evaluate((s) => { __tt.S.emo[s] = { ...__tt.S.emo[s], y: 25 }; __tt.renderNow(); }, b.s);
-    const col = Math.round(b.x + b.pw / 2);
-    const picH = b.pw;                                                                          // fitted by the narrower side: as tall as the slot is wide
-    const centreY = b.y + b.ph / 2 + 0.25 * b.ph;
-    expect(near(await pixelAt(page, [col, Math.round(centreY)]), RED)).toBe(true);
-    expect(near(await pixelAt(page, [col, Math.round(centreY - picH / 2 - 6)]), RED)).toBe(false);   // above the moved picture
-    expect(near(await pixelAt(page, [col, Math.round(b.y + b.ph / 2 - picH / 2 + 4)]), RED)).toBe(false);   // where it was before the shift
+  }
+
+  test('the picture is the same size, and centred on the slot, whatever the slot\'s Scale X and Scale Y', async ({ app: { page } }) => {
+    await placeImage(page);
+    for (const [sx, sy] of COMBOS) {
+      await setScale(page, 'sx', sx); await setScale(page, 'sy', sy);
+      const f = await facts(page), b = f.slots[0], base = 1.25 * f.size * f.u;                 // the standard slot, in export px
+      const r = await redBox(page);
+      expect(r.x1 - r.x0, `width at ${sx}/${sy}`).toBeGreaterThan(base - 2); expect(r.x1 - r.x0, `width at ${sx}/${sy}`).toBeLessThan(base + 2);
+      expect(r.y1 - r.y0, `height at ${sx}/${sy}`).toBeGreaterThan(base - 2); expect(r.y1 - r.y0, `height at ${sx}/${sy}`).toBeLessThan(base + 2);
+      expect((r.x0 + r.x1) / 2, `centre x at ${sx}/${sy}`).toBeCloseTo(b.x + b.pw / 2, -0.3);   // within about 1 px
+      expect((r.y0 + r.y1) / 2, `centre y at ${sx}/${sy}`).toBeCloseTo(b.y + b.ph / 2, -0.3);
+    }
+  });
+
+  test('Size and the X / Y offsets are percents of the standard slot, so they move the picture the same distance at any slot scale', async ({ app: { page } }) => {
+    await placeImage(page);
+    for (const [sx, sy] of [[100, 100], [250, 60]]) {
+      await setScale(page, 'sx', sx); await setScale(page, 'sy', sy);
+      const f = await facts(page), b = f.slots[0], base = 1.25 * f.size * f.u;
+      await page.evaluate((s) => { __tt.S.emo[s] = { ...__tt.S.emo[s], x: -20, y: 25, s: 50 }; __tt.renderNow(); }, b.s);
+      const r = await redBox(page);
+      expect(r.x1 - r.x0, `size at ${sx}/${sy}`).toBeGreaterThan(0.5 * base - 2); expect(r.x1 - r.x0, `size at ${sx}/${sy}`).toBeLessThan(0.5 * base + 2);   // Size 50% of the standard picture
+      expect((r.x0 + r.x1) / 2 - (b.x + b.pw / 2), `x shift at ${sx}/${sy}`).toBeCloseTo(-0.2 * base, -0.3);                   // 20% of the standard slot, to the left
+      expect((r.y0 + r.y1) / 2 - (b.y + b.ph / 2), `y shift at ${sx}/${sy}`).toBeCloseTo(0.25 * base, -0.3);                    // 25% of it, down
+      await page.evaluate((s) => { const d = { ...__tt.S.emo[s] }; delete d.x; d.x = 0; d.y = 0; d.s = 100; __tt.S.emo[s] = d; }, b.s);
+    }
+  });
+
+  test('"Match cap height" and "Sit on baseline" give the same result at any slot scale', async ({ app: { page } }) => {
+    await placeImage(page);
+    const sizeAfterCap = async () => { const b = (await facts(page)).slots[0]; await setSelection(page, b.s, b.e); await page.click('#anCap'); return (await emo(page, b.s)).s; };
+    const baseline = async () => { const b = (await facts(page)).slots[0]; await setSelection(page, b.s, b.e); await page.click('#anBase'); const d = await emo(page, b.s); return [d.s, d.y]; };
+    const plain = await sizeAfterCap(), plainBase = await baseline();
+    await setScale(page, 'sx', 300); await setScale(page, 'sy', 60);
+    expect(await sizeAfterCap()).toBe(plain);
+    expect(await baseline()).toEqual(plainBase);
+    // and the picture really is as tall as the capitals in the PNG
+    await page.evaluate(() => { __tt.S.emo.forEach((d, i) => { if (d) __tt.S.emo[i] = { ...d, y: 0 }; }); });
+    const b = (await facts(page)).slots[0]; await setSelection(page, b.s, b.e); await page.click('#anCap');
+    const f = await facts(page), r = await redBox(page);
+    expect(Math.abs(r.y1 - r.y0 - f.capH * f.u)).toBeLessThan(f.capH * f.u * 0.04 + 2);
   });
 
   test('clicking the extra room of a wide slot in the preview still selects it', async ({ app: { page } }) => {

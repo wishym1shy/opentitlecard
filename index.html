@@ -370,7 +370,7 @@
 </head>
 <body>
 <header>
-  <h1>OpenTitlecard <a id="appVersion" href="https://github.com/wishym1shy/opentitlecard/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer" title="What's new in this version (changelog on GitHub)">v1.67</a></h1>
+  <h1>OpenTitlecard <a id="appVersion" href="https://github.com/wishym1shy/opentitlecard/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer" title="What's new in this version (changelog on GitHub)">v1.68</a></h1>
   <button id="updateBtn" type="button" hidden title="A newer version of OpenTitlecard is out. Click to reload the page and get it (save your set first)."></button>
   <a class="gh" href="https://github.com/wishym1shy/opentitlecard" target="_blank" rel="noopener noreferrer" title="View the source on GitHub">
     <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
@@ -591,11 +591,11 @@
           <div class="hint" id="emMsg" role="status" aria-live="polite">Your own emoji images. You can also paste an image.</div>
           <div class="emslot" id="emSlot" aria-live="polite"></div>
           <div class="emanchor" id="emAnchor" role="group" aria-label="Where the image sits in the selected slot" hidden>
-            <div class="g2"><div><label for="n_anX">X offset</label><div class="fld" data-name="Image X"><span class="scrub" data-view-scrub="anX" title="Drag to move the image sideways, in percent of the slot (Shift = 10×). Double-click for 0.">X</span><input type="number" id="n_anX" step="1" aria-label="Image X offset, percent of the slot"><span class="unit">%</span><span class="sr" id="v_anX" aria-hidden="true"></span><input type="range" id="anX" min="-100" max="100" step="1" aria-label="Image X offset slider"></div></div><div><label for="n_anY">Y offset</label><div class="fld" data-name="Image Y"><span class="scrub" data-view-scrub="anY" title="Drag to move the image up or down, in percent of the slot (Shift = 10×). Double-click for 0.">Y</span><input type="number" id="n_anY" step="1" aria-label="Image Y offset, percent of the slot"><span class="unit">%</span><span class="sr" id="v_anY" aria-hidden="true"></span><input type="range" id="anY" min="-100" max="100" step="1" aria-label="Image Y offset slider"></div></div></div>
+            <div class="g2"><div><label for="n_anX">X offset</label><div class="fld" data-name="Image X"><span class="scrub" data-view-scrub="anX" title="Drag to move the image sideways, in percent of the standard slot (Shift = 10×). Double-click for 0.">X</span><input type="number" id="n_anX" step="1" aria-label="Image X offset, percent of the standard slot"><span class="unit">%</span><span class="sr" id="v_anX" aria-hidden="true"></span><input type="range" id="anX" min="-100" max="100" step="1" aria-label="Image X offset slider"></div></div><div><label for="n_anY">Y offset</label><div class="fld" data-name="Image Y"><span class="scrub" data-view-scrub="anY" title="Drag to move the image up or down, in percent of the standard slot (Shift = 10×). Double-click for 0.">Y</span><input type="number" id="n_anY" step="1" aria-label="Image Y offset, percent of the standard slot"><span class="unit">%</span><span class="sr" id="v_anY" aria-hidden="true"></span><input type="range" id="anY" min="-100" max="100" step="1" aria-label="Image Y offset slider"></div></div></div>
             <label for="n_anScale">Size</label><div class="fld" data-name="Image size"><span class="scrub" data-view-scrub="anScale" title="Drag to resize the image (Shift = 10×). Double-click to reset."><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 4V3h7v1M5.5 3v10M4 13h3M10 8V7.5h4.5V8M12.2 7.5V13M11.2 13h2"/></svg></span><input type="number" id="n_anScale" step="1" aria-label="Image size, percent"><span class="unit">%</span><span class="sr" id="v_anScale" aria-hidden="true"></span><input type="range" id="anScale" min="10" max="400" step="1" aria-label="Image size slider"></div>
             <div class="row"><button type="button" class="sm" id="anCap" style="flex:none" title="Make the image as tall as the capital letters, centred on them">Match cap height</button><button type="button" class="sm" id="anBase" style="flex:none" title="Move the image down so its bottom edge sits on the text baseline">Sit on baseline</button></div>
             <div class="row"><button type="button" class="sm" id="anCopy" style="flex:none" title="Give every slot that shows this image, on every card, this offset and size">Use for every slot with this image</button></div>
-            <div class="hint">X is a percent of the slot's width and Y of its height, so it moves with the slot. The pink guides on the preview mark the slot's centre, the capital height and the baseline.</div>
+            <div class="hint">Size and offsets are measured from the standard slot, so Scale X and Scale Y (which set the room the slot takes) never change how big the picture is. The pink guides on the preview mark the slot's centre, the capital height and the baseline.</div>
           </div>
           <label for="emSearch" class="sr">Search emoji by name</label>
           <input type="search" id="emSearch" placeholder="Search by name" autocomplete="off" style="margin:6px 0">
@@ -1371,7 +1371,7 @@ function layout(){
       const gi=start+index;
       if(isEmoji(segment)){
         // Scale X / Scale Y of this slot (percent of the base size; 100 when the slot says nothing): the space it takes
-        const d=S.emo[gi]; items0.push({k:'slot',s:gi,e:gi+segment.length,w:slotW*(d&&d.sx||100)/100,h:slotW*(d&&d.sy||100)/100,tall:!!(d&&d.sy>100)}); continue;
+        const d=S.emo[gi]; items0.push({k:'slot',s:gi,e:gi+segment.length,w:slotW*(d&&d.sx||100)/100,h:slotW*(d&&d.sy||100)/100,base:slotW,tall:!!(d&&d.sy>100)}); continue;
       }
       const c=S.colors[gi]??null, f=(S.ital[gi]?1:0)|(S.bold[gi]?2:0)|(undAt[index]?4:0), last=items0[items0.length-1];
       if(last && last.k==='t' && last.c===c && last.f===f && last.e===gi){ last.text+=segment; last.e+=segment.length; }
@@ -1445,12 +1445,15 @@ function imageForSlot(emo,text,a,b){
 }
 const slotImage=it=>imageForSlot(S.emo,S.text,it.s,it.e);
 const imageOf=r=>r.e&&r.e.img&&r.e.img.complete&&r.e.img.naturalWidth?r.e.img:null;
-// Where a slot's picture goes, in canvas px: the picture fits the slot (its longer side), then the slot's own size and
-// offset apply; X is in slot widths and Y in slot heights, so it moves with the slot when the text, the Scale or the line breaks change.
+// Where a slot's picture goes, in canvas px. The picture's size and offsets are measured from the STANDARD slot (a square,
+// S.slot em), not from this slot's own box: Size 100% fits the picture in the standard square, X and Y are percents of it,
+// whatever the slot's Scale X / Scale Y. Those two only set the room the slot takes (and where its centre is, which is
+// where the picture is centred), so emoji sized alike look alike in slots spaced differently. It moves with the slot when
+// the text, the Scale or the line breaks change.
 function pictureRect(l,it,r,o){
-  const a=r.anchor||{x:0,y:0,s:100}, sw=it.w*o.u, sh=it.h*o.u, bx=o.cx+(l.tx+l.nx+it.x)*o.u, by=o.cy+(l.cy+l.ny-it.h/2)*o.u;
-  const k=Math.min(sw/r.e.w,sh/r.e.h)*(a.s/100), w=r.e.w*k, h=r.e.h*k;
-  return {x:bx+(sw-w)/2+(a.x/100)*sw, y:by+(sh-h)/2+(a.y/100)*sh, w, h};   // X in slot widths, Y in slot heights
+  const a=r.anchor||{x:0,y:0,s:100}, sw=it.w*o.u, sh=it.h*o.u, base=it.base*o.u, bx=o.cx+(l.tx+l.nx+it.x)*o.u, by=o.cy+(l.cy+l.ny-it.h/2)*o.u;
+  const k=Math.min(base/r.e.w,base/r.e.h)*(a.s/100), w=r.e.w*k, h=r.e.h*k;
+  return {x:bx+(sw-w)/2+(a.x/100)*base, y:by+(sh-h)/2+(a.y/100)*base, w, h};
 }
 function drawSlotImages(ctx,lines,o){
   ctx.save(); ctx.imageSmoothingEnabled=true; ctx.imageSmoothingQuality='high';
@@ -3337,7 +3340,7 @@ $('#listAdd').addEventListener('click',()=>{
    short, or not ours at all), so every field is checked and anything unusable is dropped, never trusted. */
 const FMT_FILE=[['i','ital'],['b','bold'],['u','und']];   // a card's formats in a set file: the character positions that have them
 /* A slot's picture and anchor, from a file or a field: n is the library name (or none, so the default for that emoji
-   applies), x and y the offset in percent of the slot's width, s the size in percent of the fitted picture. */
+   applies), x and y the offset in percent of the standard slot, s the size in percent of the picture fitted to the standard slot (neither depends on the slot's own Scale X / Scale Y). */
 const MAX_SLOTS=200, SLOT_OFF=[-300,300], SLOT_SCALE=[10,400];
 function cleanSlot(d){
   const n=cleanName(d.n), num=v=>typeof v==='number'&&isFinite(v);
@@ -3697,8 +3700,20 @@ function renderEmojiLib(){
   updateEmojiSlotBar();
   if(focusId){ const t=grid.querySelector(`.emitem[data-id="${CSS.escape(focusId)}"] .emthumb`); if(t) t.focus(); }
 }
+// What deleting an image would break: slots (on any card) that name it, and the emoji it is the default for.
+function emojiUses(e){
+  stash(); const k=e.name.toLowerCase();
+  return {slots:cards.reduce((n,c)=>n+c.emo.filter(d=>d&&d.n&&d.n.toLowerCase()===k).length,0), chars:e.chars};
+}
 async function deleteEmoji(id){
   const e=emojiLib.find(x=>x.id===id); if(!e) return;
+  // one click on the × (or the Delete key) can be a slip while picking an image: ask first, and say what it would affect
+  const u=emojiUses(e);
+  const ok=await confirmAction({title:`Delete “${e.name}”?`,ok:'Delete image',message:
+    `It is removed from this browser; you would have to add the file again to use it.`
+    +(u.slots?`\n• ${u.slots} emoji slot${u.slots===1?'':'s'} on your cards use${u.slots===1?'s':''} it and will show as missing.`:'')
+    +(u.chars.length?`\n• It is the default image for ${u.chars.join(' ')}.`:'')});
+  if(!ok) return;
   try{ await emojiStore('readwrite',st=>st.delete(id)); }catch(err){ setEmojiMsg("Couldn't delete that emoji from this browser.",true); return; }
   URL.revokeObjectURL(e.url); emojiLib=emojiLib.filter(x=>x.id!==id);
   renderEmojiLib(); render(); setEmojiMsg(`Deleted ${e.name}.`);
@@ -3765,7 +3780,7 @@ async function setEmojiDefault(e,ch,on){
   catch(err){ setEmojiMsg("Couldn't save that default.",true); }
   renderEmojiLib(); render();
 }
-/* Where the picture sits in its slot: X and Y (percent of the slot's width) and Size (percent of the picture fitted to
+/* Where the picture sits in its slot: X and Y (percent of the standard slot) and Size (percent of the picture fitted to
    the slot). They belong to the slot, not the image (maintainer decision on #60), so two slots of one image can differ and
    each keeps its placement through edits. The fields are the mock-up's (bindViewSliders); AN mirrors the selected slot. */
 const AN_D={x:0,y:0,scale:100}, AN_R={x:SLOT_OFF,y:SLOT_OFF,scale:SLOT_SCALE}, AN_FMT={x:v=>v+' %',y:v=>v+' %',scale:v=>v+' %'};
@@ -3786,9 +3801,9 @@ bindViewSliders('an',AN,AN_D,AN_R,writeAnchor,AN_FMT,true);
 // Quick starting points, from the layout: as tall as the capitals, or standing on the baseline.
 function anchorPreset(kind){
   const sel=selectedSlot(), r=sel&&slotImage(sel.it); if(!r||!r.e) return;
-  const sw=sel.it.w, sh=sel.it.h, h100=r.e.h*Math.min(sw/r.e.w,sh/r.e.h);   // the fitted picture's height at Size 100%, in layout units
+  const base=sel.it.base, h100=r.e.h*Math.min(base/r.e.w,base/r.e.h);   // the picture's height at Size 100% (fitted to the standard slot), in layout units
   if(kind==='cap'){ AN.y=0; AN.scale=clamp(Math.round(L.capH/h100*100),...SLOT_SCALE); }
-  else AN.y=clamp(Math.round((L.capH-h100*AN.scale/100)/2/sh*100),...SLOT_OFF);   // bottom edge on the baseline
+  else AN.y=clamp(Math.round((L.capH-h100*AN.scale/100)/2/base*100),...SLOT_OFF);   // bottom edge on the baseline
   writeAnchor();
 }
 $('#anCap').addEventListener('click',()=>anchorPreset('cap'));
