@@ -12,7 +12,7 @@ Versions are `vMAJOR.MINOR`. Each merged pull request that changes the app adds 
 - **Two confirmation questions in a row no longer answer each other.** Asking a second question right after the first (or while one is still open) works as expected.
 - **Small clean-ups from a code audit.** Font messages appear as notes instead of browser pop-ups; a line containing `&` shows as you typed it in the Nudge list; file names avoid names Windows reserves (such as `CON`); the PNG file name keeps letters from any script; a long card text can no longer be cut in the middle of an emoji; and an exported preset's file name is made safe.
 
-## v1.71
+## v1.72
 
 ### Changed
 - **Emoji slots start narrower.** A new emoji slot now takes 80% of the standard width (Scale X 80%, Scale Y still 100%), because at 100% there was too much space to the left and right of the picture. The picture keeps its size, so it can now reach slightly past the slot's edges. Each slot's Scale X can still be changed, and ↺ goes back to 80%. This applies to every slot that has no Scale X of its own, including slots in sets you saved earlier, so those cards get a little narrower.
