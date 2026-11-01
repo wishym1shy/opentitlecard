@@ -73,6 +73,7 @@ test.describe('emoji images on slots', () => {
     const half = png(40, 40, (x, y) => (y >= 20 ? [...RED, 255] : [0, 0, 0, 0]));
     await addImages(page, [file('half', half)]);
     await setText(page, 'Hi 🙂');
+    await page.fill('#slotRows input[data-sk="sx"]', '100'); await page.press('#slotRows input[data-sk="sx"]', 'Enter');   // the picture is judged inside a full-width slot
     const [b] = await slots(page);
     const white = await pixelAt(page, centre(b));
     expect(near(white, [255, 255, 255])).toBe(true);    // empty slot: the card's own white
@@ -94,6 +95,7 @@ test.describe('emoji images on slots', () => {
   test('a picture is drawn inside its slot, fitted by its longer side, and never outside it', async ({ app: { page } }) => {
     await addImages(page, [file('wide', png(40, 10, () => [...RED, 255]))]);
     await setText(page, 'Hi 🙂');
+    await page.fill('#slotRows input[data-sk="sx"]', '100'); await page.press('#slotRows input[data-sk="sx"]', 'Enter');   // the picture is judged inside a full-width slot
     const [b] = await slots(page);
     await setSelection(page, b.s, b.e); await page.locator('#emGrid .emthumb').click();
     const { buffer } = await exportPng(page);

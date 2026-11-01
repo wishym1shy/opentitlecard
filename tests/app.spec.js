@@ -95,11 +95,12 @@ test.describe('emoji slots', () => {
 
   test('slot width follows its Scale X (the slot size is per emoji slot now)', async ({ app: { page } }) => {
     await setText(page, 'Hi 😳');
-    const before = (await settle(page)).lines[0].items.find((i) => i.k === 'slot').w;
+    const L0 = await settle(page), before = L0.lines[0].items.find((i) => i.k === 'slot').w;
+    expect(before).toBeCloseTo(0.8 * 1.25 * L0.size, 3);   // a slot says nothing: Scale X 80% of the standard slot
     await page.fill('#slotRows input[data-sk="sx"]', '160'); await page.press('#slotRows input[data-sk="sx"]', 'Enter');
     const L = await settle(page);
     const after = L.lines[0].items.find((i) => i.k === 'slot').w;
-    expect(after).toBeCloseTo(1.6 * before, 3);
+    expect(after).toBeCloseTo(1.6 * 1.25 * L.size, 3);
   });
 });
 
