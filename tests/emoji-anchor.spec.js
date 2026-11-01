@@ -211,6 +211,7 @@ test.describe('emoji placement in the slot', () => {
   test('the preview shows guides for the slot centre, the capital height and the baseline while a slot is selected, and the PNG never has them', async ({ app: { page } }) => {
     await addImages(page, [file('red', square(RED))]);
     await setText(page, 'Hi 🙂');
+    await page.fill('#slotRows input[data-sk="sx"]', '100'); await page.press('#slotRows input[data-sk="sx"]', 'Enter');   // the picture is judged inside a full-width slot
     const b = await selectSlot(page); await assign(page, 'red');
     await page.uncheck('#showGuides');                                        // the slot outline off: the rulers belong to the selection, not to that switch
     const spot = (y) => page.evaluate(([bx, by]) => {

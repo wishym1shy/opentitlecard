@@ -28,16 +28,16 @@ async function pixelAt(page, [x, y]) {
 }
 
 test.describe('emoji slot Scale X / Scale Y', () => {
-  test('the global slot size is gone; each emoji slot has a Scale X / Scale Y row, at 100% to begin with', async ({ app: { page } }) => {
+  test('the global slot size is gone; each emoji slot has a Scale X / Scale Y row, at 80% / 100% to begin with', async ({ app: { page } }) => {
     await setText(page, 'A 🙂 B 🙃');
     await expect(page.locator('#slot, #n_slot')).toHaveCount(0);
     await expect(page.locator('#slotRows .slotrow')).toHaveCount(2);
     await expect(page.locator('#slotRows .slotrow').nth(0)).toContainText('🙂');
     await expect(page.locator('#slotRows .slotrow').nth(1)).toContainText('🙃');
-    for (let i = 0; i < 2; i++) for (const k of ['sx', 'sy']) await expect(field(page, k, i)).toHaveValue('100');
+    for (let i = 0; i < 2; i++) { await expect(field(page, 'sx', i)).toHaveValue('80'); await expect(field(page, 'sy', i)).toHaveValue('100'); }
     await expect(page.locator('[data-slot-reset]').first()).toBeDisabled();
     const f = await facts(page);
-    for (const s of f.slots) { expect(s.w).toBeCloseTo(1.25 * f.size, 6); expect(s.h).toBeCloseTo(s.w, 6); }   // the standard slot, square, as always
+    for (const s of f.slots) { expect(s.w).toBeCloseTo(0.8 * 1.25 * f.size, 6); expect(s.h).toBeCloseTo(1.25 * f.size, 6); }   // 80% of the standard slot wide, as tall as it
   });
 
   test('Scale X changes the width a slot takes and nothing else; the card widens by exactly that', async ({ app: { page } }) => {
@@ -45,13 +45,28 @@ test.describe('emoji slot Scale X / Scale Y', () => {
     const a = await facts(page);
     await setScale(page, 'sx', 150);
     const b = await facts(page);
-    expect(b.slots[0].w).toBeCloseTo(1.5 * a.slots[0].w, 6);
+    expect(b.slots[0].w).toBeCloseTo(1.5 * 1.25 * a.size, 6);
     expect(b.slots[0].h).toBeCloseTo(a.slots[0].h, 6);
-    expect(b.cardW - a.cardW).toBeCloseTo(0.5 * a.slots[0].w, 4);
+    expect(b.cardW - a.cardW).toBeCloseTo(b.slots[0].w - a.slots[0].w, 4);
     expect(b.cardH).toBeCloseTo(a.cardH, 6);
     await setScale(page, 'sx', 50);
     const c = await facts(page);
-    expect(c.cardW - a.cardW).toBeCloseTo(-0.5 * a.slots[0].w, 4);        // and narrower
+    expect(c.slots[0].w).toBeCloseTo(0.5 * 1.25 * a.size, 6);
+    expect(c.cardW - a.cardW).toBeCloseTo(c.slots[0].w - a.slots[0].w, 4);        // and narrower
+  });
+
+  test('the default width is 80%: an explicit 100% is its own choice, and ↺ / double-click go back to 80', async ({ app: { page } }) => {
+    await setText(page, 'Hi 🙂');
+    await setScale(page, 'sx', 100);
+    expect(await emo(page, 3)).toEqual({ n: null, x: 0, y: 0, s: 100, sx: 100 });
+    expect((await facts(page)).slots[0].w).toBeCloseTo(1.25 * (await facts(page)).size, 6);
+    await page.locator('[data-slot-reset]').click();
+    await expect(field(page, 'sx')).toHaveValue('80');
+    expect(await page.evaluate(() => __tt.S.emo.filter(Boolean))).toEqual([]);
+    await setScale(page, 'sx', 120);
+    await page.locator('[data-sscrub="sx"]').dblclick();
+    await expect(field(page, 'sx')).toHaveValue('80');
+    expect(await page.evaluate(() => __tt.S.emo.filter(Boolean))).toEqual([]);   // back at the default: nothing stored
   });
 
   test('Scale Y makes a slot taller: the card box grows up and down to hold it; shorter slots never shrink the box', async ({ app: { page } }) => {
@@ -73,7 +88,7 @@ test.describe('emoji slot Scale X / Scale Y', () => {
     expect(c.cardH).toBeLessThanOrEqual(a.cardH);
   });
 
-  test('a slot at 100% / 100% lays out exactly as before, and ↺ brings it back exactly', async ({ app: { page } }) => {
+  test('a slot at its defaults lays out as it always does, and ↺ brings it back exactly', async ({ app: { page } }) => {
     await setText(page, 'Hi 🙂 there 🙃');
     const base = await layoutKey(page);
     await setScale(page, 'sx', 170); await setScale(page, 'sy', 60, 1);
@@ -96,7 +111,7 @@ test.describe('emoji slot Scale X / Scale Y', () => {
     expect(f.slots[0].w).toBeCloseTo(1.5 * 1.25 * f.size, 6);     // still the first emoji's
     expect(f.slots[0].h).toBeCloseTo(1.25 * f.size, 6);
     expect(f.slots[1].h).toBeCloseTo(0.7 * 1.25 * f.size, 6);     // still the second's
-    expect(f.slots[1].w).toBeCloseTo(1.25 * f.size, 6);
+    expect(f.slots[1].w).toBeCloseTo(0.8 * 1.25 * f.size, 6);
     await expect(field(page, 'sx', 0)).toHaveValue('150'); await expect(field(page, 'sy', 1)).toHaveValue('70');
     await page.evaluate(() => { __tt.S.wrap = 420; __tt.renderNow(); });                       // wrapping moves them across lines: still theirs
     f = await facts(page);
@@ -109,11 +124,11 @@ test.describe('emoji slot Scale X / Scale Y', () => {
     await setScale(page, 'sx', 130);
     await page.focus('#text'); await page.keyboard.press('Control+End'); await page.keyboard.type(' 🙃');
     await expect(page.locator('#slotRows .slotrow')).toHaveCount(2);
-    await expect(field(page, 'sx', 1)).toHaveValue('100');
+    await expect(field(page, 'sx', 1)).toHaveValue('80');
     await page.evaluate(() => { const t = document.querySelector('#text'); t.setSelectionRange(2, 4); });
     await page.keyboard.press('Delete');
     await expect(page.locator('#slotRows .slotrow')).toHaveCount(1);
-    await expect(field(page, 'sx', 0)).toHaveValue('100');                                      // the 🙃 took its own default, not the old 130
+    await expect(field(page, 'sx', 0)).toHaveValue('80');                                       // the 🙃 took its own default, not the old 130
     expect(await page.evaluate(() => __tt.S.emo.filter(Boolean))).toEqual([]);
   });
 
@@ -223,12 +238,14 @@ test.describe('emoji slot Scale X / Scale Y', () => {
 
   test('a scaled slot shows W×H in the slot list', async ({ app: { page } }) => {
     await setText(page, 'Hi 🙂');
-    await expect(page.locator('#slotInfo')).not.toContainText('×');
+    await expect(page.locator('#slotInfo')).toContainText('×');        // 80% wide, 100% tall: not square
+    await setScale(page, 'sx', 100);
+    await expect(page.locator('#slotInfo')).not.toContainText('×');    // a square slot shows one number
     await setScale(page, 'sx', 200);
     await expect(page.locator('#slotInfo')).toContainText('×');
   });
 
-  test('scales are saved in the set file (only when not 100), come back on open, and bad values are dropped or clamped', async ({ app: { page } }) => {
+  test('scales are saved in the set file (only when not the default 80 / 100), come back on open, and bad values are dropped or clamped', async ({ app: { page } }) => {
     await setText(page, 'A 🙂 🙃');
     await setScale(page, 'sx', 140); await setScale(page, 'sy', 60, 1);
     const [dl] = await Promise.all([page.waitForEvent('download'), page.evaluate(() => document.querySelector('#batchSave').click())]);
@@ -240,17 +257,17 @@ test.describe('emoji slot Scale X / Scale Y', () => {
     await page.waitForFunction(() => __tt.S.text === 'A 🙂 🙃');
     await expect(field(page, 'sx', 0)).toHaveValue('140'); await expect(field(page, 'sy', 1)).toHaveValue('60');
     // untrusted
-    await openSet(page, { app: 'opentitlecard', type: 'batch', v: 1, active: 0, cards: [{ t: '🙂 🙂 🙂 🙂', e: { 0: { sx: 'wide', sy: 9999 }, 3: { sx: -5 }, 6: { sx: 100, sy: 100 }, 9: { sx: 150.4 } } }] });
+    await openSet(page, { app: 'opentitlecard', type: 'batch', v: 1, active: 0, cards: [{ t: '🙂 🙂 🙂 🙂', e: { 0: { sx: 'wide', sy: 9999 }, 3: { sx: -5 }, 6: { sx: 100, sy: 100 }, 7: { sx: 80, sy: 100 }, 9: { sx: 150.4 } } }] });
     await confirmDialog(page, true);
     await page.waitForFunction(() => __tt.S.text === '🙂 🙂 🙂 🙂');
-    expect(await page.evaluate(() => __tt.S.emo.map((d, i) => d && [i, d.sx, d.sy]).filter(Boolean))).toEqual([[0, undefined, 400], [3, 10, undefined], [9, 150, undefined]]);
+    expect(await page.evaluate(() => __tt.S.emo.map((d, i) => d && [i, d.sx, d.sy]).filter(Boolean))).toEqual([[0, undefined, 400], [3, 10, undefined], [6, 100, undefined], [9, 150, undefined]]);
   });
 
   test('an older set or preset that carries a slot size still lays out as it did, though nothing in the app edits it any more', async ({ app: { page } }) => {
     await openSet(page, { app: 'opentitlecard', type: 'batch', v: 1, active: 0, style: { slot: 1.6 }, cards: [{ t: 'Hi 🙂' }] });
     await page.waitForFunction(() => __tt.S.text === 'Hi 🙂');
     const f = await facts(page);
-    expect(f.slots[0].w).toBeCloseTo(1.6 * f.size, 6);
+    expect(f.slots[0].w).toBeCloseTo(0.8 * 1.6 * f.size, 6);                                     // a percent of that standard slot: the default 80%
     await setScale(page, 'sx', 50);                                                              // Scale is a percent of that standard slot
     expect((await facts(page)).slots[0].w).toBeCloseTo(0.8 * f.size, 6);
   });

@@ -1240,6 +1240,9 @@ const boldOf = w => w<350?400:w<550?700:900;
 const fontStr = (f,px) => `${f&1?'italic ':''}${f&2?boldOf(effWeight()):effWeight()} ${px}px ${fontStack(S.family)}`;
 const fontReady = () => fontAvailable(S.family, S.weight);
 // Stretch/squish factors. Clamped here too, so a hand-edited preset can't mirror the text (negative) or flatten it to 0.
+// What a slot's Scale X / Scale Y (percent of the standard slot) are when the slot says nothing. X is 80: at 100 the room left and
+// right of the picture was too wide (maintainer decision). Only the room changes: the picture is fitted to the standard slot.
+const SLOT_DEF={sx:80,sy:100};
 const stretch = () => ({sx:clamp(S.stretchX,50,200)/100, sy:clamp(S.stretchY,50,200)/100});
 /* Missing-font warning. While the family in the box isn't usable, a ⚠ sits inside the box. Its message pops out to the
    right on its own whenever a new family goes missing (on boot too), then fades: WARN_HOVER_MS after the pointer leaves
@@ -1398,8 +1401,8 @@ function layout(){
     for(const {segment,index} of SEG.segment(raw)){
       const gi=start+index;
       if(isEmoji(segment)){
-        // Scale X / Scale Y of this slot (percent of the base size; 100 when the slot says nothing): the space it takes
-        const d=S.emo[gi]; items0.push({k:'slot',s:gi,e:gi+segment.length,w:slotW*(d&&d.sx||100)/100,h:slotW*(d&&d.sy||100)/100,base:slotW,tall:!!(d&&d.sy>100)}); continue;
+        // Scale X / Scale Y of this slot (percent of the base size; SLOT_DEF when the slot says nothing): the space it takes
+        const d=S.emo[gi]; items0.push({k:'slot',s:gi,e:gi+segment.length,w:slotW*(d&&d.sx||SLOT_DEF.sx)/100,h:slotW*(d&&d.sy||SLOT_DEF.sy)/100,base:slotW,tall:!!(d&&d.sy>100)}); continue;
       }
       const c=S.colors[gi]??null, f=(S.ital[gi]?1:0)|(S.bold[gi]?2:0)|(undAt[index]?4:0), last=items0[items0.length-1];
       if(last && last.k==='t' && last.c===c && last.f===f && last.e===gi){ last.text+=segment; last.e+=segment.length; }
@@ -2198,10 +2201,10 @@ window.addEventListener('pointerup',endNudgeDrag); window.addEventListener('poin
    follow it through edits like the picture's placement does, and they change the layout: the slot takes that much room. */
 const SLOT_AXES=[['sx','X'],['sy','Y']];
 let slotRowSig='';
-const slotScaleOf=(i,k)=>{ const d=S.emo[i]; return d&&d[k]||100; };
+const slotScaleOf=(i,k)=>{ const d=S.emo[i]; return d&&d[k]||SLOT_DEF[k]; };
 function setSlotScale(i,k,v){
   v=clamp(Math.round(v),...SLOT_SCALE);
-  const d={...(S.emo[i]||SLOT_PLAIN())}; if(v===100) delete d[k]; else d[k]=v;
+  const d={...(S.emo[i]||SLOT_PLAIN())}; if(v===SLOT_DEF[k]) delete d[k]; else d[k]=v;
   S.emo[i]=tidySlot(d); record('slotscale'+i+k); render(); showSlotScales();
 }
 // A change made here (typed, stepped, scrubbed, reset) is committed, so every field shows it, even one that has focus (the
@@ -2219,13 +2222,13 @@ function syncSlotRows(){
     slots.forEach((it,j)=>{
       const row=document.createElement('div'); row.className='nudge slotrow'; row.dataset.s=it.s;
       const nm=document.createElement('div'); nm.className='nm'; const b=document.createElement('b'); b.textContent=j+1; nm.append(b,' ',S.text.slice(it.s,it.e));
-      const rs=document.createElement('button'); rs.className='sm'; rs.type='button'; rs.dataset.slotReset=it.s; rs.textContent='↺'; rs.title='Reset Scale X and Scale Y to 100%'; rs.setAttribute('aria-label',`Reset emoji slot ${j+1} scale`);
+      const rs=document.createElement('button'); rs.className='sm'; rs.type='button'; rs.dataset.slotReset=it.s; rs.textContent='↺'; rs.title='Reset Scale X and Scale Y to their defaults (80% and 100%)'; rs.setAttribute('aria-label',`Reset emoji slot ${j+1} scale`);
       const g=document.createElement('div'); g.className='g2'; g.innerHTML=SLOT_AXES.map(([k,A])=>slotRowAxis(it.s,j+1,k,A)).join('');
       row.append(nm,rs,g); host.append(row);
     });
   }
   host.querySelectorAll('input[data-sk]').forEach(inp=>{ const v=slotScaleOf(+inp.dataset.s,inp.dataset.sk); if(document.activeElement!==inp) inp.value=v; });
-  host.querySelectorAll('button[data-slot-reset]').forEach(b=>{ const i=+b.dataset.slotReset; b.disabled=slotScaleOf(i,'sx')===100&&slotScaleOf(i,'sy')===100; });
+  host.querySelectorAll('button[data-slot-reset]').forEach(b=>{ const i=+b.dataset.slotReset; b.disabled=slotScaleOf(i,'sx')===SLOT_DEF.sx&&slotScaleOf(i,'sy')===SLOT_DEF.sy; });
 }
 const slotHost=$('#slotRows');
 slotHost.addEventListener('change',e=>{
@@ -2237,7 +2240,7 @@ slotHost.addEventListener('click',e=>{
   const b=e.target.closest('[data-slot-reset]'); if(!b) return;
   const i=+b.dataset.slotReset, d={...(S.emo[i]||SLOT_PLAIN())}; delete d.sx; delete d.sy; S.emo[i]=tidySlot(d); record(); render(); showSlotScales();
 });
-slotHost.addEventListener('dblclick',e=>{ const t=e.target.closest('[data-sscrub]'); if(t) setSlotScale(+t.dataset.s,t.dataset.sscrub,100); });
+slotHost.addEventListener('dblclick',e=>{ const t=e.target.closest('[data-sscrub]'); if(t) setSlotScale(+t.dataset.s,t.dataset.sscrub,SLOT_DEF[t.dataset.sscrub]); });
 let slotScrub=null;   // dragging a label changes the value one step per pixel (Shift = 10), accumulating so Shift mid-drag doesn't jump
 slotHost.addEventListener('pointerdown',e=>{
   const t=e.target.closest('[data-sscrub]'); if(!t||e.button!==0) return;
@@ -3391,7 +3394,7 @@ const MAX_SLOTS=200, SLOT_OFF=[-300,300], SLOT_SCALE=[10,400];
 function cleanSlot(d){
   const n=cleanName(d.n), num=v=>typeof v==='number'&&isFinite(v);
   const e={n:n||null, x:num(d.x)?clamp(d.x,...SLOT_OFF):0, y:num(d.y)?clamp(d.y,...SLOT_OFF):0, s:num(d.s)?clamp(d.s,...SLOT_SCALE):100};
-  for(const k of ['sx','sy']) if(num(d[k])&&Math.round(clamp(d[k],...SLOT_SCALE))!==100) e[k]=Math.round(clamp(d[k],...SLOT_SCALE));   // the slot's own Scale X / Scale Y: only when not 100
+  for(const k of ['sx','sy']) if(num(d[k])&&Math.round(clamp(d[k],...SLOT_SCALE))!==SLOT_DEF[k]) e[k]=Math.round(clamp(d[k],...SLOT_SCALE));   // the slot's own Scale X / Scale Y: only when not the default (SLOT_DEF)
   return e;
 }
 const BATCH_APP='opentitlecard', MAX_CARDS=500, MAX_TEXT=2000, MAX_FILE=5e6;
@@ -3535,7 +3538,7 @@ const HELP=[
  ['h','Placement'],
  'With a slot that shows an image selected, the Emoji panel shows **X**, **Y** and {{Size}} for the picture (percent of the standard slot). {{Match cap height}} makes it as tall as the capitals, {{Sit on baseline}} rests its bottom edge on the baseline, and {{Use for every slot with this image}} copies the placement to all of them. Pink guides on the preview show the slot\'s centre, the capital height and the baseline.',
  ['h','Room a slot takes'],
- 'Under {{Titlecard Properties}} › {{Emoji Slot}}, every slot has {{Scale X}} and {{Scale Y}} (percent of the standard slot): they set how much room the slot takes sideways and up and down. The picture\'s own size is separate, so emoji can be sized alike and spaced differently.',
+ 'Under {{Titlecard Properties}} › {{Emoji Slot}}, every slot has {{Scale X}} and {{Scale Y}} (percent of the standard slot): they set how much room the slot takes sideways and up and down. A slot starts at 80% wide and 100% tall. The picture\'s own size is separate, so emoji can be sized alike and spaced differently.',
  ['h','Exporting'],
  'Tick {{Leave emoji slots empty}} in the {{Export}} panel to keep the images out of the PNG, for when you paste your own emoji in the editor. The preview still shows them.']},
 {id:'cards',title:'Cards and sets',blocks:[
