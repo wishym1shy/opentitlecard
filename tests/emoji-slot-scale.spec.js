@@ -148,15 +148,17 @@ test.describe('emoji slot Scale X / Scale Y', () => {
   });
 
   /** The red picture's box in the exported PNG (the only red thing on the card), in export px. */
-  const redBox = async (page) => {
+  const redBox = async (page, around) => {   // `around`: the slot's box; only its neighbourhood is scanned (a whole 1920x1080 scan ×5 is slow when the suite is busy)
     const { buffer } = await exportPng(page);
-    return page.evaluate(async (b64) => {
+    const win = around ? { x0: Math.max(0, Math.floor(around.x - 400)), x1: Math.ceil(around.x + around.pw + 400), y0: Math.max(0, Math.floor(around.y - 400)), y1: Math.ceil(around.y + around.ph + 400) } : null;
+    return page.evaluate(async ({ b64, win }) => {
       const bmp = await createImageBitmap(new Blob([Uint8Array.from(atob(b64), (c) => c.charCodeAt(0))], { type: 'image/png' }));
       const cx = new OffscreenCanvas(bmp.width, bmp.height).getContext('2d'); cx.drawImage(bmp, 0, 0);
-      const d = cx.getImageData(0, 0, bmp.width, bmp.height).data; let x0 = 1e9, x1 = -1, y0 = 1e9, y1 = -1;
-      for (let y = 0; y < bmp.height; y++) for (let x = 0; x < bmp.width; x++) { const i = (y * bmp.width + x) * 4; if (d[i] > 180 && d[i + 1] < 80 && d[i + 2] < 80 && d[i + 3] > 200) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; } }
+      const W = bmp.width, H = bmp.height, a = win ? Math.min(win.x0, W - 1) : 0, c = win ? Math.min(win.x1, W) : W, e = win ? Math.min(win.y0, H - 1) : 0, f = win ? Math.min(win.y1, H) : H;
+      const d = cx.getImageData(0, 0, W, H).data; let x0 = 1e9, x1 = -1, y0 = 1e9, y1 = -1;
+      for (let y = e; y < f; y++) for (let x = a; x < c; x++) { const i = (y * W + x) * 4; if (d[i] > 180 && d[i + 1] < 80 && d[i + 2] < 80 && d[i + 3] > 200) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; } }
       return { x0, x1: x1 + 1, y0, y1: y1 + 1 };
-    }, buffer.toString('base64'));
+    }, { b64: buffer.toString('base64'), win });
   };
   const COMBOS = [[100, 100], [200, 100], [100, 50], [300, 300], [40, 40]];
   async function placeImage(page) {
@@ -167,11 +169,12 @@ test.describe('emoji slot Scale X / Scale Y', () => {
   }
 
   test('the picture is the same size, and centred on the slot, whatever the slot\'s Scale X and Scale Y', async ({ app: { page } }) => {
+    test.setTimeout(90000);
     await placeImage(page);
     for (const [sx, sy] of COMBOS) {
       await setScale(page, 'sx', sx); await setScale(page, 'sy', sy);
       const f = await facts(page), b = f.slots[0], base = 1.25 * f.size * f.u;                 // the standard slot, in export px
-      const r = await redBox(page);
+      const r = await redBox(page, b);
       expect(r.x1 - r.x0, `width at ${sx}/${sy}`).toBeGreaterThan(base - 2); expect(r.x1 - r.x0, `width at ${sx}/${sy}`).toBeLessThan(base + 2);
       expect(r.y1 - r.y0, `height at ${sx}/${sy}`).toBeGreaterThan(base - 2); expect(r.y1 - r.y0, `height at ${sx}/${sy}`).toBeLessThan(base + 2);
       expect((r.x0 + r.x1) / 2, `centre x at ${sx}/${sy}`).toBeCloseTo(b.x + b.pw / 2, -0.3);   // within about 1 px
@@ -180,12 +183,13 @@ test.describe('emoji slot Scale X / Scale Y', () => {
   });
 
   test('Size and the X / Y offsets are percents of the standard slot, so they move the picture the same distance at any slot scale', async ({ app: { page } }) => {
+    test.setTimeout(90000);
     await placeImage(page);
     for (const [sx, sy] of [[100, 100], [250, 60]]) {
       await setScale(page, 'sx', sx); await setScale(page, 'sy', sy);
       const f = await facts(page), b = f.slots[0], base = 1.25 * f.size * f.u;
       await page.evaluate((s) => { __tt.S.emo[s] = { ...__tt.S.emo[s], x: -20, y: 25, s: 50 }; __tt.renderNow(); }, b.s);
-      const r = await redBox(page);
+      const r = await redBox(page, b);
       expect(r.x1 - r.x0, `size at ${sx}/${sy}`).toBeGreaterThan(0.5 * base - 2); expect(r.x1 - r.x0, `size at ${sx}/${sy}`).toBeLessThan(0.5 * base + 2);   // Size 50% of the standard picture
       expect((r.x0 + r.x1) / 2 - (b.x + b.pw / 2), `x shift at ${sx}/${sy}`).toBeCloseTo(-0.2 * base, -0.3);                   // 20% of the standard slot, to the left
       expect((r.y0 + r.y1) / 2 - (b.y + b.ph / 2), `y shift at ${sx}/${sy}`).toBeCloseTo(0.25 * base, -0.3);                    // 25% of it, down
@@ -204,7 +208,7 @@ test.describe('emoji slot Scale X / Scale Y', () => {
     // and the picture really is as tall as the capitals in the PNG
     await page.evaluate(() => { __tt.S.emo.forEach((d, i) => { if (d) __tt.S.emo[i] = { ...d, y: 0 }; }); });
     const b = (await facts(page)).slots[0]; await setSelection(page, b.s, b.e); await page.click('#anCap');
-    const f = await facts(page), r = await redBox(page);
+    const f = await facts(page), r = await redBox(page, f.slots[0]);
     expect(Math.abs(r.y1 - r.y0 - f.capH * f.u)).toBeLessThan(f.capH * f.u * 0.04 + 2);
   });
 

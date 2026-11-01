@@ -18,9 +18,9 @@ async function dropFile(page, name, content) {
 }
 
 test.describe('toolbar', () => {
-  test('the set name and the File menu sit at the top right; canvas size moved to the bottom bar, Panels to its own pill', async ({ app: { page } }) => {
+  test('the set name, the File menu and the Help button sit at the top right; canvas size moved to the bottom bar, Panels to its own pill', async ({ app: { page } }) => {
     const ids = await page.evaluate(() => [...document.querySelector('.toolbar').children].map((e) => e.id).filter(Boolean));
-    expect(ids.slice(-2)).toEqual(['setName', 'fileMenuBtn']);
+    expect(ids.slice(-3)).toEqual(['setName', 'fileMenuBtn', 'helpBtn']);   // the ? button is last, right of File
     await expect(page.locator('#fileMenuBtn')).toHaveText('File');
     await expect(page.locator('#setName')).toHaveValue('Untitled set');
     await expect(page.locator('.toolbar #dims, .toolbar #panelsToggle')).toHaveCount(0);
