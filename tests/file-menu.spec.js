@@ -130,6 +130,17 @@ test.describe('shortcuts and drag and drop', () => {
     await expect(page.locator('#text')).toHaveValue('Hi');   // the key didn't type into the field
   });
 
+  test('a failure after the cards are replaced does not claim that nothing was changed', async ({ app: { page } }) => {
+    await page.evaluate(() => {   // the step that records the opened set in undo history fails
+      const real = JSON.stringify;
+      JSON.stringify = (v, ...r) => { if (v && v.cards && v.shared) { JSON.stringify = real; throw new Error('boom'); } return real(v, ...r); };
+    });
+    await dropFile(page, 'dropped.opntcd', setFile(['Dropped']));
+    await expect(page.locator('#fileMsg')).toContainText('something went wrong while showing it');
+    await expect(page.locator('#fileMsg')).not.toContainText('nothing was changed');
+    await expect(page.locator('#text')).toHaveValue('Dropped');
+  });
+
   test('dropping a set file opens it, asking first when there is work on the page; other files are refused', async ({ app: { page } }) => {
     await dropFile(page, 'dropped.opntcd', setFile(['Dropped'], { name: 'Dropped set' }));
     await expect(page.locator('#fileMsg')).toContainText('Opened 1 card from “dropped.opntcd”');
@@ -172,6 +183,16 @@ test.describe('Save writes back to the same file (Chromium)', () => {
     const last = await page.evaluate(() => JSON.parse(__fs.writes.at(-1)[1]));
     expect(last.cards[0].t).toBe('Hi');
     await expect(page.locator('#fileMsg')).toContainText('Saved 1 card to “Untitled set v2 v2.opntcd”');
+  });
+
+  test('Save as writes the name just picked into the file, and the set is not left looking unsaved', async ({ app: { page } }) => {
+    await setText(page, 'Hi');
+    await fileMenu(page, 'setSaveAs');
+    await expect.poll(() => fs(page)).toMatchObject({ saves: 1 });
+    await expect(page.locator('#setName')).toHaveValue('Untitled set v2');
+    const saved = await page.evaluate(() => JSON.parse(__fs.writes.at(-1)[1]));
+    expect(saved.name).toBe('Untitled set v2');   // not the name from before the dialog
+    expect(await page.evaluate(() => __tt.unsavedWork())).toBe(false);
   });
 
   test('a set opened from a file saves back to it; cancelling the dialog saves nothing', async ({ app: { page } }) => {

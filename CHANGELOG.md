@@ -4,6 +4,12 @@ What changed in OpenTitlecard, newest first. The version is shown next to the ap
 
 Versions are `vMAJOR.MINOR`. Each merged pull request that changes the app adds one to the minor number (v1.31 → v1.32 → …). The changelog started at v1.31: v1.27 stands for everything merged before the UI review that led to v1.28–v1.31 (pull requests up to #31), so the numbers line up with the work done.
 
+## v1.70
+
+### Fixed
+- **Save set as… keeps the name you picked.** The file used to hold the set's previous name, so reopening it brought back the old name and the set looked unsaved right after saving.
+- **Opening a set no longer says "nothing was changed" when something went wrong after your cards were replaced.** The message now says what happened.
+
 ## v1.69
 
 ### Added

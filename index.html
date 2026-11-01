@@ -398,7 +398,7 @@
 </head>
 <body>
 <header>
-  <h1>OpenTitlecard <a id="appVersion" href="https://github.com/wishym1shy/opentitlecard/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer" title="What's new in this version (changelog on GitHub)">v1.69</a></h1>
+  <h1>OpenTitlecard <a id="appVersion" href="https://github.com/wishym1shy/opentitlecard/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer" title="What's new in this version (changelog on GitHub)">v1.70</a></h1>
   <button id="updateBtn" type="button" hidden title="A newer version of OpenTitlecard is out. Click to reload the page and get it (save your set first)."></button>
   <a class="gh" href="https://github.com/wishym1shy/opentitlecard" target="_blank" rel="noopener noreferrer" title="View the source on GitHub">
     <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
@@ -3685,10 +3685,10 @@ const setFileName=()=>(safeName(setName)||'set')+SET_EXT;
 const fileBase=n=>n.replace(/\.(opntcd|json)$/i,'');
 const canPickFiles=()=>typeof window.showSaveFilePicker==='function' && typeof window.showOpenFilePicker==='function';
 async function saveSet(asNew){
-  const json=JSON.stringify(encodeBatch(),null,1), n=cardsWord(cards.length);
+  const n=cardsWord(cards.length), encode=()=>JSON.stringify(encodeBatch(),null,1);
   if(!canPickFiles()){
     const name=setFileName();
-    download(new Blob([json],{type:'application/json'}),name);
+    download(new Blob([encode()],{type:'application/json'}),name);
     markSaved(); fileMsg(`Saved ${n} to “${name}”.`); return;
   }
   try{
@@ -3696,7 +3696,8 @@ async function saveSet(asNew){
     if(asNew||!h){ h=await window.showSaveFilePicker({suggestedName:setFileName(),types:SET_TYPES}); setSetName(fileBase(h.name)); }
     // a file that was opened (not saved) here needs leave to write; the browser asks once
     if(h.requestPermission && await h.requestPermission({mode:'readwrite'})!=='granted') throw new Error('no permission');
-    const w=await h.createWritable(); await w.write(json); await w.close();
+    // encoded only now: the file carries the name just picked, not the one before the dialog
+    const w=await h.createWritable(); await w.write(encode()); await w.close();
     setHandle=h; markSaved(); fileMsg(`Saved ${n} to “${h.name}”.`);
   }catch(err){
     if(err&&err.name==='AbortError') fileMsg('Cancelled. Nothing was saved.');
@@ -3712,13 +3713,17 @@ async function openSet(){
 }
 // Opens a set from a file (picked, chosen with the file input, or dropped). handle: where Save writes back, if known.
 async function openSetFile(f,handle){
+  let b;
   try{
     if(f.size>MAX_FILE) throw new Error('too big');
     const data=JSON.parse(await f.text());
     stash();   // sharedStyle lags behind S until stashed; a file with no style of its own falls back to what you see now
-    const b=decodeBatch(data);
+    b=decodeBatch(data);
     if(!b) throw new Error('not a set');
-    if(batchHasWork() && !await confirmAction({title:'Open this set?',message:`“${f.name}” replaces ${cards.length===1?'your current card':`your ${cards.length} current cards`}. Cards aren't saved anywhere, so use “Save set” first if you want to keep ${cards.length===1?'it':'them'}.`,ok:'Replace cards'})) { fileMsg('Cancelled. Nothing was changed.'); return; }
+  }catch(err){ fileMsg('That file isn\'t an OpenTitlecard set, so nothing was changed.',true); return; }
+  if(batchHasWork() && !await confirmAction({title:'Open this set?',message:`“${f.name}” replaces ${cards.length===1?'your current card':`your ${cards.length} current cards`}. Cards aren't saved anywhere, so use “Save set” first if you want to keep ${cards.length===1?'it':'them'}.`,ok:'Replace cards'})) { fileMsg('Cancelled. Nothing was changed.'); return; }
+  // From here the cards are replaced, so a failure must not claim "nothing was changed".
+  try{
     // the file's look comes with it: cards without their own style use the set's shared style
     sharedStyle=b.style; cards=b.cards; active=b.active; adopt(cards[active]); persistStyle(); record(); cardSig=''; render();
     setSetName(b.name||fileBase(f.name)); setHandle=handle||null;
@@ -3726,7 +3731,7 @@ async function openSetFile(f,handle){
     await emojiReady;   // the library may still be loading when a set is opened right after the page
     const lost=missingIn(cards.flatMap(c=>c.emo));
     fileMsg(`Opened ${cardsWord(cards.length)} from “${f.name}”.${lost.length?' ⚠ '+missingNote(lost):''}`,lost.length>0);
-  }catch(err){ fileMsg('That file isn\'t an OpenTitlecard set, so nothing was changed.',true); }
+  }catch(err){ fileMsg(`“${f.name}” was opened, but something went wrong while showing it. Your earlier cards were replaced; reload the page if anything looks wrong.`,true); }
 }
 $('#batchSave').addEventListener('click',()=>saveSet(false));
 $('#setSaveAs').addEventListener('click',()=>saveSet(true));
