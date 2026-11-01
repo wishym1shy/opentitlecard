@@ -4,6 +4,14 @@ What changed in OpenTitlecard, newest first. The version is shown next to the ap
 
 Versions are `vMAJOR.MINOR`. Each merged pull request that changes the app adds one to the minor number (v1.31 → v1.32 → …). The changelog started at v1.31: v1.27 stands for everything merged before the UI review that led to v1.28–v1.31 (pull requests up to #31), so the numbers line up with the work done.
 
+## v1.71
+
+### Fixed
+- **A damaged WOFF font file no longer raises an error.** The app now refuses it quietly, and stops reading a font table that grows past the size it says it has.
+- **A huge emoji image is refused before it is opened.** The size is read from the PNG or WebP header, so a small file with enormous dimensions can no longer use up your memory.
+- **Two confirmation questions in a row no longer answer each other.** Asking a second question right after the first (or while one is still open) works as expected.
+- **Small clean-ups from a code audit.** Font messages appear as notes instead of browser pop-ups; a line containing `&` shows as you typed it in the Nudge list; file names avoid names Windows reserves (such as `CON`); the PNG file name keeps letters from any script; a long card text can no longer be cut in the middle of an emoji; and an exported preset's file name is made safe.
+
 ## v1.70
 
 ### Fixed

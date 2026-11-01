@@ -398,7 +398,7 @@
 </head>
 <body>
 <header>
-  <h1>OpenTitlecard <a id="appVersion" href="https://github.com/wishym1shy/opentitlecard/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer" title="What's new in this version (changelog on GitHub)">v1.70</a></h1>
+  <h1>OpenTitlecard <a id="appVersion" href="https://github.com/wishym1shy/opentitlecard/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer" title="What's new in this version (changelog on GitHub)">v1.71</a></h1>
   <button id="updateBtn" type="button" hidden title="A newer version of OpenTitlecard is out. Click to reload the page and get it (save your set first)."></button>
   <a class="gh" href="https://github.com/wishym1shy/opentitlecard" target="_blank" rel="noopener noreferrer" title="View the source on GitHub">
     <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
@@ -2141,7 +2141,7 @@ function syncNudgeRows(){
       const n=S.nudges[i]||(S.nudges[i]={x:0,y:0});
       const row=document.createElement('div'); row.className='nudge';
       const name=l.items.map(it=>it.k==='t'?it.text:'😀').join('');
-      row.innerHTML=`<div class="nm" title="${name.replace(/"/g,'&quot;')}"><b>${i+1}</b> ${name.replace(/</g,'&lt;')}</div><button class="sm" data-reset="${i}" title="Reset both axes" aria-label="Reset line ${i+1} nudge">↺</button>`
+      row.innerHTML=`<div class="nm" title="${escHtml(name)}"><b>${i+1}</b> ${escHtml(name)}</div><button class="sm" data-reset="${i}" title="Reset both axes" aria-label="Reset line ${i+1} nudge">↺</button>`
         +'<div class="g2">'+axisHTML(i,'x',n.x||0)+axisHTML(i,'y',n.y||0)+'</div>';
       host.appendChild(row);
     });
@@ -2681,14 +2681,14 @@ syncPanels();
 
 /* ============ fonts UI ============ */
 $('#loadInstalled').addEventListener('click',async()=>{
-  if(!window.queryLocalFonts){ alert('This browser cannot list installed fonts. Use Chrome or Edge, or just type the family name.'); return; }
+  if(!window.queryLocalFonts){ toast('This browser cannot list installed fonts. Use Chrome or Edge, or just type the family name.'); return; }
   try{
     const faces=await window.queryLocalFonts(); const fams=[...new Set(faces.map(f=>f.family))].sort((a,b)=>a.localeCompare(b));
     installedFams=fams; famInput.focus(); openFamMenu('');   // show them right away
     $('#banner').style.display='block'; $('#banner').style.background='#14231c'; $('#banner').style.borderColor='#24553f'; $('#banner').style.color='#9ee8c4';
     $('#banner').textContent=`${fams.length} installed font families loaded into the family box — start typing to search.`;
     setTimeout(()=>{ $('#banner').removeAttribute('style'); render(); },4500);
-  }catch(e){ alert('Font access was blocked: '+e.message); }
+  }catch(e){ toast('Font access was blocked: '+e.message); }
 });
 $('#loadFile').addEventListener('click',()=>$('#fontFile').click());
 /* ============ font files ============ */
@@ -2698,9 +2698,21 @@ $('#loadFile').addEventListener('click',()=>$('#fontFile').click());
    browser's own DecompressionStream. WOFF2 is Brotli-compressed and the browser has no way to read it, so for those (and
    collections) the family, weight and italic are guessed from the file name and shown in a row the user can correct:
    the app never guesses quietly. */
-async function inflate(bytes){
-  const ds=new DecompressionStream('deflate'), w=ds.writable.getWriter(); w.write(bytes); w.close();
-  return new Uint8Array(await new Response(ds.readable).arrayBuffer());
+// `max` is the size the table says it has: a stream that inflates past it is corrupt (or a decompression bomb) and is
+// stopped there. A bad stream rejects here, inside readFontFile's try, instead of as an unhandled rejection.
+async function inflate(bytes,max){
+  const ds=new DecompressionStream('deflate'), w=ds.writable.getWriter();
+  (async()=>{ await w.write(bytes); await w.close(); })().catch(()=>{});   // the same error reaches the reader below
+  const r=ds.readable.getReader(), parts=[]; let n=0;
+  try{
+    for(;;){
+      const {done,value}=await r.read(); if(done) break;
+      n+=value.length; if(n>max) throw new Error('inflates past its declared size');
+      parts.push(value);
+    }
+  }catch(e){ r.cancel().catch(()=>{}); throw e; }
+  const out=new Uint8Array(n); let o=0; for(const p of parts){ out.set(p,o); o+=p.length; }
+  return out;
 }
 // The tables we need, as byte arrays; null for a format that can't be read here.
 async function fontTables(buf){
@@ -2711,7 +2723,7 @@ async function fontTables(buf){
       const o=44+20*i, t=tag(o); if(!want.includes(t)) continue;
       const off=dv.getUint32(o+4), comp=dv.getUint32(o+8), orig=dv.getUint32(o+12);
       if(orig>2e6) continue;   // no such table is that large; skip rather than inflate something odd
-      const b=new Uint8Array(buf,off,comp); out[t]=comp<orig?await inflate(b):b;
+      const b=new Uint8Array(buf,off,comp); out[t]=comp<orig?await inflate(b,orig):b;
     }
   }else if(sig==='\0\x01\0\0'||sig==='OTTO'||sig==='true'){
     for(let i=0,n=dv.getUint16(4);i<n;i++){
@@ -2864,7 +2876,7 @@ function guessRow(rec,file){
     const family=name===cur.family?name:(loadedFaces.has(name)?name:assignFamily(name)), w=+wt.value, italic=it.checked;
     const next=faceRec(family,[w,w],italic,cur.data,cur.file,cur.alias);
     if(next.id===cur.id) return;
-    try{ await registerFace(next); }catch(err){ alert('Could not use those settings: '+err.message); return; }
+    try{ await registerFace(next); }catch(err){ toast('Could not use those settings: '+err.message); return; }
     unregisterFace(cur.id,cur.family); forgetFace(cur.id); rememberFace(next);
     guessRows.delete(cur.id); cur=next; guessRows.set(cur.id,row);
     if(S.family===next.family||S.family===rec.family){ S.family=next.family; S.weight=nearestWeight(next.family,S.weight); }
@@ -2891,7 +2903,7 @@ $('#fontFile').addEventListener('change',async e=>{
     S.family=last.family; S.weight=nearestWeight(last.family,S.weight);
     syncControls(); persistStyle(); record(); nudgeSig=''; render();
   }
-  if(failed.length) alert('Could not load: '+failed.join(', '));
+  if(failed.length) toast('Could not load: '+failed.join(', '));
 });
 // Back to the default font, so the family box and the preview agree again (offered in the missing-font warning).
 $('#fontReset').addEventListener('click',()=>{
@@ -3125,7 +3137,7 @@ $('#presetDefault').addEventListener('click',()=>{
 });
 $('#presetExport').addEventListener('click',()=>{
   const o={}; STYLE_KEYS.forEach(k=>o[k]=S[k]); o.custom=S.custom;
-  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([JSON.stringify(o,null,2)],{type:'application/json'})); a.download=($('#presetName').value.trim()||'opentitlecard-preset')+'.json'; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([JSON.stringify(o,null,2)],{type:'application/json'})); a.download=(safeName($('#presetName').value)||'opentitlecard-preset')+'.json'; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),2000);
 });
 $('#presetImport').addEventListener('click',()=>$('#presetFile').click());
 $('#presetFile').addEventListener('change',async e=>{ const f=e.target.files[0]; e.target.value=''; if(!f) return; try{ if(!applyPreset(JSON.parse(await f.text()))) throw new Error('no settings'); fileMsg(`Applied the preset from “${f.name}”.`); }catch(err){ fileMsg('That file isn\'t an OpenTitlecard preset, so nothing was changed.',true); } });
@@ -3144,7 +3156,7 @@ $('#export').addEventListener('click',async()=>{
   const c=exportCanvas();
   if(!c) return;   // the button is disabled while the export would be over 4K
   if(!S.emptySlots){ const lost=missingIn(S.emo); if(lost.length) toast(missingNote(lost)); }
-  const stem=(S.text.replace(/\p{Extended_Pictographic}|️|‍/gu,'').trim().split(/\s+/).map(w=>w.replace(/[^\w\-]/g,'')).filter(Boolean).slice(0,5).join('-').replace(/[^\w\-]/g,'')||'titlecard').slice(0,40);
+  const stem=(S.text.replace(/\p{Extended_Pictographic}|️|‍/gu,'').trim().split(/\s+/).map(w=>w.replace(/[^\p{L}\p{N}_\-]/gu,'')).filter(Boolean).slice(0,5).join('-')||'titlecard').slice(0,40);
   c.toBlob(b=>download(b,`titlecard_${stem}.png`),'image/png');
 });
 function download(blob,name){ const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),3000); }
@@ -3159,9 +3171,15 @@ function confirmAction({title,message,ok='Continue'}){
   return new Promise(resolve=>{
     const d=$('#confirmDlg');
     $('#cTitle').textContent=title; $('#cMsg').textContent=message; $('#cOk').textContent=ok;
+    if(confirmAnswer) confirmAnswer(false);   // a question still open is answered no, never left hanging
+    if(d.open) d.close('cancel');
     d.returnValue='';
-    confirmAnswer=v=>{ confirmAnswer=null; resolve(v); };
-    d.addEventListener('close',()=>{ if(confirmAnswer) confirmAnswer(d.returnValue==='ok'); },{once:true});
+    // Each question has its own answer function and close listener. A close event is queued by close() and fires a task
+    // later, so it can arrive after the next question has opened: it must not answer that one.
+    const mine=v=>{ if(confirmAnswer===mine) confirmAnswer=null; d.removeEventListener('close',onClose); resolve(v); };
+    const onClose=()=>{ if(!d.open&&confirmAnswer===mine) mine(d.returnValue==='ok'); };
+    confirmAnswer=mine;
+    d.addEventListener('close',onClose);
     d.showModal(); $('#cCancel').focus();
   });
 }
@@ -3401,7 +3419,8 @@ function decodeBatch(raw){
   const style=cleanStyle(raw.style,sharedStyle);
   const out=raw.cards.slice(0,MAX_CARDS).map(r=>{
     r=r&&typeof r==='object'?r:{};
-    const text=typeof r.t==='string'?r.t.slice(0,MAX_TEXT):'';
+    let text=typeof r.t==='string'?r.t.slice(0,MAX_TEXT):'';
+    if(/[\ud800-\udbff]$/.test(text)) text=text.slice(0,-1);   // the cap must not leave half of a surrogate pair
     const c=newCard(text,cleanName(r.m));   // files saved before names existed have none: numbered below
     if(r.c&&typeof r.c==='object') for(const k of Object.keys(r.c)){ const i=+k; if(Number.isInteger(i)&&i>=0&&i<text.length&&typeof r.c[k]==='string'&&HEX_RE.test(r.c[k])) c.colors[i]=r.c[k]; }
     if(r.e&&typeof r.e==='object'&&!Array.isArray(r.e)) for(const k of Object.keys(r.e).slice(0,MAX_SLOTS)){
@@ -3863,11 +3882,27 @@ function uniqueEmojiName(base,exceptId){
   if(!taken.has(base.toLowerCase())) return base;
   for(let n=2;;n++){ const t=` ${n}`, c=base.slice(0,MAX_NAME-t.length)+t; if(!taken.has(c.toLowerCase())) return c; }
 }
+// {w,h} from the first bytes of a PNG or WebP, or null if they aren't one (the decoder then has the final say).
+function imageHeaderSize(buf){
+  const b=new Uint8Array(buf), dv=new DataView(buf), asc=(o,n)=>String.fromCharCode(...b.subarray(o,o+n));
+  if(b.length>=24&&asc(1,3)==='PNG'&&asc(12,4)==='IHDR') return {w:dv.getUint32(16),h:dv.getUint32(20)};
+  if(b.length>=30&&asc(0,4)==='RIFF'&&asc(8,4)==='WEBP'){
+    const k=asc(12,4);
+    if(k==='VP8X') return {w:1+(b[24]|b[25]<<8|b[26]<<16),h:1+(b[27]|b[28]<<8|b[29]<<16)};
+    if(k==='VP8L'&&b[20]===0x2f){ const v=dv.getUint32(21,true); return {w:1+(v&0x3fff),h:1+((v>>14)&0x3fff)}; }
+    if(k==='VP8 '&&b[23]===0x9d&&b[24]===0x01&&b[25]===0x2a) return {w:dv.getUint16(26,true)&0x3fff,h:dv.getUint16(28,true)&0x3fff};
+  }
+  return null;
+}
 // Decode, scale down (an SVG is drawn at EMOJI_MAX_SIDE), optionally trim, and re-encode as PNG. Throws a short reason.
 async function emojiFromFile(f,trim){
   const type=emojiKind(f);
   if(!type) throw new Error('is not a PNG, WebP or SVG image');
   if(f.size>EMOJI_MAX_FILE) throw new Error(`is over ${EMOJI_MAX_FILE/1e6} MB`);
+  if(type!=='image/svg+xml'){   // the header names the size, so a huge image is refused before anything is decoded
+    const dim=imageHeaderSize(await f.slice(0,64).arrayBuffer());
+    if(dim&&dim.w*dim.h>EMOJI_MAX_PIXELS) throw new Error('is too large in pixels');
+  }
   const url=URL.createObjectURL(f), img=new Image();
   let c;
   try{
@@ -4217,7 +4252,10 @@ document.addEventListener('keydown',e=>{
 /* "{n}" in the pattern becomes the number; a pattern without it gets "-<n>" so files can never collide. Characters
    Windows/macOS reject in file names are replaced, and a name used twice gets a "-2", "-3"… suffix. Empty cards are
    skipped and don't use up a number. */
-const safeName = s => s.replace(/[\\/:*?"<>|\u0000-\u001f]/g,'-').replace(/^[\s.]+|[\s.]+$/g,'').slice(0,120);
+const safeName = s => {
+  const n=s.replace(/[\\/:*?"<>|\u0000-\u001f]/g,'-').replace(/^[\s.]+|[\s.]+$/g,'').slice(0,120);
+  return /^(con|prn|aux|nul|com[1-9]|lpt[1-9])(\..*)?$/i.test(n)?'_'+n:n;   // names Windows reserves, with or without an extension
+};
 // {n} is the card's number, {name} its name (cardNames, one per exported card). Both are filled in one pass, so a name
 // that itself contains "{n}" stays as typed. A pattern with neither gets the number after a dash.
 function batchNames(pattern,start,digits,count,cardNames=[]){
