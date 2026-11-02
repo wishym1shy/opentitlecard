@@ -189,8 +189,9 @@
   .sptile:hover{background:var(--panel2)}
   .sptile[aria-pressed=true]{border-color:var(--accent)}
   .sptile:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
-  .sptb{width:100%;aspect-ratio:1;padding:4px;box-sizing:border-box;display:grid;place-items:center;border-radius:6px;background:repeating-conic-gradient(#2a2e38 0 25%,#20232b 0 50%) 0 0/12px 12px}
-  .sptb img{max-width:100%;max-height:100%;object-fit:contain;display:block}
+  /* the picture is positioned inside a fixed square: a tall image (a flame, crossed fingers) used to push past it and over its neighbours */
+  .sptb{position:relative;width:100%;aspect-ratio:1;min-height:0;overflow:hidden;box-sizing:border-box;border-radius:6px;background:repeating-conic-gradient(#2a2e38 0 25%,#20232b 0 50%) 0 0/12px 12px}
+  .sptb img{position:absolute;inset:4px;width:calc(100% - 8px);height:calc(100% - 8px);object-fit:contain;display:block}
   .spname{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--mute)}
   .spnone{grid-column:1/-1;padding:14px 6px;color:var(--mute);font-size:12px;text-align:center}
   .spfoot{display:flex;justify-content:flex-end;flex:none}
@@ -411,7 +412,7 @@
 </head>
 <body>
 <header>
-  <h1>OpenTitlecard <a id="appVersion" href="https://github.com/wishym1shy/opentitlecard/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer" title="What's new in this version (changelog on GitHub)">v1.73</a></h1>
+  <h1>OpenTitlecard <a id="appVersion" href="https://github.com/wishym1shy/opentitlecard/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer" title="What's new in this version (changelog on GitHub)">v1.74</a></h1>
   <button id="updateBtn" type="button" hidden title="A newer version of OpenTitlecard is out. Click to reload the page and get it (save your set first)."></button>
   <a class="gh" href="https://github.com/wishym1shy/opentitlecard" target="_blank" rel="noopener noreferrer" title="View the source on GitHub">
     <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
@@ -3558,7 +3559,7 @@ const HELP=[
  ['ol',[
   'Click the slot in the preview. A picker with all your images opens beside it: click one to put it on the slot. It stays open so you can try several; click anywhere else or press [[Esc]] to close it. (You can also select the emoji in the text box and click an image in the Emoji panel.)']],
  'The picker opens above the slot, or below it when the slot is on the last of several lines, so it covers as little of the card as it can. Alt-click a slot to select it without opening the picker.',
- 'A slot can also use a **default**: **Use it for every** 🙂 makes the image the one for every slot of that emoji, on every card. A slot\'s own image wins over the default; **Remove image** takes it off.',
+ '**Remove image** takes the image off the slot again.',
  ['h','Placement'],
  'With a slot that shows an image selected, the Emoji panel shows **X**, **Y** and {{Size}} for the picture (percent of the standard slot). {{Match cap height}} makes it as tall as the capitals, {{Sit on baseline}} rests its bottom edge on the baseline, and {{Use for every slot with this image}} copies the placement to all of them. Pink guides on the preview show the slot\'s centre, the capital height and the baseline.',
  ['h','Room a slot takes'],
@@ -4083,16 +4084,6 @@ function removeSlotImage(){
   const sel=selectedSlot(); if(!sel||!S.emo[sel.it.s]) return;
   S.emo[sel.it.s]=tidySlot({...S.emo[sel.it.s],n:null}); record(); render();
 }
-async function setEmojiDefault(e,ch,on){
-  const k=emojiKey(ch), changed=[];
-  for(const x of emojiLib){
-    const has=x.chars.includes(k), want=on&&x===e;
-    if(has&&!want){ x.chars=x.chars.filter(c=>c!==k); changed.push(x); } else if(!has&&want){ x.chars=[...x.chars,k]; changed.push(x); }
-  }
-  try{ for(const x of changed) await emojiStore('readwrite',st=>st.put(storable(x))); }
-  catch(err){ setEmojiMsg("Couldn't save that default.",true); }
-  renderEmojiLib(); render();
-}
 /* Where the picture sits in its slot: X and Y (percent of the standard slot) and Size (percent of the picture fitted to
    the slot). They belong to the slot, not the image (maintainer decision on #60), so two slots of one image can differ and
    each keeps its placement through edits. The fields are the mock-up's (bindViewSliders); AN mirrors the selected slot. */
@@ -4162,7 +4153,6 @@ function updateEmojiSlotBar(){
   const row=document.createElement('div'); row.className='row';
   const btn=(label,act)=>{ const x=document.createElement('button'); x.type='button'; x.className='sm'; x.dataset.act=act; x.textContent=label; x.style.flex='none'; row.append(x); };
   if(d&&d.n) btn('Remove image','remove');
-  if(r.e){ const isDef=r.e.chars.includes(emojiKey(ch)); btn(isDef?`Stop using it for every ${ch}`:`Use it for every ${ch}`,isDef?'undefault':'default'); }
   if(row.children.length) box.append(row);
 }
 $('#emSlot').addEventListener('mousedown',e=>{ if(e.target.closest('button')) e.preventDefault(); });   // the text box keeps its selection
@@ -4170,7 +4160,6 @@ $('#emSlot').addEventListener('click',e=>{
   const b=e.target.closest('button'); if(!b) return;
   const sel=selectedSlot(); if(!sel) return;
   if(b.dataset.act==='remove') removeSlotImage();
-  else{ const r=slotImage(sel.it); if(r.e) setEmojiDefault(r.e,S.text.slice(sel.it.s,sel.it.e),b.dataset.act==='default'); }
 });
 const emGrid=$('#emGrid');
 emGrid.addEventListener('dblclick',e=>{ const it=e.target.closest('.emitem'); if(it&&!e.target.closest('.emdel')) startEmojiRename(it); });
