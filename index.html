@@ -181,6 +181,19 @@
   #cardCount{flex:1;color:var(--mute);font-size:11.5px;font-variant-numeric:tabular-nums}
   .layers,.emlib{border:1px solid var(--line);border-radius:6px;background:#14161b;overflow:hidden}
   .layerfoot{display:flex;gap:2px;padding:2px 4px;border-top:1px solid var(--line);background:var(--panel2)}
+  .sppick{inset:auto;margin:0;padding:8px;box-sizing:border-box;flex-direction:column;gap:8px;background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:10px;box-shadow:0 12px 36px #000a}
+  .sppick:popover-open{display:flex}
+  .sppick input[type=search]{width:100%;box-sizing:border-box;flex:none}
+  .spgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(76px,1fr));gap:6px;overflow:auto;min-height:0;flex:1 1 auto;align-content:start}
+  .sptile{display:grid;gap:3px;justify-items:center;padding:4px;border:2px solid transparent;border-radius:8px;background:none;color:var(--text);min-width:0;font-size:10.5px}
+  .sptile:hover{background:var(--panel2)}
+  .sptile[aria-pressed=true]{border-color:var(--accent)}
+  .sptile:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+  .sptb{width:100%;aspect-ratio:1;padding:4px;box-sizing:border-box;display:grid;place-items:center;border-radius:6px;background:repeating-conic-gradient(#2a2e38 0 25%,#20232b 0 50%) 0 0/12px 12px}
+  .sptb img{max-width:100%;max-height:100%;object-fit:contain;display:block}
+  .spname{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--mute)}
+  .spnone{grid-column:1/-1;padding:14px 6px;color:var(--mute);font-size:12px;text-align:center}
+  .spfoot{display:flex;justify-content:flex-end;flex:none}
   .menu{inset:auto;margin:0;padding:4px;min-width:250px;background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:8px;box-shadow:0 10px 30px #0008}
   .menu button{display:block;width:100%;text-align:left;border:0;background:none;padding:6px 10px;font-size:12px}
   .menu button:hover,.menu button:focus-visible{background:var(--panel2);outline:0}
@@ -384,10 +397,10 @@
       .fp.min .fpb{height:0;padding-bottom:0;opacity:0;transition-duration:var(--close)}
       @starting-style{ .anim .fp:not(.min) .fpb{height:0;padding-bottom:0;opacity:0} }
     }
-    .menu{transition:opacity var(--close,130ms) var(--ease,ease),translate var(--close,130ms) var(--ease,ease),display var(--close,130ms) allow-discrete,overlay var(--close,130ms) allow-discrete}
-    .menu:not(:popover-open){opacity:0;translate:0 -4px}
-    .menu:popover-open{transition-duration:var(--open,170ms)}
-    @starting-style{ .menu:popover-open{opacity:0;translate:0 -4px} }
+    .menu,.sppick{transition:opacity var(--close,130ms) var(--ease,ease),translate var(--close,130ms) var(--ease,ease),display var(--close,130ms) allow-discrete,overlay var(--close,130ms) allow-discrete}
+    .menu:not(:popover-open),.sppick:not(:popover-open){opacity:0;translate:0 -4px}
+    .menu:popover-open,.sppick:popover-open{transition-duration:var(--open,170ms)}
+    @starting-style{ .menu:popover-open,.sppick:popover-open{opacity:0;translate:0 -4px} }
     dialog,dialog::backdrop{transition:opacity var(--close,130ms) var(--ease,ease),scale var(--close,130ms) var(--ease,ease),display var(--close,130ms) allow-discrete,overlay var(--close,130ms) allow-discrete}
     dialog:not([open]),dialog:not([open])::backdrop{opacity:0}
     dialog:not([open]){scale:.97}
@@ -398,7 +411,7 @@
 </head>
 <body>
 <header>
-  <h1>OpenTitlecard <a id="appVersion" href="https://github.com/wishym1shy/opentitlecard/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer" title="What's new in this version (changelog on GitHub)">v1.72</a></h1>
+  <h1>OpenTitlecard <a id="appVersion" href="https://github.com/wishym1shy/opentitlecard/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer" title="What's new in this version (changelog on GitHub)">v1.73</a></h1>
   <button id="updateBtn" type="button" hidden title="A newer version of OpenTitlecard is out. Click to reload the page and get it (save your set first)."></button>
   <a class="gh" href="https://github.com/wishym1shy/opentitlecard" target="_blank" rel="noopener noreferrer" title="View the source on GitHub">
     <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
@@ -696,6 +709,11 @@
   </div>
   <!-- the bottom bar: the canvas size and the card's numbers on the left, file messages, whether it clears the safe zone on the right -->
   <div id="toast" role="status" aria-live="polite"></div>
+  <div id="slotPicker" class="sppick" role="dialog" aria-label="Choose an emoji image" popover="manual">
+    <input type="search" id="spSearch" placeholder="Search emoji by name" aria-label="Search emoji images by name" autocomplete="off">
+    <div class="spgrid" id="spGrid" role="group" aria-label="Emoji images"></div>
+    <div class="spfoot"><button type="button" id="spRemove" class="sm">Remove image</button></div>
+  </div>
   <div id="info"><span id="dims"></span><span id="infoStats"></span><span id="fileMsg" role="status"></span><span id="szFit" role="status"></span></div>
 </section>
 </div>
@@ -1664,7 +1682,7 @@ function renderNow(){
   drawSafeZone(cv.getContext('2d'),g,k);   // preview only: export paints with draw() alone
   mockupStatus(); safeZoneStatus(g);
   $('#dims').textContent = `${g.W} × ${g.H} px${S.tight?' (tight crop)':''}`;
-  updateSlotInfo(g); updateEmojiSlotBar();
+  updateSlotInfo(g); updateEmojiSlotBar(); syncSlotPicker();
   $('#infoStats').innerHTML = `<span>${L.lines.length} line${L.lines.length===1?'':'s'}</span><span>card ${Math.round(L.cardW*g.u)} × ${Math.round(L.cardH*g.u)} px</span>`;
 }
 function wordAt(pos){
@@ -1686,6 +1704,7 @@ function fitArea(){
   return {x:l, y:t, w:Math.max(50,viewEl.clientWidth-l-parseFloat(cs.paddingRight)), h:Math.max(50,viewEl.clientHeight-t-parseFloat(cs.paddingBottom))};
 }
 function placeView(g){
+  if(slotPickerAt) placeSlotPicker();   // the slot moved with the canvas (zoom, pan, resize)
   const v=viewState;
   if(v.fit){
     const a=fitArea(); v.z=clamp(Math.min(a.w/g.W,a.h/g.H,1),ZOOM_MIN,ZOOM_MAX);
@@ -2420,7 +2439,12 @@ cv.addEventListener('pointerup',e=>{
   if(d.moved){ record(); return; }   // the whole Alt-drag is one step
   const p=evToUnits(e), l=L.lines[d.i], lx=p.x-(l.tx+l.nx), k=charAtX(l,lx);
   const slot=l.items.find(it=>it.k==='slot'&&lx>=it.x&&lx<=it.x+it.w);
-  if(slot){ ta.focus(); ta.setSelectionRange(slot.s,slot.e); render(); return; }   // a click on a slot selects it, ready for an image
+  if(slot){   // a click on a slot selects it and opens the picker (Alt-click is for placing the line, so it only selects)
+    ta.focus(); ta.setSelectionRange(slot.s,slot.e); render();
+    if(d.alt) closeSlotPicker(); else openSlotPicker(slot);
+    return;
+  }
+  closeSlotPicker();
   if(k<0) return;
   const r=clickSelection(k); ta.focus(); ta.setSelectionRange(r[0],r[1]); render();
 });
@@ -3532,8 +3556,8 @@ const HELP=[
   'Double-click a name or press [[F2]] to rename. **×** or [[Delete]] removes an image, after asking.']],
  ['h','Putting an image on a slot'],
  ['ol',[
-  'Click the slot in the preview (or select the emoji in the text box).',
-  'Click an image in the Emoji panel.']],
+  'Click the slot in the preview. A picker with all your images opens beside it: click one to put it on the slot. It stays open so you can try several; click anywhere else or press [[Esc]] to close it. (You can also select the emoji in the text box and click an image in the Emoji panel.)']],
+ 'The picker opens above the slot, or below it when the slot is on the last of several lines, so it covers as little of the card as it can. Alt-click a slot to select it without opening the picker.',
  'A slot can also use a **default**: **Use it for every** 🙂 makes the image the one for every slot of that emoji, on every card. A slot\'s own image wins over the default; **Remove image** takes it off.',
  ['h','Placement'],
  'With a slot that shows an image selected, the Emoji panel shows **X**, **Y** and {{Size}} for the picture (percent of the standard slot). {{Match cap height}} makes it as tall as the capitals, {{Sit on baseline}} rests its bottom edge on the baseline, and {{Use for every slot with this image}} copies the placement to all of them. Pink guides on the preview show the slot\'s centre, the capital height and the baseline.',
@@ -3587,7 +3611,7 @@ const HELP=[
  ['h','In the text box'],
  ['keys',[['Mod+B','Bold the selection or the word at the caret'],['Mod+I','Italic'],['Mod+U','Underline'],['Alt+1 … 9','Apply the 1st to 9th swatch color']]],
  ['h','In the preview'],
- ['keys',[['Click','Select the word (click again: just the part; again: the whole word). Click an emoji slot to select it.'],['Alt+drag','Nudge the line of text you drag']]],
+ ['keys',[['Click','Select the word (click again: just the part; again: the whole word). Click an emoji slot to select it and open the image picker.'],['Alt+drag','Nudge the line of text you drag']]],
  ['h','View'],
  ['keys',[['Mod+scroll','Zoom at the cursor (or pinch on a trackpad)'],['Scroll','Pan up and down'],['Shift+scroll','Pan sideways'],['Space+drag','Pan'],['Middle button+drag','Pan'],['Mod+=','Zoom in'],['Mod+−','Zoom out'],['Mod+0','Fit the canvas in the view']]],
  ['h','Number fields'],
@@ -3986,7 +4010,7 @@ function renderEmojiLib(){
   if(!shown.length){ const n=document.createElement('div'); n.className='emnone'; n.textContent=emojiLib.length?'No emoji match.':'No emoji yet.'; grid.append(n); }
   $('#emUsage').textContent=emojiLib.length?`${emojiLib.length} emoji · ${fmtBytes(emojiBytes())} of ${fmtBytes(EMOJI_MAX_BYTES)}`:'No emoji yet';
   $('#emClear').disabled=!emojiLib.length;
-  updateEmojiSlotBar();
+  updateEmojiSlotBar(); if(slotPickerAt) fillSlotPicker();
   if(focusId){ const t=grid.querySelector(`.emitem[data-id="${CSS.escape(focusId)}"] .emthumb`); if(t) t.focus(); }
 }
 // What deleting an image would break: slots (on any card) that name it, and the emoji it is the default for.
@@ -4161,6 +4185,91 @@ emGrid.addEventListener('keydown',e=>{
   else if(e.key==='Delete'){ e.preventDefault(); deleteEmoji(it.dataset.id); }
 });
 $('#emSearch').addEventListener('input',e=>{ emojiFilter=e.target.value; renderEmojiLib(); });
+
+/* ============ emoji slot picker ============ */
+/* Clicking an emoji slot in the preview opens #slotPicker beside it: every image in the library in a big grid, so one doesn't
+   have to scroll the small panel. It is a manual popover (top layer, no backdrop), so the card stays in view and updates as
+   images are picked. It stays open while picking; a click anywhere else, Esc, or the slot going away closes it. Where it
+   opens: above the slot, which for a card with several lines would cover the text, so a slot on the last of several lines
+   opens below; a slot in the middle takes the side with more room; and a side with no room gives way to the other. */
+var slotPickerAt=null;   // {s,e}: the slot it is open for. A var because renderNow() can run before this line does.
+function slotItemAt(a){
+  if(!L||!a) return null;
+  for(let li=0;li<L.lines.length;li++) for(const it of L.lines[li].items) if(it.k==='slot'&&it.s===a.s&&it.e===a.e) return {it,li,l:L.lines[li]};
+  return null;
+}
+function fillSlotPicker(){
+  const grid=$('#spGrid'), q=$('#spSearch').value.trim().toLowerCase(), sel=slotItemAt(slotPickerAt);
+  grid.textContent='';
+  const shown=emojiLib.filter(e=>!q||e.name.toLowerCase().includes(q)).sort((a,b)=>a.added-b.added);
+  for(const e of shown){
+    const b=document.createElement('button'); b.type='button'; b.className='sptile'; b.dataset.id=e.id; b.title=`${e.name} (${e.w}×${e.h})`; b.setAttribute('aria-label',e.name);
+    const tb=document.createElement('span'); tb.className='sptb'; const im=document.createElement('img'); im.alt=''; im.src=e.url; tb.append(im);
+    const nm=document.createElement('span'); nm.className='spname'; nm.textContent=e.name;
+    b.append(tb,nm); grid.append(b);
+  }
+  if(!shown.length){ const n=document.createElement('div'); n.className='spnone'; n.textContent=emojiLib.length?'No emoji match.':'No emoji images yet. Add some in the Emoji panel.'; grid.append(n); }
+  syncSlotPickerState(sel);
+}
+// Which tile is the slot's own image, and whether there is one to remove: cheap, so it runs on every render.
+function syncSlotPickerState(sel){
+  sel=sel||slotItemAt(slotPickerAt); const d=sel&&S.emo[sel.it.s], own=d&&d.n&&d.n.toLowerCase();
+  $('#spGrid').querySelectorAll('.sptile').forEach(b=>{ const e=emojiLib.find(x=>x.id===b.dataset.id); b.setAttribute('aria-pressed',String(!!own&&!!e&&e.name.toLowerCase()===own)); });
+  $('#spRemove').disabled=!own;
+}
+function placeSlotPicker(){
+  const p=$('#slotPicker'), sel=slotItemAt(slotPickerAt);
+  if(!sel||!p.matches(':popover-open')) return;
+  const r=cv.getBoundingClientRect(), g=exportGeometry(), k=r.width/g.W, {it,l}=sel;
+  const a={left:r.left+(g.cx+(l.tx+l.nx+it.x)*g.u)*k, top:r.top+(g.cy+(l.cy+l.ny-it.h/2)*g.u)*k, w:it.w*g.u*k, h:it.h*g.u*k};
+  const M=8, GAP=10, vw=document.documentElement.clientWidth, vh=document.documentElement.clientHeight;
+  p.style.width=Math.min(440,vw-2*M)+'px'; p.style.maxHeight=Math.min(420,vh-2*M)+'px';
+  const w=p.offsetWidth, h=p.offsetHeight, room={above:a.top-M-GAP, below:vh-(a.top+a.h)-M-GAP};
+  let side=L.lines.length>1&&sel.li===L.lines.length-1?'below':sel.li===0?'above':(room.below>=room.above?'below':'above');
+  if(room[side]<h){ const other=side==='above'?'below':'above'; if(room[other]>room[side]) side=other; }
+  const top=side==='above'?a.top-GAP-h:a.top+a.h+GAP;
+  p.style.left=clamp(a.left+a.w/2-w/2,M,Math.max(M,vw-w-M))+'px';
+  p.style.top=clamp(top,M,Math.max(M,vh-h-M))+'px';
+}
+function openSlotPicker(it){
+  const p=$('#slotPicker'), again=slotPickerAt&&slotPickerAt.s===it.s&&slotPickerAt.e===it.e&&p.matches(':popover-open');
+  slotPickerAt={s:it.s,e:it.e};
+  if(!again){ $('#spSearch').value=''; fillSlotPicker(); }
+  if(!p.matches(':popover-open')) p.showPopover();
+  placeSlotPicker();
+  if(!again) $('#spSearch').focus({preventScroll:true});
+}
+function closeSlotPicker(){
+  slotPickerAt=null;
+  const p=$('#slotPicker'); if(p.matches(':popover-open')) p.hidePopover();
+}
+// Called after every render: the slot may have moved (the picker follows) or be gone (the picker closes).
+function syncSlotPicker(){
+  if(!slotPickerAt) return;
+  if(!slotItemAt(slotPickerAt)){ closeSlotPicker(); return; }
+  syncSlotPickerState(); placeSlotPicker();
+}
+function pickForSlot(id){
+  if(!slotPickerAt) return;
+  ta.setSelectionRange(slotPickerAt.s,slotPickerAt.e);   // assignEmoji() works on the selected slot
+  assignEmoji(id);
+}
+$('#spGrid').addEventListener('mousedown',e=>{ if(e.target.closest('.sptile')) e.preventDefault(); });   // keep the search box's focus
+$('#spGrid').addEventListener('click',e=>{ const t=e.target.closest('.sptile'); if(t) pickForSlot(t.dataset.id); });
+$('#spRemove').addEventListener('click',()=>{ if(!slotPickerAt) return; ta.setSelectionRange(slotPickerAt.s,slotPickerAt.e); removeSlotImage(); });
+$('#spSearch').addEventListener('input',fillSlotPicker);
+$('#spSearch').addEventListener('keydown',e=>{
+  if(e.key==='Enter'){ const t=$('#spGrid').querySelector('.sptile'); if(t){ e.preventDefault(); pickForSlot(t.dataset.id); } }
+});
+document.addEventListener('pointerdown',e=>{
+  if(!slotPickerAt||e.target.closest('#slotPicker')||e.target===cv) return;   // a press on the canvas is decided on release: a slot reopens it, anything else closes it
+  closeSlotPicker();
+},true);
+document.addEventListener('keydown',e=>{
+  if(e.key!=='Escape'||!slotPickerAt||document.querySelector('dialog[open]')) return;
+  e.preventDefault(); closeSlotPicker(); ta.focus();
+});
+window.addEventListener('resize',()=>{ if(slotPickerAt) placeSlotPicker(); });
 $('#emChoose').addEventListener('click',()=>$('#emFile').click());
 $('#emFile').addEventListener('change',e=>{ const fs=[...e.target.files]; e.target.value=''; if(fs.length) addEmojiFiles(fs); });
 $('#emClear').addEventListener('click',async()=>{
