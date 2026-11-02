@@ -4,6 +4,11 @@ What changed in OpenTitlecard, newest first. The version is shown next to the ap
 
 Versions are `vMAJOR.MINOR`. Each merged pull request that changes the app adds one to the minor number (v1.31 → v1.32 → …). The changelog started at v1.31: v1.27 stands for everything merged before the UI review that led to v1.28–v1.31 (pull requests up to #31), so the numbers line up with the work done.
 
+## v1.73
+
+### Added
+- **Click an emoji slot to pick its image.** A picker with all your emoji images opens right beside the slot, so you no longer have to scroll the small Emoji panel. It sits above the slot, or below it when the slot is on the last of several lines, so the card stays in view. Pick an image and it appears on the card straight away; the picker stays open so you can try several. Click anywhere else or press Esc to close it, and click the emoji again to reopen it. Type in its search box to filter by name (Enter picks the first match). Alt-click still just selects the slot, for placing the line.
+
 ## v1.72
 
 ### Changed
