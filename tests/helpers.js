@@ -227,4 +227,11 @@ function makePng(w, h, px) {
   return Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk('IHDR', ihdr), chunk('IDAT', zlib.deflateSync(raw)), chunk('IEND', Buffer.alloc(0))]);
 }
 
-module.exports = { makePng, fileMenu, expandUi, confirmDialog, addCard, readZip, crc32, pngSize, downloadZip, test, expect, APP_URL, FONT_FILE, FONT_FAMILY, loadTestFont, setText, settle, setRange, setSelection, exportPng, inspectPng };
+/** Gives a library image the default role for an emoji, the way a library from before v1.74 carries it (the button that set it is gone). */
+const seedDefault = (page, name, ch) => page.evaluate(async ([name, ch]) => {
+  const e = emojiLib.find((x) => x.name === name); e.chars = [emojiKey(ch)];
+  await emojiStore('readwrite', (st) => st.put(storable(e)));
+  renderEmojiLib(); render();
+}, [name, ch]);
+
+module.exports = { seedDefault, makePng, fileMenu, expandUi, confirmDialog, addCard, readZip, crc32, pngSize, downloadZip, test, expect, APP_URL, FONT_FILE, FONT_FAMILY, loadTestFont, setText, settle, setRange, setSelection, exportPng, inspectPng };

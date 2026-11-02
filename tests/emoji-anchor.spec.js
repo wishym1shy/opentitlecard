@@ -1,4 +1,4 @@
-const { test, expect, confirmDialog, setText, setSelection, exportPng, inspectPng, addCard, makePng: png } = require('./helpers');
+const { test, expect, seedDefault, confirmDialog, setText, setSelection, exportPng, inspectPng, addCard, makePng: png } = require('./helpers');
 
 // Where a picture sits in its slot: X, Y and Size per slot, the quick starting points, copying a placement, and the
 // preview's alignment guides. Images are made here (no artwork anywhere).
@@ -188,7 +188,7 @@ test.describe('emoji placement in the slot', () => {
     await setText(page, '🙂 🙂 🙃');
     let [a, c, d] = await slots(page);
     await setSelection(page, a.s, a.e); await assign(page, 'red');
-    await page.click('#emSlot button:has-text("Use it for every")');           // red is now the default for 🙂
+    await seedDefault(page, 'red', '🙂');                                      // red is now the default for 🙂
     await setSelection(page, d.s, d.e); await assign(page, 'blue');            // the 🙃 has its own picture
     await addCard(page, 'Two 🙂');
     await page.click('#cardList button >> nth=0');
@@ -237,7 +237,7 @@ test.describe('emoji placement in the slot', () => {
     await addImages(page, [file('red', square(RED))]);
     await setText(page, 'Hi 🙂');
     const b = await selectSlot(page); await assign(page, 'red');
-    await page.click('#emSlot button:has-text("Use it for every")');
+    await seedDefault(page, 'red', '🙂');
     await page.click('#emSlot button:has-text("Remove image")');                     // now it follows the default
     await expect(page.locator('#emSlot')).toContainText('default image red');
     await typeField(page, 'anX', 30);

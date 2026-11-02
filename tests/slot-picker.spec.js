@@ -74,6 +74,18 @@ test.describe('emoji slot picker', () => {
     expect(visible).toBeGreaterThanOrEqual(10);
   });
 
+  test('a tall or wide image stays inside its own square and never covers its neighbours', async ({ app: { page } }) => {
+    const mk = (name, w, h) => ({ name: name + '.png', mimeType: 'image/png', buffer: png(w, h, () => [200, 60, 30, 255]) });
+    await page.setInputFiles('#emFile', [mk('tall', 124, 160), mk('slim', 98, 159), mk('wide', 160, 60), mk('sq', 24, 24)]);
+    await page.evaluate(() => __tt.emoji.idle); await page.evaluate(() => __tt.emoji.images());
+    await setText(page, 'Hi 🙂');
+    const [b] = await screenSlots(page);
+    await click(page, b);
+    const r = await page.locator('#spGrid .sptile').evaluateAll((tiles) => tiles.map((t) => { const sq = t.querySelector('.sptb').getBoundingClientRect(), im = t.querySelector('img').getBoundingClientRect(), tr = t.getBoundingClientRect(); return { sqW: sq.width, sqH: sq.height, inside: im.left >= sq.left - 0.5 && im.right <= sq.right + 0.5 && im.top >= sq.top - 0.5 && im.bottom <= sq.bottom + 0.5, tileH: tr.height }; }));
+    for (const t of r) { expect(t.inside).toBe(true); expect(Math.abs(t.sqW - t.sqH)).toBeLessThan(1); }   // a square, whatever the picture
+    expect(Math.abs(r[0].tileH - r[3].tileH)).toBeLessThan(1);                                            // so every row is as tall as the others
+  });
+
   test('picking an image puts it on the slot, keeps the picker open and marks the tile', async ({ app: { page } }) => {
     await addImages(page, ['one', 'two']);
     await setText(page, 'Hi 🙂');

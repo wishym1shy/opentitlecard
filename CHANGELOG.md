@@ -4,6 +4,14 @@ What changed in OpenTitlecard, newest first. The version is shown next to the ap
 
 Versions are `vMAJOR.MINOR`. Each merged pull request that changes the app adds one to the minor number (v1.31 → v1.32 → …). The changelog started at v1.31: v1.27 stands for everything merged before the UI review that led to v1.28–v1.31 (pull requests up to #31), so the numbers line up with the work done.
 
+## v1.74
+
+### Removed
+- **The "Use it for every" button is gone from the Emoji panel.** It changed every slot of that emoji on every card at once, with no warning. Slots now take the image you pick for them. An image that was already set as the default for an emoji keeps working for now.
+
+### Fixed
+- **Tall emoji images no longer overflow the picker.** An image taller than it is wide (a flame, crossed fingers) was drawn too big and covered the tiles around it. Every image now fits inside its own square.
+
 ## v1.73
 
 ### Added

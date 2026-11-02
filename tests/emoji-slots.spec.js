@@ -1,4 +1,4 @@
-const { test, expect, expandUi, confirmDialog, setText, setSelection, exportPng, inspectPng, readZip, downloadZip, addCard, makePng: png } = require('./helpers');
+const { test, expect, seedDefault, expandUi, confirmDialog, setText, setSelection, exportPng, inspectPng, readZip, downloadZip, addCard, makePng: png } = require('./helpers');
 
 // Putting the user's own emoji images on slots: assignment, drawing in preview and PNG, the layout staying put, the
 // default per emoji, undo, set files and the missing-image case. Every image is made here (no emoji artwork anywhere).
@@ -143,13 +143,13 @@ test.describe('emoji images on slots', () => {
     expect(near(await at(files[1], b2), BLUE)).toBe(true);
   });
 
-  test('the default image for an emoji fills every slot of that emoji; a slot\'s own image wins; it is kept after a reload', async ({ app: { page } }) => {
+  test('a default image an older library carries still fills every slot of that emoji; a slot\'s own image wins; it is kept after a reload', async ({ app: { page } }) => {
     await addImages(page, [file('red', square(RED)), file('blue', square(BLUE))]);
     await setText(page, '🙂 and 🙂 and 🙂');
     let b = await slots(page);
     await setSelection(page, b[0].s, b[0].e);
-    await page.locator('#emGrid .emitem', { hasText: 'red' }).locator('.emthumb').click();
-    await page.click('#emSlot button:has-text("Use it for every")');
+    await expect(page.locator('#emSlot button:has-text("for every")')).toHaveCount(0);   // there is no button that sets a default any more
+    await seedDefault(page, 'red', '🙂');                                                // an older library carries one
     await expect(page.locator('#emGrid .emitem', { hasText: 'red' }).locator('.emchars')).toHaveText('🙂');
     b = await slots(page);
     expect(near(await pixelAt(page, centre(b[1])), RED)).toBe(true);     // the second slot has no image of its own: it uses the default
@@ -163,10 +163,6 @@ test.describe('emoji images on slots', () => {
     await setText(page, 'again 🙂');
     const [n] = await slots(page);
     expect(near(await pixelAt(page, centre(n)), RED)).toBe(true);
-    // and it can be turned off again; one emoji has one default
-    await setSelection(page, n.s, n.e);
-    await page.click('#emSlot button:has-text("Stop using it")');
-    expect(near(await pixelAt(page, centre(n)), [255, 255, 255])).toBe(true);
   });
 
   test('anchors: the offset is in slot widths and the size a percentage of the fitted picture, so a slot keeps its look when the text or Scale changes', async ({ app: { page } }) => {
@@ -285,7 +281,7 @@ test.describe('emoji images on slots', () => {
     let [a, c, d] = await slots(page);
     const pick = () => page.locator('#emGrid .emitem', { hasText: 'red' }).locator('.emthumb').click();
     await setSelection(page, a.s, a.e); await pick();
-    await page.click('#emSlot button:has-text("Use it for every")');            // the default for 🙂
+    await seedDefault(page, 'red', '🙂');                                       // the default for 🙂
     await setSelection(page, d.s, d.e); await pick();                           // and a slot that names it
     const item = page.locator('.emitem', { hasText: 'red' });
     await item.hover(); await item.locator('.emdel').click();
