@@ -219,13 +219,13 @@ test.describe('loading font files', () => {
 
   test('loading a font whose weight the current Weight setting lacks moves to the nearest weight it has', async ({ browser }) => {
     const { context, page } = await openPlain(browser);
-    expect(await page.evaluate(() => __tt.S.weight)).toBe(700);
+    expect(await page.evaluate(() => __tt.S.weight)).toBe(800);
     await page.setInputFiles('#fontFile', [file(400, 'normal')]);
     await page.waitForFunction(() => __tt.fonts.faces.length === 1);
     expect(await page.evaluate(() => __tt.S.weight)).toBe(400);
     expect(await weights(page)).toEqual([400]);
     await page.keyboard.press('Control+z'); // one undo step puts the family back, and the Weight menu with it
-    await expect(page.locator('#family')).toHaveValue('Inter');
+    await expect(page.locator('#family')).toHaveValue('Linik Sans');
     expect(await weights(page)).toEqual([400, 500, 600, 700, 800, 900]);
     await context.close();
   });

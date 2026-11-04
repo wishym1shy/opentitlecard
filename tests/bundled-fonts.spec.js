@@ -226,7 +226,7 @@ test.describe('font picker', () => {
     await expect(page.locator('#famMenu .fgh')).toHaveText(['Included with OpenTitlecard']);
     const styles = await page.locator('#famMenu [role=option]').evaluateAll((o) => o.map((x) => x.style.fontFamily));
     FAMILIES.forEach((f, i) => expect(styles[i]).toContain(`OpenTitlecard ${f.name}`));
-    await expect(page.locator('#famMenu [role=option][aria-selected=true]')).toHaveText(/^Inter/); // the current family is marked
+    await expect(page.locator('#famMenu [role=option][aria-selected=true]')).toHaveText(/^Linik Sans/); // the current family is marked
     await page.click('#famToggle');
     await expect(page.locator('#famMenu')).toBeHidden();
     await context.close();
@@ -242,7 +242,7 @@ test.describe('font picker', () => {
     expect(await page.evaluate(() => __tt.S.family)).toBe('Playfair Display');
     await expect(page.locator('#fontChip')).toContainText('Playfair Display');
     await page.keyboard.press('Control+z');
-    expect(await page.evaluate(() => __tt.S.family)).toBe('Inter');
+    expect(await page.evaluate(() => __tt.S.family)).toBe('Linik Sans');
     await page.keyboard.press('Control+Shift+z');
     expect(await page.evaluate(() => __tt.S.family)).toBe('Playfair Display');
     await page.reload();
