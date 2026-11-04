@@ -1,6 +1,6 @@
 const { test, expect, expandUi, APP_URL, setText, settle, setRange, exportPng, inspectPng } = require('./helpers');
 
-// These tests never load the test font: they use the Inter that ships inside index.html, i.e. what a first-time
+// These tests never load the test font: they use the Linik Sans that ships inside index.html, i.e. what a first-time
 // visitor gets. (Every other spec loads a pinned static Inter through "Load font file…" for identical metrics.)
 
 // Some machines (a developer's, maybe CI) have Inter installed, which would hide the bundled path. This makes the app's
@@ -8,9 +8,9 @@ const { test, expect, expandUi, APP_URL, setText, settle, setRange, exportPng, i
 const NO_SYSTEM_INTER = () => {
   const measure = CanvasRenderingContext2D.prototype.measureText;
   CanvasRenderingContext2D.prototype.measureText = function (text) {
-    if (text === 'mmmmmmmmmmlliWWW@@ABC123' && /\bInter\b/.test(this.font)) {
+    if (text === 'mmmmmmmmmmlliWWW@@ABC123' && /\b(Inter|Linik Sans)\b/.test(this.font)) {
       const f = this.font;
-      this.font = f.replace(/"?\bInter\b"?,\s*/, '');
+      this.font = f.replace(/"?\b(Inter|Linik Sans)\b"?,\s*/, '');
       const r = measure.call(this, text);
       this.font = f;
       return r;
@@ -33,15 +33,15 @@ async function openPlain(browser, init) {
   await expandUi(page);
   return { context, page, errors, requests };
 }
-const bundledLoaded = (page) => page.waitForFunction(() => [...document.fonts].some((f) => f.family.includes('OpenTitlecard Inter') && f.status === 'loaded'));
+const bundledLoaded = (page) => page.waitForFunction(() => [...document.fonts].some((f) => f.family.includes('OpenTitlecard Linik Sans') && f.status === 'loaded'));
 
-test.describe('bundled default font (Inter)', () => {
-  test('a fresh load on a computer without Inter is ready to use: Inter is selected, the chip is green, no warning, and nothing is fetched', async ({ browser }) => {
+test.describe('bundled default font (Linik Sans)', () => {
+  test('a fresh load on a computer without Inter is ready to use: Linik Sans is selected, the chip is green, no warning, and nothing is fetched', async ({ browser }) => {
     const { context, page, errors, requests } = await openPlain(browser, NO_SYSTEM_INTER);
     await bundledLoaded(page);
-    expect(await page.evaluate(() => ({ family: __tt.S.family, weight: __tt.S.weight }))).toEqual({ family: 'Inter', weight: 700 });
+    expect(await page.evaluate(() => ({ family: __tt.S.family, weight: __tt.S.weight }))).toEqual({ family: 'Linik Sans', weight: 800 });
     await expect(page.locator('#fontChip')).toHaveClass(/ok/);
-    await expect(page.locator('#fontChip')).toContainText('Inter 700');
+    await expect(page.locator('#fontChip')).toContainText('Linik Sans 800');
     await expect(page.locator('#fontWarn')).toBeHidden();
     await expect(page.locator('#export')).toHaveText('Download PNG');
     expect(requests.filter((u) => !/^(file|data|blob):/.test(u)), 'no network requests').toEqual([]);
@@ -80,7 +80,7 @@ test.describe('bundled default font (Inter)', () => {
     await context.close();
   });
 
-  test('the default draws in Inter (not a generic fallback) and every weight in the menu changes the layout', async ({ browser }) => {
+  test('the default draws in Linik Sans (not a generic fallback) and every weight in the menu changes the layout', async ({ browser }) => {
     const { context, page } = await openPlain(browser);
     await bundledLoaded(page);
     await setText(page, 'Titlecard weights');
@@ -145,12 +145,12 @@ test.describe('bundled default font (Inter)', () => {
   test('if the embedded font cannot load, the app says so instead of pretending', async ({ browser }) => {
     const { context, page } = await openPlain(browser, combine(NO_SYSTEM_INTER, () => {
       const Orig = window.FontFace;
-      window.FontFace = function (name, ...rest) { if (String(name).includes('OpenTitlecard Inter')) throw new Error('blocked'); return new Orig(name, ...rest); };
+      window.FontFace = function (name, ...rest) { if (String(name).includes('OpenTitlecard Linik Sans')) throw new Error('blocked'); return new Orig(name, ...rest); };
       window.FontFace.prototype = Orig.prototype;
     }));
     await expect(page.locator('#fontChip')).toHaveClass(/bad/);
     await expect(page.locator('#fontWarn')).toBeVisible();
-    await expect(page.locator('#fontWarnMsg')).toContainText('Inter');
+    await expect(page.locator('#fontWarnMsg')).toContainText('Linik Sans');
     await expect(page.locator('#export')).toContainText('fallback font');
     await context.close();
   });
@@ -176,10 +176,10 @@ test.describe('bundled default font (Inter)', () => {
   test('the default font has a real italic: different letter shapes and spacing, not the upright tilted', async ({ browser }) => {
     const { context, page } = await openPlain(browser);
     await bundledLoaded(page);
-    await page.waitForFunction(() => [...document.fonts].some((f) => f.family.includes('OpenTitlecard Inter') && f.style === 'italic' && f.status === 'loaded'));
+    await page.waitForFunction(() => [...document.fonts].some((f) => f.family.includes('OpenTitlecard Linik Sans') && f.style === 'italic' && f.status === 'loaded'));
     const m = await page.evaluate(() => {
       const c = document.createElement('canvas').getContext('2d'), out = {};
-      for (const w of [400, 700, 900]) for (const st of ['normal', 'italic']) { c.font = `${st} ${w} 100px "OpenTitlecard Inter"`; out[`${st}${w}`] = c.measureText('Titlecard affiliate').width; }
+      for (const w of [400, 700, 900]) for (const st of ['normal', 'italic']) { c.font = `${st} ${w} 100px "OpenTitlecard Linik Sans"`; out[`${st}${w}`] = c.measureText('Titlecard affiliate').width; }
       return out;
     });
     // a faked slant keeps the upright advance widths exactly; a real italic face does not
@@ -191,7 +191,7 @@ test.describe('bundled default font (Inter)', () => {
   test('italic words in the default font are not shifted: a real italic spaces itself', async ({ browser }) => {
     const { context, page } = await openPlain(browser, NO_SYSTEM_INTER);
     await bundledLoaded(page);
-    await page.waitForFunction(() => [...document.fonts].some((f) => f.family.includes('OpenTitlecard Inter') && f.style === 'italic' && f.status === 'loaded'));
+    await page.waitForFunction(() => [...document.fonts].some((f) => f.family.includes('OpenTitlecard Linik Sans') && f.style === 'italic' && f.status === 'loaded'));
     await setText(page, 'Hello world');
     await page.check('#align input[value="left"]'); // left-aligned, so the first run starts at the same place whatever its width
     const before = (await settle(page)).lines[0].items[0].x;

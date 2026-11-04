@@ -30,16 +30,17 @@ test.describe('remembered fonts', () => {
     await page.keyboard.press('Escape');
   });
 
-  test('a font that is not here offers Reset to Inter, which makes the box and the preview agree again (and can be undone)', async ({ app: { page } }) => {
+  test('a font that is not here offers Reset to Linik Sans, which makes the box and the preview agree again (and can be undone)', async ({ app: { page } }) => {
     await page.fill('#family', 'Font From Another Computer');
     await expect(page.locator('#fontReset')).toBeVisible();
     await page.click('#fontReset');
-    expect(await page.evaluate(() => __tt.S.family)).toBe('Inter');
-    await expect(page.locator('#family')).toHaveValue('Inter');
+    expect(await page.evaluate(() => __tt.S.family)).toBe('Linik Sans');
+    expect(await page.evaluate(() => __tt.S.weight)).toBe(800);
+    await expect(page.locator('#family')).toHaveValue('Linik Sans');
     await expect(page.locator('#fontWarn')).toBeHidden();
     await expect(page.locator('#fontWarnMsg')).toBeHidden();
-    await chipOk(page, 'Inter');
-    expect(await page.evaluate(() => JSON.parse(localStorage.getItem('opentitlecard.style')).family)).toBe('Inter');
+    await chipOk(page, 'Linik Sans');
+    expect(await page.evaluate(() => JSON.parse(localStorage.getItem('opentitlecard.style')).family)).toBe('Linik Sans');
     await page.evaluate(() => __tt.undo());
     expect(await page.evaluate(() => __tt.S.family)).toBe('Font From Another Computer');
   });
