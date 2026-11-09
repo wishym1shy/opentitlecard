@@ -254,7 +254,7 @@ test.describe('resets', () => {
     await reset(page, 'resetAll');
     expect(await keys(page)).toEqual(['opentitlecard.rememberedFonts']);   // written again on load, now empty
     expect(await page.evaluate(() => JSON.parse(localStorage.getItem('opentitlecard.rememberedFonts')))).toEqual([]);
-    expect(await page.evaluate(() => [__tt.S.size, __tt.S.family])).toEqual([100, 'Inter']);
+    expect(await page.evaluate(() => [__tt.S.size, __tt.S.family])).toEqual([100, 'Linik Sans']);
     await expect(page.locator('#presetSel option', { hasText: 'Mine' })).toHaveCount(0);
   });
 });
